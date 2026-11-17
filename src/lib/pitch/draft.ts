@@ -15,7 +15,8 @@ import { factsFileProblems, optOutFooter, verifiedClaims, type SprintoFactsFile 
 
 export const DRAFT_PROMPT_VERSION = "draft-v1";
 export const MAX_REPAIRS = 2;
-const MAX_OUTPUT_TOKENS = 900;
+/** Room for the answer plus the model's own thinking, which counts against it. A tight number cuts the answer off mid-sentence. */
+const MAX_OUTPUT_TOKENS = 2048;
 
 export const LINT_RULES_PLAIN = [
   "The whole email (greeting and sign-off included) is 60 to 130 words. The subject is at most 60 characters, not all capitals, and not a fake Re: or Fwd:.",

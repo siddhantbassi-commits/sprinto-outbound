@@ -17,7 +17,12 @@ import type { FetchOutcome, Site } from "@/lib/scrape/site";
 export const AGENT_PROMPT_VERSION = "agent-v1";
 export const MAX_ROUNDS = 4;
 export const MAX_CALLS_PER_ROUND = 2;
-const ROUND_OUTPUT_TOKENS = 512;
+/**
+ * The room one round gets for its answer. These models spend part of it on thinking before they call a tool, so too small a
+ * number ends the round with no call at all, which the loop reads as "nothing more to fetch". Measured against the real
+ * models: 300 failed often, 512 was borderline, 1024 was steady.
+ */
+export const ROUND_OUTPUT_TOKENS = 1024;
 
 export const TOOLS: ToolDecl[] = [
   {

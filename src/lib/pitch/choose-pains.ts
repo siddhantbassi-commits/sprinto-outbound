@@ -13,7 +13,8 @@ import type { Evidence, PainId, ScoredPain, Shortlist } from "./pains";
 
 export const PAINS_PROMPT_VERSION = "pains-v1";
 const MAX_REASON_CHARS = 300;
-const MAX_OUTPUT_TOKENS = 700;
+/** Room for the answer plus the model's own thinking, which counts against it. A tight number cuts the answer off mid-sentence. */
+const MAX_OUTPUT_TOKENS = 2048;
 
 export interface PainPick {
   id: PainId;

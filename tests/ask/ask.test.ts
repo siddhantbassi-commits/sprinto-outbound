@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { TokenBudget } from "@/lib/ai/budget";
 import { AiError } from "@/lib/ai/errors";
 import { scriptedAi } from "@/lib/ai/fake";
-import { ask, askSystemPrompt, MAX_QUESTION, MAX_ROUNDS } from "@/lib/ask/ask";
+import { ask, askSystemPrompt, MAX_QUESTION, MAX_ROUNDS, ROUND_OUTPUT_TOKENS } from "@/lib/ask/ask";
 import { pgPort } from "@/lib/db/pg-port";
 import type { DbPort, Row } from "@/lib/db/port";
 import { getDemo } from "@/lib/demo/world";
@@ -129,7 +129,8 @@ describe("ask", () => {
 
   it("charges what each round used, so a long exchange runs out of budget", async () => {
     const ai = scriptedAi({ turns: [{ calls: [{ name: "count_by_outcome", args: {} }] }, { text: "never reached" }] });
-    const budget = new TokenBudget(1800);
+    // Room for exactly one round: the reserve for an answer plus a little for the prompt. The first round reports 1200 used, which leaves too little for a second.
+    const budget = new TokenBudget(ROUND_OUTPUT_TOKENS + 1000);
     const r = await ask({ ai, db: await demoDb(), question: "q", budget });
     expect(r).toMatchObject({ ok: false, code: "budget" });
     expect(budget.used).toBe(1200);

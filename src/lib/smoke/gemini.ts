@@ -1,4 +1,4 @@
-import { agentSystemPrompt, TOOLS, validateCall } from "@/lib/agent/loop";
+import { agentSystemPrompt, ROUND_OUTPUT_TOKENS, TOOLS, validateCall } from "@/lib/agent/loop";
 import { TokenBudget } from "@/lib/ai/budget";
 import { AiError } from "@/lib/ai/errors";
 import { createGeminiClient, modelChain } from "@/lib/ai/gemini";
@@ -64,7 +64,7 @@ export async function geminiChecks(o: GeminiSmokeOptions): Promise<Check[]> {
     out.push(
       ...(await safely(S, `model:${model}`, `Model ${model} answers in JSON-schema mode`, async () => {
         const client = createGeminiClient({ apiKey: o.apiKey, models: [model], fetchFn });
-        const res = await client.generateJson({ purpose: "smoke", system: "Reply with JSON only.", user: "Return ok as true.", schema: { type: "object", properties: { ok: { type: "boolean" } }, required: ["ok"] }, temperature: 0, maxOutputTokens: 200, timeoutMs: 20_000 });
+        const res = await client.generateJson({ purpose: "smoke", system: "Reply with JSON only.", user: "Return ok as true.", schema: { type: "object", properties: { ok: { type: "boolean" } }, required: ["ok"] }, temperature: 0, maxOutputTokens: 1024, timeoutMs: 20_000 });
         if ((res.data as { ok?: unknown })?.ok !== true) return warn(S, `model:${model}`, `Model ${model} answers in JSON-schema mode`, `it answered, but not as asked (${JSON.stringify(res.data).slice(0, 60)})`);
         working.push(model);
         return pass(S, `model:${model}`, `Model ${model} answers in JSON-schema mode`, `${res.latencyMs} ms, ${res.usage.totalTokens} tokens`);
@@ -101,7 +101,8 @@ export async function geminiChecks(o: GeminiSmokeOptions): Promise<Check[]> {
         contents: [{ role: "user", parts: [{ text: "Company domain: northwind.io\nStill unknown: enterprise signals; open security roles.\nPages already read: /.\nPages available to fetch: /pricing, /careers.\nChoose what to look at next." }] }],
         tools: TOOLS,
         temperature: 0.2,
-        maxOutputTokens: 300,
+        // The same room the loop gives a round, so this check fails when the loop would.
+        maxOutputTokens: ROUND_OUTPUT_TOKENS,
         timeoutMs: 20_000,
       });
       if (turn.calls.length === 0) return warn(S, "tools", "Function calling works", `the model answered in text instead of calling a tool (${turn.finish})`, "The loop treats that as 'nothing to add'. Check the model supports function calling.");
