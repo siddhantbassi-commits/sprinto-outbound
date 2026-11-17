@@ -670,3 +670,10 @@ label.switch b { font-weight: 640; display: block; }
 label.switch small { display: block; color: var(--muted); }
 label.tickline { display: flex; flex-direction: row; gap: 6px; align-items: center; font-weight: 400; }
 details.card > summary { cursor: pointer; font-weight: 600; }
+
+/* ---------- sign-in ---------- */
+.auth-form .eyebrow { display: inline-block; padding: 3px 11px; border-radius: 999px; background: var(--accent-soft); color: var(--brand); font-size: 0.7rem; font-weight: 640; letter-spacing: 0.1em; text-transform: uppercase; }
+.auth-form .card { animation: rise 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.auth-hero .stack > * { animation: rise 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.auth-hero .stack > :nth-child(2) { animation-delay: 0.08s; }
+.auth-hero .stack > :nth-child(3) { animation-delay: 0.16s; }
