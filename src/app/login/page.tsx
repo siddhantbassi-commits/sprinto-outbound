@@ -17,7 +17,7 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
           <p className="muted">Sign in with your work email. This is invite-only: if your address has been invited, a sign-in link is on its way.</p>
         </div>
         {q.sent ? <Banner tone="good" title="Check your email">If that address has been invited, a link has been sent. It works once.</Banner> : null}
-        {q.error ? <Banner tone="bad" title="That link did not work">It may have expired or been used already. Ask for a new one below.</Banner> : null}
+        {q.error === "send" ? <Banner tone="warn" title="The email could not be sent just now">The mail service is busy or rate-limited. Wait a few minutes and try once more.</Banner> : q.error ? <Banner tone="bad" title="That link did not work">It may have expired or been used already. Ask for a new one below.</Banner> : null}
         {!env.supabase ? <Banner tone="warn" title="Not set up yet">Supabase is not configured, so nobody can sign in. See supabase/README.md.</Banner> : null}
         <form action={requestLink} className="stack">
           <label>
