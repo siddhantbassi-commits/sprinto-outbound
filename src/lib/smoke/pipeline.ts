@@ -52,7 +52,11 @@ export async function dryRun(o: DryRunOptions): Promise<DryRunResult> {
   await db.as(users.operator).query("select public.create_run($1::text[], 'paste', 'Dry run', '{}'::jsonb)", [[domain]]);
   const t = await tick({ store, ai: o.ai, fetchDeps: o.fetchDeps, hunter: o.hunter ?? stubHunter(domain), gmail: demoGmail(outbox), appUrl: null, now: Date.now, stepBudgetMs: 45_000 }, { source: "browser", maxSteps: 30 });
 
-  const [p] = await db.admin<{ id: string; lane: string; lane_reason: string | null; step: string; score: number | null; verdict: string | null }>("select id, lane, lane_reason, step, score, verdict from public.prospects");
+  const [p0] = await db.admin<{ id: string; lane: string; lane_reason: string | null; step: string; score: number | null; verdict: string | null; last_error: string | null }>("select id, lane, lane_reason, step, score, verdict, last_error from public.prospects");
+  // A step that failed is retried after a back-off, so the company can still be "active" with nothing in lane_reason. The
+  // real reason is in the last error or the newest trace row, and a dry run should say it.
+  const [lastEvent] = p0 ? await db.admin<{ step: string; status: string; error: string | null }>("select step, status, error from public.step_events where prospect_id = $1 and (error is not null or status in ('retry', 'error')) order by id desc limit 1", [p0.id]) : [];
+  const p = p0 ? { ...p0, lane_reason: p0.lane_reason ?? p0.last_error ?? (lastEvent ? `${lastEvent.step} ${lastEvent.status}${lastEvent.error ? `: ${lastEvent.error}` : ""}` : null) } : p0;
   const out: Check[] = [];
   if (t.errors.length) out.push(warn(S, "errors", "The worker reported errors", t.errors.slice(0, 3).join(" | ")));
   if (!p) return { checks: [...out, fail(S, "prospect", `Dry run on ${domain}`, "no prospect was created")], email: null };

@@ -16,7 +16,8 @@ export const EXTRACT_PROMPT_VERSION = "extract-v1";
 
 const PAGE_CHAR_CAP = 24_000;
 const TOTAL_CHAR_CAP = 90_000;
-const MAX_OUTPUT_TOKENS = 4096;
+/** 19 facts, each with quotes, plus the model's own thinking, which counts against this. 4096 was cut off on a real six-page site. */
+const MAX_OUTPUT_TOKENS = 12_288;
 const KIND_ORDER = ["home", "pricing", "security", "about", "customers", "careers", "other"];
 
 export interface ExtractPage extends PageText {
