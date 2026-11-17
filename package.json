@@ -18,7 +18,8 @@
     "check": "npm run typecheck && npm run test",
     "smoke": "tsx scripts/smoke.ts",
     "golden": "tsx scripts/golden.ts",
-    "keys": "tsx scripts/keys.ts"
+    "keys": "tsx scripts/keys.ts",
+    "gmail-token": "tsx scripts/gmail-token.ts"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.15",
