@@ -1,0 +1,89 @@
+"use server";
+import { redirect } from "next/navigation";
+import { MAX_INPUT_CHARS, parseList, type ParsedList } from "@/lib/app/list";
+import { activeSuppressions, currentSettings } from "@/lib/app/queries";
+import { getSession, hunterBalance } from "@/lib/app/runtime";
+import { planHunterBudget, type BudgetPlan } from "@/lib/contacts/quota";
+import { PROMPT_VERSIONS } from "@/lib/versions";
+
+export interface CheckResult {
+  ok: boolean;
+  message?: string;
+  list?: ParsedList;
+  source?: "paste" | "csv";
+  suppressed?: string[];
+  recent?: string[];
+  manual?: string[];
+  plan?: BudgetPlan | null;
+  hunterError?: string;
+  maxRun?: number;
+}
+
+const MAX_FILE_BYTES = 1_000_000;
+
+/** Reads a pasted list or an uploaded CSV and says, before anything runs, what would happen to each domain and what it would cost. */
+export async function checkList(_prev: CheckResult | null, formData: FormData): Promise<CheckResult> {
+  const s = await getSession();
+  if (!s || (s.user.role !== "operator" && s.user.role !== "admin")) return { ok: false, message: "Only an operator or admin can start a run." };
+
+  let text = String(formData.get("domains") ?? "");
+  let source: "paste" | "csv" = "paste";
+  const file = formData.get("file");
+  if (file instanceof File && file.size > 0) {
+    if (file.size > MAX_FILE_BYTES) return { ok: false, message: "That file is over 1 MB. A list of domains should be far smaller." };
+    if (!/\.(csv|txt)$/i.test(file.name) && !/^text\//.test(file.type)) return { ok: false, message: "Upload a .csv or .txt file." };
+    text = await file.text();
+    source = "csv";
+  }
+  if (!text.trim()) return { ok: false, message: "Paste some domains or choose a file first." };
+
+  const list = parseList(text.slice(0, MAX_INPUT_CHARS));
+  const [settings, suppressions] = await Promise.all([currentSettings(s.db), activeSuppressions(s.db)]);
+  const blocked = new Set(suppressions.filter((x) => x.kind === "domain").map((x) => x.value));
+  const suppressed = list.valid.filter((d) => blocked.has(d));
+
+  const cooldown = settings?.mail_cooldown_days ?? 30;
+  const sentRows = await s.db.select("emails", {}, { order: "created_at", ascending: false, limit: 1000 });
+  const cutoff = Date.now() - cooldown * 86_400_000;
+  const mailed = new Set(sentRows.filter((e) => ["sending", "sent", "unknown"].includes(String(e.status)) && e.sending_at && new Date(e.sending_at as string).getTime() > cutoff).map((e) => String(e.domain)));
+  const recent = list.valid.filter((d) => mailed.has(d));
+
+  const manualRows = await s.db.select("manual_contacts", {}, { limit: 1000 });
+  const manual = new Set(manualRows.map((m) => String(m.domain)));
+  const cacheRows = await s.db.select("hunter_cache", {}, { order: "fetched_at", ascending: false, limit: 1000 });
+  const cached = new Set(cacheRows.filter((c) => c.response && new Date(c.fetched_at as string).getTime() > Date.now() - 30 * 86_400_000).map((c) => String(c.domain)));
+
+  const going = list.valid.filter((d) => !blocked.has(d) && !mailed.has(d));
+  const needHunter = going.filter((d) => !manual.has(d) && !cached.has(d));
+  const balance = await hunterBalance();
+  const plan = balance && balance.remaining !== undefined ? planHunterBudget({ remaining: balance.remaining, reserve: settings?.hunter_reserve ?? 3, requested: needHunter.length, cached: going.filter((d) => cached.has(d)).length, manual: going.filter((d) => manual.has(d)).length }) : null;
+
+  return { ok: true, list, source, suppressed, recent, manual: going.filter((d) => manual.has(d)), plan, hunterError: balance && "error" in balance ? balance.error : undefined, maxRun: settings?.max_run_size };
+}
+
+export interface StartResult {
+  message: string;
+}
+
+export async function startRun(_prev: StartResult | null, formData: FormData): Promise<StartResult> {
+  const s = await getSession();
+  if (!s || (s.user.role !== "operator" && s.user.role !== "admin")) return { message: "Only an operator or admin can start a run." };
+  let domains: string[];
+  try {
+    const parsed: unknown = JSON.parse(String(formData.get("domains") ?? "[]"));
+    domains = Array.isArray(parsed) ? parsed.filter((d): d is string => typeof d === "string").slice(0, 1000) : [];
+  } catch {
+    return { message: "The list could not be read. Check it again." };
+  }
+  const source = formData.get("source") === "csv" ? "csv" : "paste";
+  const note = String(formData.get("note") ?? "").trim().slice(0, 120);
+  let id: string;
+  try {
+    // The database re-checks every domain, the run-size cap, the sign-off and the suppression list; nothing here is trusted.
+    const [row] = await s.db.rpc("create_run", { p_domains: domains, p_source: source, p_note: note, p_prompt_versions: PROMPT_VERSIONS });
+    id = String(Object.values(row ?? {})[0]);
+  } catch (e) {
+    return { message: e instanceof Error ? e.message : "The run could not be started." };
+  }
+  redirect(`/runs/${id}`);
+}

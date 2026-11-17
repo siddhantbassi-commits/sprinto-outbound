@@ -1,0 +1,36 @@
+# The scheduled worker. Every 15 minutes it calls the app's worker endpoint, which claims due prospects and runs one step
+# each, as the worker's own account. GitHub's scheduler can start late or skip a run, so the app also warns when it has not
+# heard from the worker for an hour, and opening a live run in the browser drives the same worker.
+name: Worker
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: worker
+  cancel-in-progress: false
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - name: Call the worker until the queue is empty or four minutes pass
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -u
+          if [ -z "${APP_URL}" ] || [ -z "${CRON_SECRET}" ]; then
+            echo "APP_URL and CRON_SECRET must be set as repository secrets." >&2
+            exit 1
+          fi
+          end=$((SECONDS + 240))
+          while [ "$SECONDS" -lt "$end" ]; do
+            out=$(curl -sS --fail-with-body --max-time 75 -X POST -H "Authorization: Bearer ${CRON_SECRET}" "${APP_URL%/}/api/worker/tick") || { echo "The worker call failed: ${out:-no body}" >&2; exit 1; }
+            echo "$out" | jq -c '{processed, advanced, parked, retried, failed, swept, busy, errors: (.errors // [] | length)}'
+            [ "$(echo "$out" | jq -r '.more // false')" = "true" ] || break
+          done

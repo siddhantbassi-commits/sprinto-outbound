@@ -1,0 +1,39 @@
+# The weekly quality check. It asks the app to read the golden set (invented companies with known answers) on the real model
+# and to keep the result on the Quality page. If the model has got worse the job fails, so GitHub emails you; a warning is
+# shown on the run but does not fail it. It can also be started by hand after a model or prompt change.
+name: Golden set
+on:
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: golden
+  cancel-in-progress: false
+
+jobs:
+  golden:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Run the golden set on the real model
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -u
+          if [ -z "${APP_URL}" ] || [ -z "${CRON_SECRET}" ]; then
+            echo "APP_URL and CRON_SECRET must be set as repository secrets." >&2
+            exit 1
+          fi
+          out=$(curl -sS --fail-with-body --max-time 330 -X POST -H "Authorization: Bearer ${CRON_SECRET}" "${APP_URL%/}/api/worker/golden") || { echo "The golden call failed: ${out:-no body}" >&2; exit 1; }
+          echo "$out" | jq -c .
+          if [ "$(echo "$out" | jq -r 'has("skipped")')" = "true" ]; then echo "Skipped: $(echo "$out" | jq -r .skipped)"; exit 0; fi
+          if [ "$(echo "$out" | jq -r '.source // ""')" != "live" ]; then echo "::error::The run used the stand-in model, not a real one, so it measured nothing." >&2; exit 1; fi
+          case "$(echo "$out" | jq -r '.status // "unknown"')" in
+            pass) echo "The golden set passed." ;;
+            warn) echo "::warning::The golden set raised a warning: $(echo "$out" | jq -r '.reasons | join(" ")')" ;;
+            *) echo "::error::The golden set failed: $(echo "$out" | jq -r '.reasons | join(" ")')" >&2; exit 1 ;;
+          esac

@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>MESA AI-Native Track · Sprinto Outbound: Components Map</title>
+<style>
+  @page { size: 1500px 1144px; margin: 0; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #fff; }
+  body { width: 1500px; height: 1144px; position: relative; font-family: Arial, "Helvetica Neue", Helvetica, sans-serif; color: #1e3a5f; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .title { position: absolute; top: 14px; left: 0; width: 1500px; text-align: center; font-size: 29px; font-weight: 700; letter-spacing: -0.3px; color: #1f3a63; }
+  .sub { position: absolute; top: 52px; left: 0; width: 1500px; text-align: center; font-size: 11.5px; color: #6b7280; }
+  .headbar { position: absolute; left: 26px; top: 74px; width: 1448px; height: 40px; background: #1f3a63; border-radius: 16px; }
+  .hcell { position: absolute; top: 74px; height: 40px; line-height: 40px; text-align: center; color: #fff; font-weight: 700; font-size: 15px; }
+  .hsep { position: absolute; top: 78px; width: 2px; height: 32px; background: #f2c744; }
+  .band { position: absolute; left: 26px; width: 1448px; }
+  .actor { position: absolute; left: 30px; width: 168px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
+  .actor b { font-size: 14.5px; color: #1f3a63; }
+  .actor span { font-size: 10px; color: #6b7280; margin-top: 3px; }
+  .box { position: absolute; border-radius: 10px; border: 1.3px solid; padding: 5px 8px; font-size: 10.4px; line-height: 12.8px; text-align: center; display: flex; align-items: center; justify-content: center; color: #374151; }
+  .trigger { background: #efe8fb; border-color: #7a5ad3; }
+  .input { background: #e5f0fc; border-color: #4a8fdc; }
+  .context { background: #e3f5e8; border-color: #45ad68; }
+  .processing { background: #fdf0d2; border-color: #e3a620; }
+  .ai { background: #fde4f0; border-color: #de4f9b; }
+  .output { background: #fde7e3; border-color: #de574a; }
+  svg { position: absolute; left: 0; top: 0; }
+  svg path { fill: none; stroke: #6b7280; stroke-width: 1.4; stroke-dasharray: 5 4; }
+  .boundary { position: absolute; left: 30px; top: 996px; width: 1440px; height: 104px; border: 1.4px solid #de574a; border-radius: 14px; background: #fff7f5; display: flex; align-items: center; }
+  .boundary .lab { width: 190px; text-align: center; font-weight: 700; font-size: 14px; color: #d4493b; letter-spacing: .3px; }
+  .boundary .txt { flex: 1; padding-right: 22px; font-size: 11.6px; line-height: 16.5px; color: #374151; }
+  .boundary .txt p { margin: 0 0 5px; }
+  .foot { position: absolute; right: 30px; top: 1114px; font-size: 9.5px; color: #6b7280; }
+</style></head>
+<body>
+  <div class="title">MESA AI-Native Track · Sprinto Outbound: Components Map</div>
+  <div class="sub">Domains in, a decision trail out: scrape, extract, qualify, find the person, pick two pains, draft, send. AI is Gemini, used to read and write. Code, not the model, decides who qualifies and what is sent.</div>
+  <div class="headbar"></div>
+  <div class="hcell" style="left:30px;width:168px">Actor</div><div class="hcell" style="left:210px;width:207.33333333333334px">Trigger</div><div class="hcell" style="left:417.33333333333337px;width:207.33333333333334px">Input</div><div class="hcell" style="left:624.6666666666667px;width:207.33333333333334px">Context</div><div class="hcell" style="left:832px;width:207.33333333333334px">Processing</div><div class="hcell" style="left:1039.3333333333335px;width:207.33333333333334px">AI</div><div class="hcell" style="left:1246.6666666666667px;width:207.33333333333334px">Output</div>
+  <div class="hsep" style="left:203px"></div><div class="hsep" style="left:416.33333333333337px"></div><div class="hsep" style="left:623.6666666666667px"></div><div class="hsep" style="left:831px"></div><div class="hsep" style="left:1038.3333333333335px"></div><div class="hsep" style="left:1245.6666666666667px"></div>
+  <div class="band" style="top:124px;height:74px;background:#fdfaf2"></div><div class="actor" style="top:124px;height:74px"><b>Growth Lead</b><span>(Sprinto · human)</span></div>
+<div class="band" style="top:202px;height:74px;background:#fdf5ea"></div><div class="actor" style="top:202px;height:74px"><b>Domain import</b><span>(Paste · CSV · Apollo sheet)</span></div>
+<div class="band" style="top:280px;height:74px;background:#eff8f1"></div><div class="actor" style="top:280px;height:74px"><b>Outbound app</b><span>(Next.js on Vercel)</span></div>
+<div class="band" style="top:358px;height:74px;background:#fcf0f5"></div><div class="actor" style="top:358px;height:74px"><b>Scrape and extract</b><span>(Steps 1 and 2 · code + Gemini)</span></div>
+<div class="band" style="top:436px;height:74px;background:#f2f1fa"></div><div class="actor" style="top:436px;height:74px"><b>ICP gate</b><span>(Step 3 · code, not the AI)</span></div>
+<div class="band" style="top:514px;height:74px;background:#eef4fc"></div><div class="actor" style="top:514px;height:74px"><b>Contact finder</b><span>(Step 4 · Hunter or Apollo)</span></div>
+<div class="band" style="top:592px;height:74px;background:#fdf6ec"></div><div class="actor" style="top:592px;height:74px"><b>Database</b><span>(Supabase · Postgres)</span></div>
+<div class="band" style="top:670px;height:74px;background:#f0f7ee"></div><div class="actor" style="top:670px;height:74px"><b>AI model</b><span>(Gemini · reads and writes only)</span></div>
+<div class="band" style="top:748px;height:74px;background:#fcf0f5"></div><div class="actor" style="top:748px;height:74px"><b>Pitch builder</b><span>(Steps 5 and 6 · Gemini + code)</span></div>
+<div class="band" style="top:826px;height:74px;background:#eef4fc"></div><div class="actor" style="top:826px;height:74px"><b>Delivery</b><span>(Step 7 · Gmail)</span></div>
+<div class="band" style="top:904px;height:74px;background:#fdf1f1"></div><div class="actor" style="top:904px;height:74px"><b>Operations and Quality</b><span>(Budgets · Suppression · Watch)</span></div>
+  <svg width="1500" height="1144" viewBox="0 0 1500 1144" xmlns="http://www.w3.org/2000/svg">
+    <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#6b7280" stroke="none" style="stroke-dasharray:none"/></marker></defs>
+    <path d="M 406.33333333333337 163 L 428.3333333333333 163" marker-end="url(#arrow)"/>
+    <path d="M 613.6666666666666 163 L 728.3333333333334 163 L 728.3333333333334 211" marker-end="url(#arrow)"/>
+    <path d="M 821 241 L 843 241" marker-end="url(#arrow)"/>
+    <path d="M 935.6666666666666 271 L 935.6666666666666 289" marker-end="url(#arrow)"/>
+    <path d="M 406.33333333333337 319 L 635.6666666666667 319" marker-end="url(#arrow)"/>
+    <path d="M 821 319 L 843 319" marker-end="url(#arrow)"/>
+    <path d="M 935.6666666666666 349 L 935.6666666666666 367" marker-end="url(#arrow)"/>
+    <path d="M 821 397 L 843 397" marker-end="url(#arrow)"/>
+    <path d="M 1028.3333333333333 397 L 1257.6666666666667 397" marker-end="url(#arrow)"/>
+    <path d="M 935.6666666666666 427 L 935.6666666666666 445" marker-end="url(#arrow)"/>
+    <path d="M 821 475 L 843 475" marker-end="url(#arrow)"/>
+    <path d="M 1028.3333333333333 475 L 1257.6666666666667 475" marker-end="url(#arrow)"/>
+    <path d="M 935.6666666666666 505 L 935.6666666666666 523" marker-end="url(#arrow)"/>
+    <path d="M 613.6666666666666 553 L 635.6666666666667 553" marker-end="url(#arrow)"/>
+    <path d="M 821 553 L 843 553" marker-end="url(#arrow)"/>
+    <path d="M 1028.3333333333333 553 L 1257.6666666666667 553" marker-end="url(#arrow)"/>
+    <path d="M 935.6666666666666 583 L 935.6666666666666 601" marker-end="url(#arrow)"/>
+    <path d="M 821 631 L 843 631" marker-end="url(#arrow)"/>
+    <path d="M 1028.3333333333333 631 L 1143.0000000000002 631 L 1143.0000000000002 679" marker-end="url(#arrow)"/>
+    <path d="M 821 709 L 1050.3333333333335 709" marker-end="url(#arrow)"/>
+    <path d="M 1143.0000000000002 739 L 1143.0000000000002 769 L 1028.3333333333333 769" marker-end="url(#arrow)"/>
+    <path d="M 821 787 L 843 787" marker-end="url(#arrow)"/>
+    <path d="M 1028.3333333333333 787 L 1257.6666666666667 787" marker-end="url(#arrow)"/>
+    <path d="M 935.6666666666666 817 L 935.6666666666666 835" marker-end="url(#arrow)"/>
+    <path d="M 406.33333333333337 865 L 428.3333333333333 865" marker-end="url(#arrow)"/>
+    <path d="M 613.6666666666666 865 L 635.6666666666667 865" marker-end="url(#arrow)"/>
+    <path d="M 821 865 L 843 865" marker-end="url(#arrow)"/>
+    <path d="M 1028.3333333333333 865 L 1257.6666666666667 865" marker-end="url(#arrow)"/>
+    <path d="M 935.6666666666666 895 L 935.6666666666666 913" marker-end="url(#arrow)"/>
+    <path d="M 406.33333333333337 943 L 428.3333333333333 943" marker-end="url(#arrow)"/>
+    <path d="M 613.6666666666666 943 L 635.6666666666667 943" marker-end="url(#arrow)"/>
+    <path d="M 821 943 L 843 943" marker-end="url(#arrow)"/>
+    <path d="M 1028.3333333333333 943 L 1257.6666666666667 943" marker-end="url(#arrow)"/>
+    <path d="M 1443.0000000000002 865 L 1455.0000000000002 865 L 1455.0000000000002 163 L 1443.0000000000002 163" marker-end="url(#arrow)"/>
+  </svg>
+  <div class="box trigger" style="left:221px;top:133px;width:185.33333333333334px;height:60px">A list of domains is ready, or she opens Runs first thing</div>
+<div class="box input" style="left:428.3333333333333px;top:133px;width:185.33333333333334px;height:60px">Pasted or CSV domains; an optional hand-picked contact (Apollo); her call on each held email</div>
+<div class="box output" style="left:1257.6666666666667px;top:133px;width:185.33333333333334px;height:60px">Funnel for the run, emails in her inbox, a 'why' panel for every company</div>
+<div class="box context" style="left:635.6666666666667px;top:211px;width:185.33333333333334px;height:60px">Checked in the browser: format, duplicates, suppressed and recently mailed domains; refused rows explained</div>
+<div class="box processing" style="left:843px;top:211px;width:185.33333333333334px;height:60px">Saved as a run with one job per domain; repeats within 30 days skipped</div>
+<div class="box trigger" style="left:221px;top:289px;width:185.33333333333334px;height:60px">Every 15 minutes a GitHub Actions worker, or a live run open in the browser</div>
+<div class="box context" style="left:635.6666666666667px;top:289px;width:185.33333333333334px;height:60px">Checks the role, loads the ICP version, the Sprinto facts file and today's caps</div>
+<div class="box processing" style="left:843px;top:289px;width:185.33333333333334px;height:60px">Claims the next step of the next job; each step is saved before the next begins; failures retried</div>
+<div class="box context" style="left:635.6666666666667px;top:367px;width:185.33333333333334px;height:60px">Public pages only: home, about, pricing, security, careers, customers; robots.txt obeyed; private addresses blocked</div>
+<div class="box processing" style="left:843px;top:367px;width:185.33333333333334px;height:60px">Page text cleaned and stored with a hash; company facts pulled out, each with a quote that must appear on the page</div>
+<div class="box output" style="left:1257.6666666666667px;top:367px;width:185.33333333333334px;height:60px">Company card with its evidence; a page that failed to load is a stated reason, not a silent skip</div>
+<div class="box context" style="left:635.6666666666667px;top:445px;width:185.33333333333334px;height:60px">Thin data? Gemini may ask for up to 4 more allowed pages; code re-scores after each</div>
+<div class="box processing" style="left:843px;top:445px;width:185.33333333333334px;height:60px">Score 0 to 100 from the facts using the signed-off ICP weights: same facts, same score</div>
+<div class="box output" style="left:1257.6666666666667px;top:445px;width:185.33333333333334px;height:60px">Fit, maybe or not a fit, with the reason; thin data says 'needs more', never a guess</div>
+<div class="box input" style="left:428.3333333333333px;top:523px;width:185.33333333333334px;height:60px">Hunter domain search, or the hand-picked Apollo contact</div>
+<div class="box context" style="left:635.6666666666667px;top:523px;width:185.33333333333334px;height:60px">Hunter credits left, 30-day cache, titles ranked for the company's size and stage</div>
+<div class="box processing" style="left:843px;top:523px;width:185.33333333333334px;height:60px">People ranked by title, seniority and verified email; one is chosen, with the reason</div>
+<div class="box output" style="left:1257.6666666666667px;top:523px;width:185.33333333333334px;height:60px">A contact with name, title and proof; nobody found goes to the review lane</div>
+<div class="box context" style="left:635.6666666666667px;top:601px;width:185.33333333333334px;height:60px">Runs, steps, evidence, contacts, emails, ICP versions, suppressions, usage; row level security</div>
+<div class="box processing" style="left:843px;top:601px;width:185.33333333333334px;height:60px">Append-only: no edits or deletes; time and name stamped by the database</div>
+<div class="box context" style="left:635.6666666666667px;top:679px;width:185.33333333333334px;height:60px">Page text sent as data, never as instructions; no emails, passwords or keys sent</div>
+<div class="box ai" style="left:1050.3333333333335px;top:679px;width:185.33333333333334px;height:60px">Pulls out facts, picks pages to fetch (4 rounds at most), chooses two pains, drafts the email</div>
+<div class="box context" style="left:635.6666666666667px;top:757px;width:185.33333333333334px;height:60px">Pain library, the vetted Sprinto facts file, the contact's title and the company card</div>
+<div class="box processing" style="left:843px;top:757px;width:185.33333333333334px;height:60px">Two pains chosen with evidence; draft checked: length, name, grounded hook, one ask, opt-out line</div>
+<div class="box output" style="left:1257.6666666666667px;top:757px;width:185.33333333333334px;height:60px">Subject and body with the hook's source shown; a draft that fails is held, never sent</div>
+<div class="box trigger" style="left:221px;top:835px;width:185.33333333333334px;height:60px">The draft passed its checks and today's send cap is not reached</div>
+<div class="box input" style="left:428.3333333333333px;top:835px;width:185.33333333333334px;height:60px">Draft, the owner's own address, the real contact kept as a note</div>
+<div class="box context" style="left:635.6666666666667px;top:835px;width:185.33333333333334px;height:60px">Test mode: the 'to' address is fixed to the owner; one send per domain</div>
+<div class="box processing" style="left:843px;top:835px;width:185.33333333333334px;height:60px">Sent through the Gmail API with send-only permission; message id saved; failures retried</div>
+<div class="box output" style="left:1257.6666666666667px;top:835px;width:185.33333333333334px;height:60px">Email in her inbox headed 'Would have gone to name, title'; still failing after retries is held</div>
+<div class="box trigger" style="left:221px;top:913px;width:185.33333333333334px;height:60px">A run ends, or a week closes</div>
+<div class="box input" style="left:428.3333333333333px;top:913px;width:185.33333333333334px;height:60px">She marks a reply, a bounce or 'do not contact'; she edits the ICP with a reason</div>
+<div class="box context" style="left:635.6666666666667px;top:913px;width:185.33333333333334px;height:60px">Hunter and Gemini budgets, suppression list, a golden set of known companies</div>
+<div class="box processing" style="left:843px;top:913px;width:185.33333333333334px;height:60px">Funnel and drop-off reasons; quality watch; replay a different ICP on stored facts</div>
+<div class="box output" style="left:1257.6666666666667px;top:913px;width:185.33333333333334px;height:60px">Weekly report with time saved and its working; needs-attention list; eight CSV downloads</div>
+  <div class="boundary"><div class="lab">HUMAN BOUNDARY</div><div class="txt"><p>The platform researches, scores, drafts and sends, and in test mode every email goes to the Growth Lead's own inbox: no prospect is ever mailed. Gemini only reads page text and writes drafts; it never picks a recipient, changes a score or sends anything. Every score comes from code, on facts that carry a quote from the page.</p><p>Which companies to pursue, whether to ever go live, and what to say when someone replies stays with the Growth Lead. Going live is a signed-off settings change, not a button anyone can press.</p></div></div>
+  <div class="foot">Built from MESA AI-Native Track Case 02 and the PitchPrep components-map style reference</div>
+</body></html>
