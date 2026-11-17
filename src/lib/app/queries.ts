@@ -72,7 +72,8 @@ export async function getRun(db: DbPort, id: string) {
   const last = decisions.find((d) => d.kind === "pause_run" || d.kind === "resume_run");
   const tokens = (await db.select("usage_ledger", { run_id: id, kind: "gemini_tokens" })).reduce((n, r) => n + Number(r.units), 0);
   const credits = (await db.select("usage_ledger", { run_id: id, kind: "hunter_credits" })).reduce((n, r) => n + Number(r.units), 0);
-  return { run, prospects, paused: last?.kind === "pause_run", tokens, credits };
+  const events = (await db.select("step_events", { run_id: id }, { order: "id", ascending: false, limit: 30, columns: "id,prospect_id,step,status,created_at" })) as unknown as { id: number; prospect_id: string; step: string; status: string; created_at: string }[];
+  return { run, prospects, paused: last?.kind === "pause_run", tokens, credits, events, decisions: decisions as unknown as { prospect_id: string | null; kind: string; reason: string; created_at: string }[] };
 }
 
 export interface ReviewItem extends ProspectLite {

@@ -37,7 +37,7 @@ function CriterionCard({ c }: { c: Criterion }) {
       <Gauge c={c} />
       {c.status === "unknown" ? (
         <div className="stack tight">
-          <div className="bar-track brand" aria-hidden><i style={{ width: `${Math.min(100, (c.sample / MIN_DECIDED) * 100)}%` }} /></div>
+          <div className="bar-track t-brand" aria-hidden><i style={{ width: `${Math.min(100, (c.sample / MIN_DECIDED) * 100)}%` }} /></div>
           <span className="small muted">{c.sample} of {MIN_DECIDED} {c.id === "time" ? "companies" : "decisions"} so far. A rate on fewer says nothing.</span>
         </div>
       ) : null}
@@ -110,7 +110,7 @@ export default async function Scorecard({ searchParams }: { searchParams: Promis
             {([["By hand", by, "muted"], ["With the system: person time", people, "brand"], ["Machine time (no one waiting)", used.time.machineMinutes, "faint"]] as const).map(([l, v, t]) => (
               <div key={l} className="stack tight">
                 <div className="row" style={{ justifyContent: "space-between" }}><span className="small">{l}</span><b>{Math.round(v)} min</b></div>
-                <div className={`bar-track ${t}`}><i style={{ width: `${(v / widest) * 100}%` }} /></div>
+                <div className={`bar-track t-${t}`}><i style={{ width: `${(v / widest) * 100}%` }} /></div>
               </div>
             ))}
             <p className="small muted" style={{ margin: 0 }}>

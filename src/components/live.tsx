@@ -74,7 +74,7 @@ export function LiveRun({ active }: { active: boolean }) {
   if (!active) return <span className="small muted">Nothing left to do in this run.</span>;
   return (
     <span className="row">
-      <span className="pill tone-info" role="status" aria-live="polite">{on ? "Working live" : "Paused"}</span>
+      <span className="pill tone-info" role="status" aria-live="polite">{on ? <><span className="dot-live" aria-hidden /> Working live</> : "Paused"}</span>
       <button className="btn small" type="button" onClick={() => setOn(!on)}>{on ? "Stop watching" : "Keep going"}</button>
       <span className="small muted">{note}</span>
     </span>
