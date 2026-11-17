@@ -30,6 +30,8 @@ export async function saveSettings(_p: ActionResult | null, f: FormData): Promis
     daily_send_cap: int(f, "daily_send_cap"), max_run_size: int(f, "max_run_size"), max_parallel: int(f, "max_parallel"), hunter_reserve: int(f, "hunter_reserve"),
     tokens_per_domain: int(f, "tokens_per_domain"), tokens_per_run: int(f, "tokens_per_run"), mail_cooldown_days: int(f, "mail_cooldown_days"),
     minutes_saved_per_email: Number(String(f.get("minutes_saved_per_email") ?? "")), review_minutes_per_email: Number(String(f.get("review_minutes_per_email") ?? "")), review_minutes_per_decision: Number(String(f.get("review_minutes_per_decision") ?? "")), reason,
+    // A checkbox that is not ticked is absent from the form, so absence means off. Approval is on unless a person turns it off here.
+    require_approval: f.get("require_approval") === "on",
   };
   if (Object.values(row).some((v) => typeof v === "number" && !Number.isFinite(v))) return { ok: false, message: "Every number needs a value." };
   try {

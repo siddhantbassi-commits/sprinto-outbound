@@ -6,12 +6,13 @@ import { Store } from "@/lib/worker/store";
 import { tick } from "@/lib/worker/tick";
 
 describe("demo world", () => {
-  it("boots once per process, with one finished sample run whose outcomes are the ones the companies are built to show", async () => {
+  it("boots once per process, with a finished sample run, and one draft waiting for approval, as the companies are built to show", async () => {
     const a = await getDemo();
     expect(await getDemo()).toBe(a);
     const rows = await a.db.admin<{ domain: string; lane: string; verdict: string | null }>("select domain, lane, verdict from public.prospects order by domain");
     expect(Object.fromEntries(rows.map((r) => [r.domain, r.lane]))).toEqual({
       "brightwave.ai": "no_contact",
+      "cobaltledger.io": "review",
       "harborpay.com": "review",
       "lumenhealth.com": "sent",
       "northwind.io": "sent",
@@ -59,13 +60,13 @@ describe("the Impact view on the demo world", () => {
     const w = await getDemo();
     const data = await impactData(pgPort(w.db.as(w.users.viewer)));
     const x = computeImpact({ ...data, range: rangeFor("all", Date.now()), assumptions: { manualMinutes: 20, reviewMinutesPerEmail: 1.5, reviewMinutesPerDecision: 2 } });
-    expect(x.funnel.map((s) => [s.key, s.count])).toEqual([["added", 7], ["read", 7], ["qualified", 3], ["contact", 2], ["drafted", 2], ["sent", 2]]);
-    expect(x.dropoffs.map((d) => [d.lane, d.count]).sort()).toEqual([["needs_more", 1], ["no_contact", 1], ["not_fit", 2], ["review", 1]]);
-    expect(x.time).toMatchObject({ baselineMinutes: 140, humanMinutes: 3, savedMinutes: 137 });
+    expect(x.funnel.map((s) => [s.key, s.count])).toEqual([["added", 8], ["read", 8], ["qualified", 4], ["contact", 3], ["drafted", 3], ["sent", 2]]);
+    expect(x.dropoffs.map((d) => [d.lane, d.count]).sort()).toEqual([["needs_more", 1], ["no_contact", 1], ["not_fit", 2], ["review", 2]]);
+    expect(x.time).toMatchObject({ baselineMinutes: 160, humanMinutes: 3, savedMinutes: 157 });
     expect(x.rates.groundingFailure).toMatchObject({ numerator: 0 });
-    expect(x.rates.firstPassLint).toEqual({ value: 1, numerator: 2, denominator: 2 });
+    expect(x.rates.firstPassLint).toEqual({ value: 1, numerator: 3, denominator: 3 });
     expect(x.usage.tokens).toBeGreaterThan(0);
-    expect(x.usage.hunterCredits).toBe(3);
+    expect(x.usage.hunterCredits).toBe(4);
   });
 });
 
@@ -85,11 +86,11 @@ describe("Replay on the demo world", () => {
   it("finds every scored company and reproduces each stored verdict exactly, from the facts alone", async () => {
     const { replay } = await import("@/lib/icp/replay");
     const subjects = await loadSubjects();
-    expect(subjects.map((s) => s.domain).sort()).toEqual(["brightwave.ai", "harborpay.com", "lumenhealth.com", "northwind.io", "petalpop.app", "quietcloud.dev", "vanta.com"]);
+    expect(subjects.map((s) => s.domain).sort()).toEqual(["brightwave.ai", "cobaltledger.io", "harborpay.com", "lumenhealth.com", "northwind.io", "petalpop.app", "quietcloud.dev", "vanta.com"]);
     expect(subjects.every((s) => s.textChars !== null && s.pages !== null)).toBe(true);
     const same = await side(() => undefined);
     const r = replay(subjects, same, same);
-    expect(r.reproduces).toEqual({ matching: 7, of: 7, olderVersion: 0, other: 0 });
+    expect(r.reproduces).toEqual({ matching: 8, of: 8, olderVersion: 0, other: 0 });
     expect(subjects.every((s) => s.stored.version === 1)).toBe(true);
     expect(r.movers).toEqual([]);
     expect(r.approximated).toBe(0);

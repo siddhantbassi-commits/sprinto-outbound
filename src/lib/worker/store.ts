@@ -36,6 +36,19 @@ export interface Settings {
   minutes_saved_per_email: number;
   review_minutes_per_email: number;
   review_minutes_per_decision: number;
+  /** A person must approve each draft before it is sent. Defaults to on. */
+  require_approval: boolean;
+}
+
+export interface EmailReview {
+  id: string;
+  email_id: string;
+  action: "approve" | "reject";
+  subject: string;
+  body: string;
+  edit_ratio: number;
+  contact_ok: boolean;
+  reason: string;
 }
 
 export interface EmailRow {
@@ -187,6 +200,11 @@ export class Store {
   async sendableEmail(prospectId: string): Promise<EmailRow | null> {
     const rows = (await this.db.select("emails", { prospect_id: prospectId }, { order: "attempt", ascending: false })) as unknown as EmailRow[];
     return rows.find((r) => r.status === "drafted" || r.status === "failed") ?? null;
+  }
+  /** The person's decision on a draft, if there is one. The approved text (edited or not) is what gets sent. */
+  async reviewFor(emailId: string): Promise<EmailReview | null> {
+    const r = one(await this.db.select("email_reviews", { email_id: emailId }));
+    return r ? ({ ...(r as unknown as EmailReview), edit_ratio: Number(r.edit_ratio) }) : null;
   }
   async reserveSend(emailId: string): Promise<ReserveResult> {
     const r = scalar(await this.db.rpc("reserve_send", { p_email: emailId })) as { ok: boolean; reason?: string; test_to?: string };

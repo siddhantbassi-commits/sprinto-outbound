@@ -10,7 +10,7 @@ import type { PipelineDeps } from "@/lib/worker/pipeline";
 import { Store } from "@/lib/worker/store";
 import { tick } from "@/lib/worker/tick";
 import { demoAi } from "./ai";
-import { DEMO_BY_DOMAIN, DEMO_COMPANIES, type DemoCompany } from "./companies";
+import { DEMO_BY_DOMAIN, DEMO_COMPANIES, UP_NEXT, type DemoCompany } from "./companies";
 
 /**
  * Demo mode: the whole product running on sample data, in memory, with no keys and no network. The database is the real
@@ -112,7 +112,7 @@ export async function seedWorld(db: Db, inbox: string = DEMO_INBOX) {
     pending: await db.createUser("newcomer@demo.example", "pending"),
   };
   const admin = db.as(users.admin);
-  await admin.query("insert into public.settings_versions (test_to, sender_name, sender_title, postal_address, reason) values ($1, 'Alex Morgan', 'Growth Lead', '12 Demo Street, Mumbai 400001', 'Demo setup')", [inbox]);
+  await admin.query("insert into public.settings_versions (test_to, sender_name, sender_title, postal_address, require_approval, reason) values ($1, 'Alex Morgan', 'Growth Lead', '12 Demo Street, Mumbai 400001', false, 'Demo setup')", [inbox]);
   await admin.query("insert into public.icp_signoffs (icp_version_id, note) select id, 'Signed off for the demo' from public.icp_versions order by version desc limit 1");
   const file = { ...SPRINTO_FACTS_SEED, items: SPRINTO_FACTS_SEED.items.map((i) => ({ ...i, verifiedBy: "Demo Admin", verifiedAt: new Date().toISOString().slice(0, 10) })) };
   await admin.query("insert into public.sprinto_facts_versions (content, reason) values ($1::jsonb, 'Verified for the demo')", [JSON.stringify(file)]);
@@ -133,8 +133,15 @@ async function build(): Promise<DemoWorld> {
   };
 
   // One finished run to start from.
-  const [r] = await db.as(users.operator).query<{ create_run: string }>("select public.create_run($1::text[], 'paste', 'Sample run', '{}'::jsonb)", [DEMO_COMPANIES.map((c) => c.domain)]);
+  const [r] = await db.as(users.operator).query<{ create_run: string }>("select public.create_run($1::text[], 'paste', 'Sample run', '{}'::jsonb)", [DEMO_COMPANIES.filter((c) => c.domain !== UP_NEXT).map((c) => c.domain)]);
   void r;
   await tick(world.deps(new Store(pgPort(db.as(users.worker)))), { source: "browser", maxSteps: 200 });
+  // The sample run finished without a person in the loop. From here the demo behaves like the product: a new run pauses for approval.
+  await db.as(users.admin).query(
+    "insert into public.settings_versions (test_to, sender_name, sender_title, postal_address, require_approval, reason) select test_to, sender_name, sender_title, postal_address, true, 'Approval on' from public.settings_now()",
+  );
+  // A second, newer run, drafted under the approval rule: it is waiting for a person the moment the demo opens.
+  await db.as(users.operator).query("select public.create_run($1::text[], 'paste', 'This week''s list', '{}'::jsonb)", [[UP_NEXT]]);
+  await tick(world.deps(new Store(pgPort(db.as(users.worker)))), { source: "browser", maxSteps: 50 });
   return world;
 }

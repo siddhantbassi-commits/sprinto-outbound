@@ -36,7 +36,7 @@ describe("ask", () => {
     if (!r.ok) return;
     expect(r.answer).toMatch(/harborpay\.com/);
     expect(r.evidence).toHaveLength(1);
-    expect(r.evidence[0]).toMatchObject({ tool: "list_companies", args: { lane: "review" }, companies: [{ domain: "harborpay.com" }] });
+    expect(r.evidence[0]).toMatchObject({ tool: "list_companies", args: { lane: "review" }, companies: expect.arrayContaining([expect.objectContaining({ domain: "harborpay.com" })]) });
     expect(r.unsupported).toEqual({ domains: [], numbers: [] });
     expect(r.usage.totalTokens).toBeGreaterThan(0);
   });

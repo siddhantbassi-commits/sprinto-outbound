@@ -301,9 +301,18 @@ export async function draftStep(p: ProspectRow, d: PipelineDeps): Promise<StepRe
 export async function sendStep(p: ProspectRow, d: PipelineDeps): Promise<StepResult> {
   const email = await d.store.sendableEmail(p.id);
   if (!email) return park("held", "There is no sendable draft for this prospect.");
-  if (!d.gmail) return park("review", "Gmail is not set up, so nothing can be sent.");
-
   const settings = await d.store.settings();
+
+  // The human boundary: with approval required, a draft waits for a person, and the wording that is sent is theirs.
+  let text = { subject: email.subject, body: email.body };
+  if (settings.require_approval !== false) {
+    const review = await d.store.reviewFor(email.id);
+    if (!review) return park("review", "Draft ready for your approval.", { awaiting: "approval" });
+    if (review.action !== "approve") return park("skipped", "This draft was rejected at review.");
+    text = { subject: review.subject, body: review.body };
+  }
+
+  if (!d.gmail) return park("review", "Gmail is not set up, so nothing can be sent.");
   if (!settings.test_to || settings.test_to.toLowerCase() !== d.gmail.recipient.toLowerCase()) {
     return park("held", "The test address in settings does not match the server's own test address, so nothing was sent.");
   }
@@ -351,7 +360,7 @@ export async function sendStep(p: ProspectRow, d: PipelineDeps): Promise<StepRes
       traceUrl: d.appUrl ? `${d.appUrl.replace(/\/+$/, "")}/prospects/${p.id}` : null,
     });
 
-    const out = await d.gmail.sendTest({ subject: email.subject, body: composeTestBody(header, email.body), runId: email.id });
+    const out = await d.gmail.sendTest({ subject: text.subject, body: composeTestBody(header, text.body), runId: email.id });
     if (out.status === "sent") await d.store.setEmailStatus(email.id, "sent", { messageId: out.messageId, threadId: out.threadId });
     else if (out.status === "failed") await d.store.setEmailStatus(email.id, "failed", { error: out.reason, retryable: out.retryable });
     else await d.store.setEmailStatus(email.id, "unknown", { error: out.reason });

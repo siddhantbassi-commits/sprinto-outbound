@@ -15,7 +15,7 @@ export interface World {
   walkTo(domain: string, step: string, who?: "worker" | "worker2"): Promise<Prospect>;
   /** Takes a prospect to 'drafted' with an email row, and leaves it claimed at 'drafted' by `who`. */
   toDrafted(domain: string, who?: "worker" | "worker2"): Promise<{ prospect: Prospect; emailId: string }>;
-  settings(patch: Record<string, string | number | null>): Promise<void>;
+  settings(patch: Record<string, string | number | boolean | null>): Promise<void>;
 }
 
 export interface Prospect {
@@ -55,7 +55,7 @@ export async function world(opts: { configure?: boolean; signoff?: boolean } = {
     async settings(patch) {
       const [cur] = await s.admin.query<Record<string, unknown>>("select * from public.settings_now()");
       const next = { ...cur, ...patch };
-      const cols = ["test_to", "sender_name", "sender_title", "postal_address", "daily_send_cap", "max_run_size", "max_parallel", "hunter_reserve", "tokens_per_domain", "tokens_per_run", "mail_cooldown_days", "minutes_saved_per_email", "review_minutes_per_email", "review_minutes_per_decision"];
+      const cols = ["test_to", "sender_name", "sender_title", "postal_address", "daily_send_cap", "max_run_size", "max_parallel", "hunter_reserve", "tokens_per_domain", "tokens_per_run", "mail_cooldown_days", "minutes_saved_per_email", "review_minutes_per_email", "review_minutes_per_decision", "require_approval"];
       await s.admin.query(
         `insert into public.settings_versions (${cols.join(", ")}, reason) values (${cols.map((_, i) => `$${i + 1}`).join(", ")}, 'test change')`,
         cols.map((c) => next[c]),
@@ -107,7 +107,7 @@ export async function world(opts: { configure?: boolean; signoff?: boolean } = {
 
   if (opts.configure !== false) {
     await s.admin.query(
-      "insert into public.settings_versions (test_to, sender_name, sender_title, postal_address, reason) values ($1, 'Sid', 'Growth Lead', '1 Example Street', 'test setup')",
+      "insert into public.settings_versions (test_to, sender_name, sender_title, postal_address, require_approval, reason) values ($1, 'Sid', 'Growth Lead', '1 Example Street', false, 'test setup')",
       [TEST_TO],
     );
   }

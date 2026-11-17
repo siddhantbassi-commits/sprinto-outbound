@@ -637,3 +637,97 @@ describe("resuming a parked prospect", () => {
     expect(r.gmail!.sends).toHaveLength(1);
   });
 });
+
+// ---------------------------------------------------------------- the human boundary
+describe("approval before sending", () => {
+  const decode = (raw: string) => {
+    const [head, ...rest] = raw.split("\r\n\r\n");
+    return { head: head!, body: Buffer.from(rest.join("").replace(/\r\n/g, ""), "base64").toString("utf8") };
+  };
+  const approve = (w: World, id: string, subject: string, body: string, ratio = 0) =>
+    w.s.operator.query("select * from public.approve_email((select id from public.emails where prospect_id = $1 order by attempt desc limit 1), $2, $3, $4, '')", [id, subject, body, ratio]);
+  const draftOf = async (w: World, id: string) => (await w.db.admin<{ subject: string; body: string }>("select subject, body from public.emails where prospect_id = $1 order by attempt desc limit 1", [id]))[0]!;
+  const reachedApproval = async (o: Parameters<typeof rig>[0] = {}) => {
+    const r = await rig(o);
+    await r.w.settings({ require_approval: true });
+    await r.w.startRun(["acme.com"]);
+    await r.run();
+    return r;
+  };
+
+  it("stops after the draft, parks it for a person, and sends nothing, when approval is required", async () => {
+    const r = await reachedApproval();
+    const p = await one(r.w);
+    expect(p).toMatchObject({ step: "drafted", lane: "review", lane_reason: "Draft ready for your approval." });
+    expect(r.gmail!.sends).toHaveLength(0);
+    expect((await events(r.w, p.id)).map((e) => `${e.step}:${e.status}`).slice(-2)).toEqual(["draft:ok", "send:parked"]);
+    await r.run(); // waiting on a person, not on time
+    expect(await one(r.w)).toMatchObject({ lane: "review", step: "drafted" });
+    expect(r.gmail!.sends).toHaveLength(0);
+  });
+
+  it("sends the draft as written once a person approves it", async () => {
+    const r = await reachedApproval();
+    const p = await one(r.w);
+    const d = await draftOf(r.w, p.id);
+    await approve(r.w, p.id, d.subject, d.body);
+    await r.run();
+    expect(await one(r.w)).toMatchObject({ step: "sent", lane: "sent" });
+    expect(r.gmail!.sends).toHaveLength(1);
+    expect(decode(r.gmail!.sends[0]!).head).toContain(`Subject: ${d.subject}`);
+  });
+
+  it("sends the person's edited wording, not the model's, and leaves the stored draft untouched", async () => {
+    const r = await reachedApproval();
+    const p = await one(r.w);
+    const d = await draftOf(r.w, p.id);
+    await approve(r.w, p.id, "Edited by a person", `${d.body}\n\nP.S. Edited line.`, 0.2);
+    await r.run();
+    const sent = decode(r.gmail!.sends[0]!);
+    expect(sent.head).toContain("Subject: Edited by a person");
+    expect(sent.body).toContain("P.S. Edited line.");
+    expect(await draftOf(r.w, p.id)).toEqual(d);
+  });
+
+  it("never sends a rejected draft, however many ticks pass", async () => {
+    const r = await reachedApproval();
+    const p = await one(r.w);
+    await r.w.s.operator.query("select * from public.reject_email((select id from public.emails where prospect_id = $1), 'Not for us', false)", [p.id]);
+    await due(r.w);
+    await r.run();
+    expect(await one(r.w)).toMatchObject({ lane: "skipped" });
+    expect(r.gmail!.sends).toHaveLength(0);
+  });
+
+  it("still refuses to send a rejected draft if something puts the company back in the queue by hand", async () => {
+    const r = await reachedApproval();
+    const p = await one(r.w);
+    await r.w.s.operator.query("select * from public.reject_email((select id from public.emails where prospect_id = $1), 'Not for us', false)", [p.id]);
+    await r.w.db.admin("update public.prospects set lane = 'active', lane_reason = null, next_run_at = now() where id = $1", [p.id]);
+    await r.run();
+    expect(await one(r.w)).toMatchObject({ lane: "skipped", lane_reason: "This draft was rejected at review." });
+    expect(r.gmail!.sends).toHaveLength(0);
+  });
+
+  it("sends as before when approval is switched off", async () => {
+    const r = await rig();
+    await r.w.settings({ require_approval: false });
+    await r.w.startRun(["acme.com"]);
+    await r.run();
+    expect(await one(r.w)).toMatchObject({ step: "sent", lane: "sent" });
+    expect(r.gmail!.sends).toHaveLength(1);
+  });
+
+  it("does not ask for a second approval to retry a send that was rate-limited after approval", async () => {
+    const r = await reachedApproval({ gmail: fakeGmail([new Response("{}", { status: 429 })]) });
+    const p = await one(r.w);
+    const d = await draftOf(r.w, p.id);
+    await approve(r.w, p.id, d.subject, d.body);
+    await r.run();
+    expect(await one(r.w)).toMatchObject({ lane: "active", step: "drafted" });
+    await due(r.w);
+    await r.run();
+    expect(await one(r.w)).toMatchObject({ step: "sent", lane: "sent" });
+    expect(r.gmail!.sends).toHaveLength(2);
+  });
+});

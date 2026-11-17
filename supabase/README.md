@@ -14,6 +14,7 @@ Ten migrations, applied in order. They are plain SQL and are tested against a re
 | `…000800_review_minutes.sql` | The review-time assumptions the Impact view subtracts from the time saved |
 | `…000900_golden_runs.sql` | The quality watch's memory: one append-only row per run of the golden set, with the model, prompt and ICP version it ran under |
 | `…001000_lock_procedures.sql` | Closes a gap found by checking the live database: `revoke … on all functions` skips procedures, so `make_append_only` was executable by the public |
+| `…001100_approvals.sql` | Human approval: `settings_versions.require_approval` (on by default), the append-only `email_reviews` table (one decision per email, with how much the person changed it), and `approve_email` / `reject_email` |
 
 ## Setting up a project (about 10 minutes, once)
 

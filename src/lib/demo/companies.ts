@@ -102,9 +102,29 @@ export const DEMO_COMPANIES: DemoCompany[] = [
     },
     contacts: [person("Imran", "Qureshi", "CISO", "security", "executive", "harborpay.com", 90)],
   },
+  {
+    domain: "cobaltledger.io", name: "Cobalt Ledger", kind: "strong", compliance: "in_progress", band: "51-200", hiring: "security_role",
+    s: {
+      product: "Cobalt Ledger is a spend management platform for finance teams.",
+      funding: "We raised our Series A in March.",
+      plan: "The Enterprise plan adds SSO, SCIM and audit logs.",
+      data: "Your invoices and bank connections are stored in your Cobalt Ledger workspace.",
+      cert: "We are preparing for our first SOC 2 audit and have chosen an auditor.",
+      friction: "Many customers send us a security questionnaire before they sign.",
+      size: "Our team of 90 people works across Bengaluru and London.",
+      eu: "We serve finance teams across the EU.",
+      payments: "We process card payments on behalf of our customers.",
+      logos: "Used by Fintrue and Lendwell.",
+      hiring: "Open roles: Head of Security and Senior Backend Engineer.",
+    },
+    contacts: [person("Meera", "Iyer", "Head of Security", "security", "senior", "cobaltledger.io", 92), person("Rohan", "Shah", "CTO", "it", "executive", "cobaltledger.io", 86), generic("cobaltledger.io")],
+  },
   { domain: "petalpop.app", name: "PetalPop", kind: "consumer", compliance: null, band: "11-50", hiring: null, s: { product: "PetalPop helps people keep their houseplants alive with daily reminders.", size: "We are a team of 20 plant lovers." }, contacts: [] },
   { domain: "quietcloud.dev", name: "QuietCloud", kind: "thin", compliance: null, band: null, hiring: null, s: { product: "QuietCloud." }, contacts: [] },
   { domain: "vanta.com", name: "Vanta", kind: "competitor", compliance: "soc2_iso", band: "201-500", hiring: "none", s: { product: "Vanta automates compliance for growing companies.", plan: "Enterprise customers get SSO and custom frameworks.", data: "Your evidence is stored in your Vanta account.", cert: "Vanta is SOC 2 Type II and ISO 27001 certified." }, contacts: [] },
 ];
+
+/** The company the demo leaves waiting for approval, so the review desk has a real draft the moment it opens. */
+export const UP_NEXT = "cobaltledger.io";
 
 export const DEMO_BY_DOMAIN = new Map(DEMO_COMPANIES.map((c) => [c.domain, c]));

@@ -580,7 +580,10 @@ th { background: color-mix(in srgb, var(--brand) 5%, var(--surface-2)); letter-s
 :root[data-theme="dark"] .rule-num { background: var(--accent-soft); color: var(--brand); }
 .spark path.line { stroke: var(--brand); }
 .ring .value { stroke: var(--ring-c, var(--brand)); }
-.sticky-bar { border-radius: 999px; padding: 10px 14px 10px 22px; }
+.sticky-bar { border-radius: 22px; padding: 8px 8px 8px 10px; gap: 6px; }
+.sticky-bar .btn { white-space: nowrap; }
+.sticky-bar > .row { flex-wrap: nowrap; gap: 4px; }
+.sticky-bar .btn.large { margin-left: auto; }
 .auth-hero { background: radial-gradient(900px 520px at 0% 0%, rgba(176, 52, 122, 0.45), transparent 60%), radial-gradient(700px 500px at 100% 100%, rgba(237, 251, 168, 0.16), transparent 60%), #650a41; }
 .auth-hero h1 { font-family: var(--font); font-weight: 480; letter-spacing: -0.035em; }
 .auth-hero h1 em { background: none; -webkit-background-clip: initial; background-clip: initial; color: var(--lime); }
@@ -647,3 +650,23 @@ details[open]::details-content { block-size: auto; }
 .queue-item:hover { transform: translateX(2px); }
 .skeleton-line { height: 14px; margin: 8px 0; }
 .skeleton-card { height: 120px; border-radius: var(--radius); }
+
+/* ---------- settings: section index, grouped fields, switch ---------- */
+.subnav { display: flex; gap: 6px; flex-wrap: wrap; position: sticky; top: 60px; z-index: 5; padding: 8px 0; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(10px); }
+.subnav a { padding: 5px 13px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--ink-2); font-size: 0.84rem; font-weight: 560; text-decoration: none; transition: border-color 0.15s, color 0.15s, background 0.15s; }
+.subnav a:hover { border-color: var(--brand); color: var(--brand); background: var(--accent-soft); }
+html { scroll-behavior: smooth; }
+section[id] { scroll-margin-top: 120px; }
+fieldset.group { border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px 16px; margin: 0; display: grid; gap: 12px; min-width: 0; }
+fieldset.group legend { padding: 0 8px; font-size: 0.72rem; font-weight: 640; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+label.switch { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 14px; align-items: center; cursor: pointer; font-weight: 400; }
+label.switch input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+label.switch .track { width: 44px; height: 26px; border-radius: 999px; background: var(--line-strong); position: relative; transition: background 0.2s; }
+label.switch .track::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3); transition: transform 0.22s cubic-bezier(0.3, 1.4, 0.5, 1); }
+label.switch input:checked + .track { background: var(--brand); }
+label.switch input:checked + .track::after { transform: translateX(18px); }
+label.switch input:focus-visible + .track { outline: 2px solid var(--brand); outline-offset: 3px; }
+label.switch b { font-weight: 640; display: block; }
+label.switch small { display: block; color: var(--muted); }
+label.tickline { display: flex; flex-direction: row; gap: 6px; align-items: center; font-weight: 400; }
+details.card > summary { cursor: pointer; font-weight: 600; }

@@ -12,10 +12,12 @@ describe("live readings over the sample run", () => {
     expect(input.events.length).toBeGreaterThan(0);
     expect(input.impact.prospects.length).toBeGreaterThan(0);
     const live = computeLive(input);
-    for (const key of ["scrapeFailure", "groundingFailure", "thinPage", "contactHit", "firstPassLint", "retryRate"]) {
+    // Eight companies now clear the per-quote company floor, but these still need more cases than the sample run has.
+    for (const key of ["scrapeFailure", "contactHit", "firstPassLint", "qualification"]) {
       expect(live.readings.find((r) => r.key === key)!.status, key).toBe("not_enough");
     }
-    expect(live.overall).not.toBe("good");
+    // Some readings cannot be judged on this little work, and the count says so.
+    expect(live.judged).toBeLessThan(live.total);
     // The model that did the sample run is named, so a later change can be seen.
     expect(live.models.length).toBeGreaterThan(0);
   }, 60_000);

@@ -60,12 +60,13 @@ describe("the lookups, on the sample run", () => {
     const q = await runAskTool(db, "list_companies", ok("list_companies", { verdict: "qualified" }));
     expect((q.data.companies as { verdict: string }[]).every((c) => c.verdict === "qualified")).toBe(true);
     expect(q.data.total_matching).toBeGreaterThan(0);
-    expect(q.data.total_matching).toBeLessThan(7);
+    expect(q.data.total_matching).toBeLessThan(8);
     const d = await runAskTool(db, "list_companies", ok("list_companies", { domain_contains: "north" }));
     expect((d.data.companies as { domain: string }[]).map((c) => c.domain)).toEqual(["northwind.io"]);
-    const [run] = (await runAskTool(db, "list_runs", {})).data.runs as { run_id: string }[];
-    expect((await runAskTool(db, "list_companies", ok("list_companies", { run_id: run!.run_id }))).data.total_matching).toBe(7);
-    expect((await runAskTool(db, "count_by_outcome", ok("count_by_outcome", { run_id: run!.run_id }))).data.total).toBe(7);
+    const runs = (await runAskTool(db, "list_runs", {})).data.runs as { run_id: string; companies: number }[];
+    const sample = runs.find((r) => r.companies === 7)!;
+    expect((await runAskTool(db, "list_companies", ok("list_companies", { run_id: sample.run_id }))).data.total_matching).toBe(7);
+    expect((await runAskTool(db, "count_by_outcome", ok("count_by_outcome", { run_id: sample.run_id }))).data.total).toBe(7);
     expect((await runAskTool(db, "list_companies", ok("list_companies", { run_id: "00000000-0000-4000-8000-000000000000" }))).data.total_matching).toBe(0);
   });
 
@@ -91,9 +92,9 @@ describe("the lookups, on the sample run", () => {
   it("lists companies by lane, with the total and a link target for each", async () => {
     const db = await as("viewer");
     const r = await runAskTool(db, "list_companies", ok("list_companies", { lane: "review" }));
-    expect(r.data.total_matching).toBe(1);
-    expect((r.data.companies as { domain: string }[])[0]!.domain).toBe("harborpay.com");
-    expect(r.companies.map((c) => c.domain)).toEqual(["harborpay.com"]);
+    expect(r.data.total_matching).toBe(2);
+    expect((r.data.companies as { domain: string }[]).map((c) => c.domain).sort()).toEqual(["cobaltledger.io", "harborpay.com"]);
+    expect(r.companies.map((c) => c.domain).sort()).toEqual(["cobaltledger.io", "harborpay.com"]);
   });
   it("tells a limited list from the whole, with the true total", async () => {
     const db = await as("viewer");
@@ -103,7 +104,7 @@ describe("the lookups, on the sample run", () => {
   });
   it("counts by outcome", async () => {
     const r = await runAskTool(await as("viewer"), "count_by_outcome", {});
-    expect(r.data.total).toBe(7);
+    expect(r.data.total).toBe(8);
     expect((r.data.lanes as Record<string, number>).sent).toBe(2);
   });
   it("tells the whole story of one company: score reasons, quotes, steps, email and its checks", async () => {
@@ -144,7 +145,7 @@ describe("the lookups, on the sample run", () => {
     const sup = await runAskTool(db, "list_suppressions", {});
     expect(typeof sup.data.count).toBe("number");
     const impact = await runAskTool(db, "impact_summary", { range: "all" });
-    expect(impact.data.domains_added).toBe(7);
+    expect(impact.data.domains_added).toBe(8);
     const rules = await runAskTool(db, "settings_and_rules", {});
     expect(rules.data.test_mode).toMatch(/only to the owner/);
     expect(JSON.stringify(rules.data)).not.toMatch(/password|secret|key/i);
