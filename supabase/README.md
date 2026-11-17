@@ -1,6 +1,6 @@
 # Supabase: schema, queue and security
 
-Nine migrations, applied in order. They are plain SQL and are tested against a real Postgres (PGlite) on every `npm test`.
+Ten migrations, applied in order. They are plain SQL and are tested against a real Postgres (PGlite) on every `npm test`.
 
 | File | What it does |
 |---|---|
@@ -13,6 +13,7 @@ Nine migrations, applied in order. They are plain SQL and are tested against a r
 | `…000700_roles.sql` | Changing a role is a recorded act (`set_user_role`), and the direct update grant is withdrawn |
 | `…000800_review_minutes.sql` | The review-time assumptions the Impact view subtracts from the time saved |
 | `…000900_golden_runs.sql` | The quality watch's memory: one append-only row per run of the golden set, with the model, prompt and ICP version it ran under |
+| `…001000_lock_procedures.sql` | Closes a gap found by checking the live database: `revoke … on all functions` skips procedures, so `make_append_only` was executable by the public |
 
 ## Setting up a project (about 10 minutes, once)
 

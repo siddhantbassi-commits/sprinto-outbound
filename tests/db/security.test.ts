@@ -42,10 +42,10 @@ describe("every table is locked down", () => {
     expect(loose).toEqual([]);
   });
 
-  it("keeps every function away from the anonymous role and the public, and the internal ones away from signed-in users", async () => {
+  it("keeps every function and procedure away from the anonymous role and the public, and the internal ones away from signed-in users", async () => {
     const w = await world();
     const fns = await w.db.admin<{ proname: string; anon: boolean; pub: boolean; authed: boolean }>(
-      "select p.proname, has_function_privilege('anon', p.oid, 'execute') anon, has_function_privilege('public', p.oid, 'execute') pub, has_function_privilege('authenticated', p.oid, 'execute') authed from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.prokind = 'f'",
+      "select p.proname, has_function_privilege('anon', p.oid, 'execute') anon, has_function_privilege('public', p.oid, 'execute') pub, has_function_privilege('authenticated', p.oid, 'execute') authed from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.prokind in ('f', 'p')",
     );
     expect(fns.filter((f) => f.anon || f.pub).map((f) => f.proname)).toEqual([]);
     for (const f of fns.filter((f) => f.proname.startsWith("_"))) expect(f.authed, f.proname).toBe(false);
