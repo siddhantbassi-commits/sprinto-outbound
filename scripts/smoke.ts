@@ -66,7 +66,7 @@ async function main() {
   if (want("supabase")) {
     if (env.supabase && env.worker) {
       const { url, anonKey } = env.supabase;
-      checks.push(...(await supabaseChecks({ make: () => createClient(url, anonKey, { auth: { persistSession: false, autoRefreshToken: false } }) as unknown as SbClient, worker: env.worker, testTo: env.testTo, serviceKeyPresent: !!raw.SUPABASE_SERVICE_ROLE_KEY })));
+      checks.push(...(await supabaseChecks({ make: () => createClient(url, anonKey, { auth: { persistSession: false, autoRefreshToken: false } }) as unknown as SbClient, worker: env.worker, testTo: env.testTo, serviceKeyPresent: !!raw.SUPABASE_SERVICE_ROLE_KEY, keyAccepted: async () => (await fetch(`${url}/auth/v1/settings`, { headers: { apikey: anonKey }, signal: AbortSignal.timeout(15_000) })).ok })));
     } else checks.push(...supabaseSkipped("the Supabase URL, anon key and worker login are not all set"));
   }
 

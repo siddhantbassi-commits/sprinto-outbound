@@ -17,6 +17,8 @@ export interface SupabaseSmokeOptions {
   testTo: string | null;
   /** True if a service-role key is present in the environment, which this project never wants. */
   serviceKeyPresent: boolean;
+  /** Asks the project whether it accepts this key at all, with no sign-in. A refusal later only means something if this passes. */
+  keyAccepted: () => Promise<boolean>;
 }
 
 export async function supabaseChecks(o: SupabaseSmokeOptions): Promise<Check[]> {
@@ -29,6 +31,19 @@ export async function supabaseChecks(o: SupabaseSmokeOptions): Promise<Check[]> 
         : pass(S, "service-key", "No service-role key is in the environment", "none set, as intended"),
     )),
   );
+
+  // Every later check assumes the project recognises the key. Without this, a wrong key makes "an anonymous visitor cannot
+  // read the data" pass for the wrong reason: the project refused the key, not the data.
+  let accepted = false;
+  out.push(
+    ...(await safely(S, "key", "The project accepts the key", async () => {
+      accepted = await o.keyAccepted();
+      return accepted
+        ? pass(S, "key", "The project accepts the key", "the project recognised it")
+        : fail(S, "key", "The project accepts the key", "the project answered \"Invalid API key\"", "NEXT_PUBLIC_SUPABASE_ANON_KEY is wrong (a URL, a truncated paste or another project's key). Run `npm run keys` and paste the anon key from Project Settings > API Keys once. Nothing below can be trusted until this passes.");
+    })),
+  );
+  if (!accepted) return out;
 
   // The anonymous visitor must see nothing.
   out.push(

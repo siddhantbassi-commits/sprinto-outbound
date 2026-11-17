@@ -30,9 +30,32 @@ const url = (v: string) => {
   }
 };
 
+/**
+ * The project's public key, and nothing else. It is the most mixed-up value on key day: the URL sits right above it, and the
+ * secret service-role key sits right below it on the same page. A URL is refused, and so is any key that carries the
+ * service role, which would bypass every row-level rule this project relies on. Anon JWTs start with "eyJ"; the newer
+ * publishable keys start with "sb_publishable_".
+ */
+export const supabaseKey = (v: string): string | null => {
+  if (/^https?:\/\//i.test(v)) return "That is a web address, not a key. The anon key is a long string starting eyJ (or sb_publishable_).";
+  if (/^sb_secret_/.test(v)) return "That is a secret key. This app only ever uses the public anon key.";
+  if (/^sb_publishable_[A-Za-z0-9_-]{16,}$/.test(v)) return null;
+  const parts = v.split(".");
+  if (parts.length === 3 && /^eyJ/.test(parts[0] ?? "")) {
+    try {
+      const role = (JSON.parse(Buffer.from(parts[1] ?? "", "base64url").toString("utf8")) as { role?: unknown }).role;
+      if (role === "service_role") return "That is the service_role key, which bypasses every security rule. Use the anon (public) key.";
+      return role === "anon" ? null : "That key is not an anon key.";
+    } catch {
+      return "That does not look like a key.";
+    }
+  }
+  return "That does not look like a Supabase key. The anon key starts eyJ (about 200 characters) or sb_publishable_.";
+};
+
 export const KEY_DEFS: KeyDef[] = [
   { name: "NEXT_PUBLIC_SUPABASE_URL", label: "Supabase project URL", group: "Supabase", secret: false, help: "Supabase > Project Settings > API > Project URL", validate: url },
-  { name: "NEXT_PUBLIC_SUPABASE_ANON_KEY", label: "Supabase anon (public) key", group: "Supabase", secret: true, help: "Same page: the anon / public key. It is public by design, but there is no reason to display it.", validate: nonEmpty(20, "The key") },
+  { name: "NEXT_PUBLIC_SUPABASE_ANON_KEY", label: "Supabase anon (public) key", group: "Supabase", secret: true, help: "Same page: the anon / public key. It is public by design, but there is no reason to display it.", validate: supabaseKey },
   { name: "WORKER_EMAIL", label: "Worker account email", group: "Supabase", secret: false, help: "The scheduler's own login. Invite it in Supabase, then set its role to worker.", validate: address },
   { name: "WORKER_PASSWORD", label: "Worker account password", group: "Supabase", secret: true, help: "Choose a long random one.", validate: nonEmpty(12, "The password") },
   { name: "CRON_SECRET", label: "Cron secret", group: "Deployment", secret: true, help: "Shared with the GitHub Worker workflow. Press g to generate a strong one.", validate: nonEmpty(24, "The secret"), generate: () => Array.from(crypto.getRandomValues(new Uint8Array(24)), (b) => b.toString(16).padStart(2, "0")).join("") },
@@ -118,4 +141,31 @@ export function envChecks(raw: Raw): Check[] {
   }
   if (set(raw, "SUPABASE_SERVICE_ROLE_KEY")) out.push(fail(S, "service-role", "No service-role key", "SUPABASE_SERVICE_ROLE_KEY is present", "This project never uses it. Remove it from this environment."));
   return out;
+}
+
+/** Short names for the values people most often have to redo, so `npm run keys -- --only anon` asks one question. */
+export const KEY_ALIASES: Record<string, string[]> = {
+  anon: ["NEXT_PUBLIC_SUPABASE_ANON_KEY"],
+  supabase: ["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY", "WORKER_EMAIL", "WORKER_PASSWORD"],
+  worker: ["WORKER_EMAIL", "WORKER_PASSWORD"],
+  gemini: ["GEMINI_API_KEY"],
+  hunter: ["HUNTER_API_KEY"],
+  gmail: ["GMAIL_CLIENT_ID", "GMAIL_CLIENT_SECRET", "GMAIL_REFRESH_TOKEN", "GMAIL_FROM", "GMAIL_FROM_NAME", "OUTBOUND_TEST_TO"],
+  deploy: ["CRON_SECRET", "APP_URL", "OUTBOUND_CONTACT_EMAIL"],
+};
+
+/**
+ * Which questions to ask. With no `--only`, all of them. With one, only the named values (an alias such as "anon", or an exact
+ * variable name), in the file's usual order. An unknown name is an error, never silently skipped.
+ */
+export function selectKeys(defs: KeyDef[], only: string | undefined): { ok: true; defs: KeyDef[] } | { ok: false; message: string } {
+  if (only === undefined) return { ok: true, defs };
+  const wanted = new Set<string>();
+  for (const raw of only.split(",").map((x) => x.trim()).filter(Boolean)) {
+    const names = KEY_ALIASES[raw.toLowerCase()] ?? (defs.some((d) => d.name === raw) ? [raw] : null);
+    if (!names) return { ok: false, message: `"${raw}" is not a key I know. Use one of: ${Object.keys(KEY_ALIASES).join(", ")}, or an exact name such as GEMINI_API_KEY.` };
+    for (const n of names) wanted.add(n);
+  }
+  if (wanted.size === 0) return { ok: false, message: "Say which key after --only, for example: npm run keys -- --only anon" };
+  return { ok: true, defs: defs.filter((d) => wanted.has(d.name)) };
 }

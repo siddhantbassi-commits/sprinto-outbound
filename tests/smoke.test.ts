@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { demoAi, extractionFor } from "@/lib/demo/ai";
 import { DEMO_BY_DOMAIN } from "@/lib/demo/companies";
 import { demoFetchDeps, demoHunter } from "@/lib/demo/world";
-import { envChecks, formatValue, KEY_DEFS, mergeEnv, parseEnv, SECRET_NAMES } from "@/lib/smoke/envfile";
+import { envChecks, formatValue, KEY_DEFS, mergeEnv, parseEnv, SECRET_NAMES, KEY_ALIASES, selectKeys, supabaseKey } from "@/lib/smoke/envfile";
 import { geminiChecks } from "@/lib/smoke/gemini";
 import { gmailChecks } from "@/lib/smoke/gmail";
 import { hunterChecks } from "@/lib/smoke/hunter";
@@ -323,13 +323,22 @@ function sbRig(o: { anon?: Answers; worker?: Answers; rpc?: unknown; login?: boo
 const VERIFIED_FILE = { ...SPRINTO_FACTS_SEED, items: [{ ...SPRINTO_FACTS_SEED.items[0]!, verifiedBy: "Siddhant", verifiedAt: "2026-11-03" }] };
 const GOOD_SETTINGS = { id: "s1", version: 2, test_to: "me@example.com", sender_name: "Sid", sender_title: "Growth Lead", postal_address: "1 Example Street" };
 const GOOD_WORKER: Answers = { profiles: [{ role: "worker" }], icp_signoffs: [{ id: "x" }], sprinto_facts_versions: [{ content: VERIFIED_FILE }] };
-const run = (r: Rig, over: Partial<Parameters<typeof supabaseChecks>[0]> = {}) => supabaseChecks({ make: r.make, worker: r.worker, testTo: "me@example.com", serviceKeyPresent: false, ...over });
+const run = (r: Rig, over: Partial<Parameters<typeof supabaseChecks>[0]> = {}) => supabaseChecks({ make: r.make, worker: r.worker, testTo: "me@example.com", serviceKeyPresent: false, keyAccepted: async () => true, ...over });
 
 describe("supabaseChecks", () => {
   it("passes for a project that is locked down and ready", async () => {
     const cs = await run(sbRig());
     expect(cs.filter((c) => c.status !== "pass").map((c) => `${c.id}: ${c.detail}`)).toEqual([]);
-    expect(cs.map((c) => c.id)).toEqual(["service-key", "anon", "login", "role", "migrations", "test-address", "icp", "facts"]);
+    expect(cs.map((c) => c.id)).toEqual(["service-key", "key", "anon", "login", "role", "migrations", "test-address", "icp", "facts"]);
+  });
+
+  it("stops at once when the project does not accept the key, instead of passing the anonymous check for the wrong reason", async () => {
+    let made = 0;
+    const r = sbRig();
+    const cs = await run({ ...r, make: () => { made += 1; return r.make(); } }, { keyAccepted: async () => false });
+    expect(by(cs, "key")).toMatchObject({ status: "fail", detail: expect.stringMatching(/Invalid API key/), hint: expect.stringMatching(/pasted|paste/) });
+    expect(cs.map((c) => c.id)).toEqual(["service-key", "key"]);
+    expect(made).toBe(0);
   });
 
   it("fails if a service-role key is in the environment", async () => {
@@ -344,7 +353,7 @@ describe("supabaseChecks", () => {
   it("stops after a refused worker login, without reading anything as the worker", async () => {
     const cs = await run(sbRig({ login: false }));
     expect(by(cs, "login")!.status).toBe("fail");
-    expect(cs.map((c) => c.id)).toEqual(["service-key", "anon", "login"]);
+    expect(cs.map((c) => c.id)).toEqual(["service-key", "key", "anon", "login"]);
   });
 
   it("fails if the worker has the wrong role, or can see other people's profiles", async () => {
@@ -473,6 +482,55 @@ describe("the key definitions", () => {
   it("matches .env.local.example exactly, so the prompt and the documented file cannot drift", () => {
     const example = Object.keys(parseEnv(readFileSync(".env.local.example", "utf8"))).sort();
     expect(KEY_DEFS.map((k) => k.name).sort()).toEqual(example);
+  });
+});
+
+describe("supabaseKey (the most mixed-up value on key day)", () => {
+  const b64 = (o: object) => Buffer.from(JSON.stringify(o)).toString("base64url");
+  const jwt = (role: string) => `${b64({ alg: "HS256", typ: "JWT" })}.${b64({ iss: "supabase", role })}.${"s".repeat(43)}`;
+
+  it("accepts an anon key and a publishable key", () => {
+    expect(supabaseKey(jwt("anon"))).toBeNull();
+    expect(supabaseKey("sb_publishable_" + "A1b2C3d4E5f6G7h8I9j0")).toBeNull();
+  });
+  it("refuses the project URL, which sits just above it on the page and was pasted here once", () => {
+    expect(supabaseKey("https://atfdyioggriegwizmnjd.supabase.co")).toMatch(/web address, not a key/);
+    expect(supabaseKey("http://localhost:54321")).toMatch(/web address/);
+  });
+  it("refuses a service-role key and a secret key, which bypass every security rule", () => {
+    expect(supabaseKey(jwt("service_role"))).toMatch(/service_role/);
+    expect(supabaseKey("sb_secret_" + "x".repeat(30))).toMatch(/secret key/);
+  });
+  it("refuses a JWT for another role, a mangled one and a random string", () => {
+    expect(supabaseKey(jwt("authenticated"))).toMatch(/not an anon key/);
+    expect(supabaseKey("eyJhbGciOi.%%%.sig")).toMatch(/does not look like a key/);
+    expect(supabaseKey("a-random-looking-string-that-is-long-enough")).toMatch(/does not look like a Supabase key/);
+    expect(supabaseKey(jwt("anon") + jwt("anon"))).not.toBeNull(); // pasted twice
+  });
+  it("is the check the anon-key prompt actually uses", () => {
+    expect(KEY_DEFS.find((k) => k.name === "NEXT_PUBLIC_SUPABASE_ANON_KEY")!.validate).toBe(supabaseKey);
+  });
+});
+
+describe("selectKeys (ask only what needs redoing)", () => {
+  const names = (o: string | undefined) => {
+    const r = selectKeys(KEY_DEFS, o);
+    return r.ok ? r.defs.map((d) => d.name) : r.message;
+  };
+  it("asks everything when --only is not given", () => expect(names(undefined)).toEqual(KEY_DEFS.map((k) => k.name)));
+  it("asks one question for an alias", () => expect(names("anon")).toEqual(["NEXT_PUBLIC_SUPABASE_ANON_KEY"]));
+  it("accepts an exact name, several names, and keeps the file's usual order", () => {
+    expect(names("GEMINI_API_KEY")).toEqual(["GEMINI_API_KEY"]);
+    expect(names("gemini,worker")).toEqual(["WORKER_EMAIL", "WORKER_PASSWORD", "GEMINI_API_KEY"]);
+  });
+  it("is case-insensitive for aliases", () => expect(names("ANON")).toEqual(["NEXT_PUBLIC_SUPABASE_ANON_KEY"]));
+  it("refuses an unknown name, and an empty one, instead of silently asking nothing", () => {
+    expect(names("anno")).toMatch(/not a key I know/);
+    expect(names("")).toMatch(/Say which key/);
+  });
+  it("only ever points at keys that exist", () => {
+    const all = new Set(KEY_DEFS.map((k) => k.name));
+    for (const [alias, list] of Object.entries(KEY_ALIASES)) for (const n of list) expect(all.has(n), `${alias}: ${n}`).toBe(true);
   });
 });
 

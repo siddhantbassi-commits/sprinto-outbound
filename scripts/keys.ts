@@ -1,14 +1,15 @@
 /**
  * Enter your keys without ever pasting them into a chat or leaving them in your shell history:
  *
- *   npm run keys
+ *   npm run keys                  every value
+ *   npm run keys -- --only anon   just the Supabase anon key (also: supabase, worker, gemini, hunter, gmail, deploy)
  *
  * Secret values are typed with the screen blank, held only long enough to be written to .env.local (readable by you alone,
  * and ignored by git), and never printed. Press Enter to keep what is already there, type a new value to replace it, or
  * "-" to remove it.
  */
 import { chmodSync, existsSync, readFileSync, writeFileSync } from "node:fs";
-import { KEY_DEFS, mergeEnv, parseEnv, type KeyDef } from "@/lib/smoke/envfile";
+import { KEY_DEFS, mergeEnv, parseEnv, selectKeys, type KeyDef } from "@/lib/smoke/envfile";
 
 const FILE = process.env.SMOKE_ENV_FILE ?? ".env.local";
 
@@ -58,9 +59,15 @@ async function main() {
   const current = parseEnv(existing);
   const updates: Record<string, string> = {};
 
+  const onlyAt = process.argv.indexOf("--only");
+  const chosen = selectKeys(KEY_DEFS, onlyAt >= 0 ? (process.argv[onlyAt + 1] ?? "") : undefined);
+  if (!chosen.ok) {
+    console.error(chosen.message);
+    process.exit(1);
+  }
   console.log("Sprinto Outbound: keys\nSecrets are hidden as you type. Enter keeps the current value, \"-\" removes it.\n");
   let group = "";
-  for (const def of KEY_DEFS) {
+  for (const def of chosen.defs) {
     if (def.group !== group) {
       group = def.group;
       console.log(`\n== ${group} ==`);
