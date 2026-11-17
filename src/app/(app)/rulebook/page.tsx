@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Icon } from "@/components/icons";
 import { PageHead, Pill, SectionTitle } from "@/components/ui";
 import { MAX_CALLS_PER_ROUND, MAX_ROUNDS } from "@/lib/agent/loop";
@@ -117,6 +118,16 @@ export default async function Rulebook() {
       <section className="card hero stack">
         <SectionTitle icon="user" title="The human boundary" />
         <p style={{ margin: 0, maxWidth: "70ch" }}>The system researches, qualifies, finds a contact and drafts. A person owns the ICP, verifies every claim about Sprinto, reviews each email, and decides anything the system could not. In this build mail goes only to a test address; moving to real prospects would be a deliberate change by an admin, after review.</p>
+      </section>
+
+      <section className="card stack">
+        <SectionTitle icon="flag" title="When this gets shut down" sub="Written down before the build, as the class asks. Checked against real decisions on the Scorecard." />
+        <ul className="rules" style={{ borderTop: 0, paddingTop: 0 }}>
+          <li><Icon name="flag" />Stop if the Growth Lead rewrites more than 50% of emails. The aim is under 20%.</li>
+          <li><Icon name="flag" />Stop if running the system takes more time than it saves. The aim is under 2 minutes of person time per company.</li>
+          <li><Icon name="flag" />Stop if the person chosen is right less than 60% of the time.</li>
+        </ul>
+        <div><Link className="btn" href="/scorecard">Open the Scorecard<Icon name="arrow" /></Link></div>
       </section>
     </div>
   );

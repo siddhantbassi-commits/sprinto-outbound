@@ -712,3 +712,28 @@ details.card > summary { cursor: pointer; font-weight: 600; }
 .topbar a { color: var(--side-ink); }
 .topbar a[aria-current="page"] { color: #fff; }
 .why-hero > .stack { grid-template-columns: minmax(0, 1fr); }
+
+/* ---------- scorecard ---------- */
+.verdict { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 18px; align-items: center; }
+.verdict-ic { width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; background: var(--info-soft); color: var(--info); }
+.verdict-ic .icon { width: 22px; height: 22px; }
+.verdict.good .verdict-ic { background: var(--good-soft); color: var(--good); }
+.verdict.warn .verdict-ic { background: var(--warn-soft); color: var(--warn); }
+.verdict.bad .verdict-ic { background: var(--bad-soft); color: var(--bad); animation: breathe 2s ease-in-out infinite; }
+.crit { align-content: start; }
+.crit.kill { border-color: color-mix(in srgb, var(--bad) 45%, var(--line)); }
+.crit-value { font-size: 2.4rem; font-weight: 620; letter-spacing: -0.035em; line-height: 1.05; font-variant-numeric: tabular-nums; }
+.crit.unknown .crit-value { color: var(--muted); }
+.gauge { position: relative; height: 10px; border-radius: 999px; margin: 6px 0 4px; }
+.gauge.dim { opacity: 0.35; }
+.gauge .mark { position: absolute; top: 50%; left: calc(var(--at) * 1%); width: 18px; height: 18px; margin: -9px 0 0 -9px; border-radius: 50%; background: var(--surface); border: 3px solid var(--ink); box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25); animation: gauge-in 1s cubic-bezier(0.2, 0.9, 0.3, 1) both; }
+@keyframes gauge-in { from { left: 0; } }
+.rules { list-style: none; margin: 0; padding: 10px 0 0; border-top: 1px solid var(--line); display: grid; gap: 6px; font-size: 0.84rem; color: var(--ink-2); }
+.rules li { display: flex; gap: 8px; align-items: flex-start; }
+.rules .icon { width: 15px; height: 15px; margin-top: 2px; flex: none; color: var(--brand); }
+.bar-track { height: 10px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+.bar-track i { display: block; height: 100%; border-radius: 999px; transform-origin: left; animation: grow 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.bar-track.muted i { background: var(--line-strong); }
+.bar-track.brand i { background: var(--brand); }
+.bar-track.faint i { background: var(--lilac, #c9a7e0); }
+.crit-value .early { font-size: 1.25rem; font-weight: 560; letter-spacing: -0.01em; color: var(--muted); line-height: 2.2rem; display: inline-block; }

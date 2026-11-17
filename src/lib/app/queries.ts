@@ -234,3 +234,17 @@ export interface CompanyHit {
 export async function companyIndex(db: DbPort, limit = 300): Promise<CompanyHit[]> {
   return rows<CompanyHit>(await db.select("prospects", {}, { order: "created_at", ascending: false, limit, columns: "id,domain,lane,verdict" }));
 }
+
+export interface ReviewHistoryRow {
+  prospect_id: string;
+  action: "approve" | "reject";
+  edit_ratio: number | string;
+  contact_ok: boolean;
+  reason: string;
+  created_at: string;
+}
+
+/** Every decision a person made on a draft, oldest first, for the kill-criteria scorecard. */
+export async function reviewHistory(db: DbPort): Promise<ReviewHistoryRow[]> {
+  return (await selectAll(db, "email_reviews", {}, { order: "created_at", columns: "prospect_id,action,edit_ratio,contact_ok,reason,created_at" }, 20_000)) as unknown as ReviewHistoryRow[];
+}

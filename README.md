@@ -17,7 +17,7 @@ npm run dev:demo      # http://localhost:3100
 
 Demo mode runs the whole product on seven invented companies, in memory: a real Postgres engine with the real schema, the real worker, the real quote check, scoring, lint and send safety. Only the outside world is pretend (the websites, the model, Hunter and Gmail). Nothing leaves your computer, and it refuses to start in production or beside a real database. Use the **View as** switch at the top to see what an admin, an operator, a viewer and a not-yet-approved person can each do.
 
-Things worth clicking: a company's **Why** page (every score point with its quote and the page it came from), **Needs attention** (a "maybe", a company with no usable contact), **Test inbox** (what would have landed in your Gmail, with the defence above it), and **Settings** (what must be true before anything can send), **Impact** (the funnel, where the rest went, and time saved with its working), **Quality** (this week against last week, with "not enough data" shown where a sample is too small, and the golden set), **Ask** (plain-English questions answered from the records, with what it looked at shown), and **ICP and replay** (change a weight and see which stored companies would move, without re-reading a single site).
+Things worth clicking: a company's **Why** page (every score point with its quote and the page it came from), **Needs attention** (a "maybe", a company with no usable contact), **Test inbox** (what would have landed in your Gmail, with the defence above it), and **Settings** (what must be true before anything can send), **Impact** (the funnel, where the rest went, and time saved with its working), **Scorecard** (the three kill criteria set before the build, and where each stands, with "not enough data" until 8 decisions exist), **Quality** (this week against last week, with "not enough data" shown where a sample is too small, and the golden set), **Ask** (plain-English questions answered from the records, with what it looked at shown), and **ICP and replay** (change a weight and see which stored companies would move, without re-reading a single site).
 
 ## What exists today
 
@@ -36,6 +36,7 @@ Everything below is built and tested, and the app runs. **No real service has be
 | Demo | `src/lib/demo/` | The sample world described above |
 | Key day | `scripts/`, `src/lib/smoke/` | Hidden-prompt key entry, and the smoke test described below |
 | Ask | `src/lib/ask/` | Seven read-only lookups, the loop, the answer check, the rate limit, and the demo stand-in |
+| Scorecard | `src/lib/app/scorecard.ts` | The class's kill criteria (rewrites over 50%, contact accuracy under 60%, time costing more than it saves) checked against recorded review decisions, with a minimum sample and the working shown |
 | Quality watch | `src/lib/quality/` | Live readings with minimum-sample rules, the golden set of known companies, and its history |
 
 Everything in the scope is built. The smoke script is built and tested against fakes; it has not yet been run against your real accounts.
