@@ -110,7 +110,8 @@ export async function getProspect(db: DbPort, id: string, canSeeContacts: boolea
   const contacts = canSeeContacts ? await db.select("contacts", { prospect_id: id }) : await db.select("contacts_masked", { prospect_id: id });
   const emails = await db.select("emails", { prospect_id: id }, { order: "attempt" });
   const decisions = await db.select("decisions", { prospect_id: id }, { order: "seq", ascending: false });
-  return { prospect, run: run as Row, events, pages, facts, score: score as Row | undefined, contacts, emails, decisions };
+  const reviews = await db.select("email_reviews", { prospect_id: id }, { order: "created_at", ascending: false });
+  return { prospect, run: run as Row, events, pages, facts, score: score as Row | undefined, contacts, emails, decisions, reviews };
 }
 
 export interface SuppressionNow {

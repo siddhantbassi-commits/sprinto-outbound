@@ -25,28 +25,8 @@ export interface ParsedList {
 
 const HEADER = /^(domain|domains|website|websites|url|urls|site|company website|company domain|web)$/i;
 
-/** Splits one CSV line, honouring double quotes. Good enough for a list of domains, not a general CSV parser. */
-export function splitCsvLine(line: string): string[] {
-  const out: string[] = [];
-  let cell = "";
-  let quoted = false;
-  for (let i = 0; i < line.length; i += 1) {
-    const c = line[i] as string;
-    if (quoted) {
-      if (c === '"' && line[i + 1] === '"') {
-        cell += '"';
-        i += 1;
-      } else if (c === '"') quoted = false;
-      else cell += c;
-    } else if (c === '"') quoted = true;
-    else if (c === ",") {
-      out.push(cell);
-      cell = "";
-    } else cell += c;
-  }
-  out.push(cell);
-  return out;
-}
+export { splitCsvLine } from "./paste";
+import { splitCsvLine } from "./paste";
 
 export function parseList(raw: string): ParsedList {
   const truncated = raw.length > MAX_INPUT_CHARS;

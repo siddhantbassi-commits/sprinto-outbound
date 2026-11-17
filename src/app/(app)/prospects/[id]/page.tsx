@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ProspectActions } from "./controls";
-import { Banner, LanePill, PageHead, Pill, VerdictPill } from "@/components/ui";
-import { ACTIONS, dateTime, STEP_ORDER, STEPS, tokens, type Tone } from "@/lib/app/format";
+import { Icon } from "@/components/icons";
+import { Banner, LanePill, PageHead, Pill, Ring, SectionTitle, VerdictPill } from "@/components/ui";
+import { ACTIONS, dateTime, STEP_ORDER, STEPS, tokens } from "@/lib/app/format";
 import { getProspect } from "@/lib/app/queries";
 import { getSession } from "@/lib/app/runtime";
+import { story } from "@/lib/app/story";
 
 export const metadata = { title: "Why" };
 
@@ -31,7 +33,7 @@ export default async function Why({ params }: { params: Promise<{ id: string }> 
   const full = s.user.role !== "viewer";
   const d = await getProspect(s.db, id, full);
   if (!d) notFound();
-  const { prospect: p, events, pages, facts, score, contacts, emails, decisions } = d;
+  const { prospect: p, events, pages, facts, score, contacts, emails, decisions, reviews } = d;
   const canAct = s.user.role === "operator" || s.user.role === "admin";
 
   const lastFacts = facts.at(-1)?.facts as Record<string, { value: unknown; confidence: string; quotes: string[] }> | undefined;
@@ -51,33 +53,57 @@ export default async function Why({ params }: { params: Promise<{ id: string }> 
   const groundingFails = asArray<string>(qualify?.output.grounding_failures);
   const trace = asArray<{ round: number; tool: string; outcome: string; newPages: number }>(qualify?.output.trace);
 
+  const review = email ? (reviews.find((r) => r.email_id === email.id) as { action: "approve" | "reject"; edit_ratio: number | string; reason: string; created_at: string } | undefined) : undefined;
+  const who = (c: (typeof contacts)[number]) => (full ? [c.first_name, c.last_name].filter(Boolean).join(" ") || String(c.email ?? "a shared mailbox") : String(c.first_initial ?? "a contact"));
+  const summary = story({
+    lane: p.lane, step: p.step, verdict: p.verdict, score: score ? Number(score.score) : null,
+    reasons: [...parts].filter((x) => x.points > 0).sort((a, b) => b.points - a.points).map((x) => x.label),
+    contact: chosen ? { name: who(chosen), title: (chosen.position as string | null) || null } : null, candidates: contacts.filter((c) => !c.excluded).length,
+    pains: picks.map((k) => k.label), checks: email ? { pass: checks.filter((c) => c.pass).length, total: checks.length } : null,
+    pages: { read: pages.length, thin: pages.filter((pg) => pg.thin).length },
+    emailStatus: email ? String(email.status) : null,
+    review: review ? { action: review.action, editRatio: Number(review.edit_ratio), reason: review.reason } : null,
+    laneReason: p.lane_reason,
+  });
+
   return (
     <div className="stack">
       <div className="crumbs"><Link href="/">Runs</Link> / <Link href={`/runs/${p.run_id}`}>Run</Link> / {p.domain}</div>
-      <PageHead title={p.domain} sub="Why the system did what it did, with the evidence for each decision.">
+      <PageHead eyebrow="Why" title={p.domain} sub="Why the system did what it did, with the evidence for each decision.">
         <LanePill lane={p.lane} />
         <VerdictPill verdict={p.verdict} />
       </PageHead>
 
-      {p.lane_reason ? <Banner tone={(["unknown", "failed"].includes(p.lane) ? "bad" : p.lane === "sent" ? "good" : "warn") as Tone} title={p.lane === "sent" ? "Sent to the test inbox" : "Where and why it stopped"}>{p.lane_reason}</Banner> : null}
-      {p.lane === "sent" ? <Banner tone="good" title="Sent to the test inbox">This email went to the test address only. The contact named below was not mailed.</Banner> : null}
+      <section className="card hero why-hero" aria-label="Summary">
+        <Ring value={score ? Number(score.score) : 0} max={100} label="of 100" tone={summary.tone === "good" ? "good" : summary.tone === "bad" ? "bad" : summary.tone === "warn" ? "warn" : "brand"} size={104} />
+        <div className="stack tight" style={{ minWidth: 0 }}>
+          <h2 style={{ fontSize: "1.35rem" }}>{summary.headline}</h2>
+          <ul className="story stagger">{summary.sentences.map((x) => <li key={x}>{x}</li>)}</ul>
+          <div className="row" style={{ gap: 12 }}>
+            <Pill tone={summary.next.tone === "bad" ? "bad" : summary.next.tone === "good" ? "good" : summary.next.tone === "warn" ? "warn" : "info"}>{summary.next.text}</Pill>
+            {summary.next.action === "review" && canAct ? <Link href="/review" className="btn primary small">Open the review desk<Icon name="arrow" /></Link> : null}
+          </div>
+        </div>
+      </section>
+
+      <nav className="subnav" aria-label="Sections">
+        <a href="#company">Company</a><a href="#person">Person</a><a href="#pains">Pains</a><a href="#email">Email</a><a href="#trace">Trace</a>
+      </nav>
+
       {injection.length ? <Banner tone="warn" title="A page tried to give the model instructions">It was treated only as text to read, and the result still had to pass the quote check. {injection.map((i) => `${i.url} (${i.rules.join(", ")})`).join("; ")}</Banner> : null}
 
       <ol className="stepper" aria-label="Progress">
         {STEP_ORDER.map((st, i) => {
           const cls = i < at || p.lane === "sent" ? "done" : i === at ? (stopped ? "stop" : "now") : "";
-          return <li key={st} className={cls}>{cls === "done" ? "✓" : i + 1}. {STEPS[st]}</li>;
+          return <li key={st} className={cls}>{cls === "done" ? "" : `${i + 1}. `}{STEPS[st]}</li>;
         })}
       </ol>
 
       {canAct && p.lane !== "active" ? <ProspectActions id={p.id} lane={p.lane} domain={p.domain} /> : null}
 
       {/* ---------------- 1. the company ---------------- */}
-      <section className="card stack">
-        <div>
-          <h2>1. Why this company{score ? `: ${score.score}/100` : ""}</h2>
-          <p className="sub">A fixed rubric scored from facts the model quoted from the site. The model reads; code adds up the points.</p>
-        </div>
+      <section id="company" className="card stack">
+        <SectionTitle icon="target" title={`Why this company${score ? `: ${score.score}/100` : ""}`} sub="A fixed rubric scored from facts the model quoted from the site. The model reads; code adds up the points." />
         {score ? (
           <>
             <ul className="checks" aria-label="Gates">
@@ -131,11 +157,8 @@ export default async function Why({ params }: { params: Promise<{ id: string }> 
       </section>
 
       {/* ---------------- 2. the person ---------------- */}
-      <section className="card stack">
-        <div>
-          <h2>2. Why this person</h2>
-          <p className="sub">Candidates come from Hunter or a hand-picked list and are ranked by code: the title for this company&rsquo;s size, seniority, how sure the address is. The model is not involved.</p>
-        </div>
+      <section id="person" className="card stack">
+        <SectionTitle icon="people" title="Why this person" sub="Candidates come from Hunter or a hand-picked list and are ranked by code: the title for this company’s size, seniority, how sure the address is. The model is not involved." />
         {contacts.length === 0 ? <p className="muted">{p.lane === "no_contact" ? "No suitable contact was found." : "No contact has been looked up yet."}</p> : (
           <div className="tablewrap"><table>
             <thead><tr><th>Candidate</th><th>Title</th><th className="num">Rank</th><th>How it was scored</th></tr></thead>
@@ -160,11 +183,8 @@ export default async function Why({ params }: { params: Promise<{ id: string }> 
       </section>
 
       {/* ---------------- 3. the pains ---------------- */}
-      <section className="card stack">
-        <div>
-          <h2>3. Why these two pains</h2>
-          <p className="sub">Nine fixed pains. Code scores them for this person&rsquo;s role and this company&rsquo;s facts and keeps four; the model picks two of the four and must cite real evidence.</p>
-        </div>
+      <section id="pains" className="card stack">
+        <SectionTitle icon="chat" title="Why these two pains" sub="Nine fixed pains. Code scores them for this person’s role and this company’s facts and keeps four; the model picks two of the four and must cite real evidence." />
         {picks.length === 0 ? <p className="muted">Not chosen yet.</p> : (
           <>
             {String(painsEvent?.output.source) === "code_fallback" ? <Banner tone="info" title="Code fallback">{String(painsEvent?.output.fallback_reason ?? "The model's answer was not used; the two highest-scoring pains were.")}</Banner> : null}
@@ -191,11 +211,8 @@ export default async function Why({ params }: { params: Promise<{ id: string }> 
       </section>
 
       {/* ---------------- 4. the email ---------------- */}
-      <section className="card stack">
-        <div>
-          <h2>4. Why this email</h2>
-          <p className="sub">The model writes the middle; code adds the greeting, the sign-off and the opt-out line, and twelve checks decide whether it may go.</p>
-        </div>
+      <section id="email" className="card stack">
+        <SectionTitle icon="mail" title="Why this email" sub="The model writes the middle; code adds the greeting, the sign-off and the opt-out line, and twelve checks decide whether it may go." />
         {!email ? <p className="muted">No draft yet.</p> : (
           <>
             <div className="email"><div className="subject">Subject: {String(email.subject)}</div>{String(email.body)}</div>
@@ -205,6 +222,7 @@ export default async function Why({ params }: { params: Promise<{ id: string }> 
               {email.gmail_message_id ? <span>Gmail message <span className="mono">{String(email.gmail_message_id)}</span></span> : null}
               {email.sending_at ? <span>Search Sent for <span className="mono">X-Outbound-Run: {String(email.id)}</span></span> : null}
             </div>
+            {review ? <Banner tone={review.action === "approve" ? "good" : "bad"} title={review.action === "approve" ? (Number(review.edit_ratio) === 0 ? "Approved as written" : `Approved with edits (about ${Math.max(1, Math.round(Number(review.edit_ratio) * 100))}% changed)`) : "Rejected at review"}>{review.action === "reject" ? review.reason : review.reason || "A person read it and approved it before it was sent."} {dateTime(review.created_at)}</Banner> : null}
             {hook ? <div><div className="small muted">The hook it opens with, from the company&rsquo;s own page:</div><Quote text={hook.quote} source={hook.source} /></div> : null}
             <ul className="checks" aria-label="Lint checks">
               {checks.map((c) => <li key={c.id} className={c.pass ? "ok" : "no"}><span className="tick" aria-hidden>{c.pass ? "✓" : "✕"}</span><span><span className="tag">{c.id}</span> {c.message}</span></li>)}
@@ -215,11 +233,8 @@ export default async function Why({ params }: { params: Promise<{ id: string }> 
       </section>
 
       {/* ---------------- the trace ---------------- */}
-      <section className="card stack">
-        <div>
-          <h2>Everything that happened</h2>
-          <p className="sub">The append-only trace. It cannot be edited or deleted by anyone, and every row is stamped by the database.</p>
-        </div>
+      <section id="trace" className="card stack">
+        <SectionTitle icon="pulse" title="Everything that happened" sub="The append-only trace. It cannot be edited or deleted by anyone, and every row is stamped by the database." />
         <ol className="timeline">
           {events.map((e) => (
             <li key={e.id} className={e.status}>

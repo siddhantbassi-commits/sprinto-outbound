@@ -11,10 +11,10 @@ export default async function NewRun() {
   if (s.user.role !== "operator" && s.user.role !== "admin") redirect("/");
   const settings = await currentSettings(s.db);
   return (
-    <div className="stack">
-      <PageHead title="New run" sub="Add the companies you want to look at. Each one is read, qualified, matched to a named person and written up, with every decision recorded." />
+    <div className="stack" style={{ gap: 22 }}>
+      <PageHead eyebrow="Work" title="New run" sub="Add the companies you want to look at. Each one is read, qualified, matched to a named person and written up, with every decision recorded." />
       {!settings?.test_to ? <Banner tone="warn" title="Test mode has no address yet">You can start a run, but nothing will be sent until an admin sets the test address in Settings.</Banner> : null}
-      <NewRunForm />
+      <NewRunForm facts={{ approval: settings?.require_approval !== false, dailyCap: settings?.daily_send_cap ?? null, testTo: settings?.test_to ?? null, maxRun: settings?.max_run_size ?? null }} />
     </div>
   );
 }
