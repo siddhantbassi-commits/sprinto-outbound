@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const config: NextConfig = {
+  // A second dev server (the demo, on its own port) needs its own build folder, or the two lock each other out.
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   // The demo database is a WebAssembly Postgres; keep it out of the bundle and load it from node_modules.
   serverExternalPackages: ["@electric-sql/pglite"],
   poweredByHeader: false,

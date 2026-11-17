@@ -221,3 +221,15 @@ export async function liveData(db: DbPort, now: number, days = 7): Promise<LiveI
   ]);
   return { now, days, impact, events, lastTick: status.lastTick, activeNow: active.length, unknownNow: unknown.length };
 }
+
+export interface CompanyHit {
+  id: string;
+  domain: string;
+  lane: string;
+  verdict: string | null;
+}
+
+/** The newest companies by name, for search. Only what the search box shows, and capped, so it stays cheap on every page. */
+export async function companyIndex(db: DbPort, limit = 300): Promise<CompanyHit[]> {
+  return rows<CompanyHit>(await db.select("prospects", {}, { order: "created_at", ascending: false, limit, columns: "id,domain,lane,verdict" }));
+}

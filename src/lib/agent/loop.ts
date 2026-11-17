@@ -16,7 +16,7 @@ import type { FetchOutcome, Site } from "@/lib/scrape/site";
 
 export const AGENT_PROMPT_VERSION = "agent-v1";
 export const MAX_ROUNDS = 4;
-const MAX_CALLS_PER_ROUND = 2;
+export const MAX_CALLS_PER_ROUND = 2;
 const ROUND_OUTPUT_TOKENS = 512;
 
 export const TOOLS: ToolDecl[] = [

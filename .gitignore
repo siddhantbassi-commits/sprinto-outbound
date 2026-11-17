@@ -7,3 +7,5 @@ test-results
 playwright-report
 .DS_Store
 AGENTS.md
+.next-demo
+.claude/
