@@ -227,6 +227,8 @@ describe("choosePains", () => {
     expect(sent.user).toContain(Q_ENT);
     expect(sent.user + sent.system).not.toMatch(/@/);
     expect(sent.system).toContain("untrusted content");
+    // The model thinks before it answers, and thinking counts against the ceiling, so the ceiling must leave room for it.
+    expect(sent.maxOutputTokens).toBeGreaterThanOrEqual(4096);
   });
 
   it("puts site quotes and the contact's text inside data blocks, so they cannot act as instructions", () => {
@@ -419,6 +421,16 @@ describe("draftEmail", () => {
       const r = await draftEmail(base(scriptedAi({ json: [good({ message: WITH_FIGURE }), good({ message: WITH_FIGURE }), good({ message: WITH_FIGURE })] }), { facts: withClaim(false) }));
       expect(r.status).not.toBe("ok");
     });
+  });
+
+  it("gives the model room to think and time to answer, as measured on the real models", async () => {
+    const ai = scriptedAi({ json: [good()] });
+    await draftEmail(base(ai));
+    const sent = ai.jsonRequests[0]!;
+    // A draft is about 120 tokens of email but 2,300 to 3,400 with the model's thinking; under about 4,000 it is cut off.
+    expect(sent.maxOutputTokens).toBeGreaterThanOrEqual(4096);
+    // The slowest model in the chain took 24 seconds for one draft.
+    expect(sent.timeoutMs).toBeGreaterThanOrEqual(40_000);
   });
 
   it("drops a greeting the model added anyway, so there is only one", async () => {

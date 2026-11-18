@@ -15,8 +15,10 @@ import { allowedNumbersFor, factsFileProblems, optOutFooter, verifiedClaims, typ
 
 export const DRAFT_PROMPT_VERSION = "draft-v2";
 export const MAX_REPAIRS = 2;
-/** Room for the answer plus the model's own thinking, which counts against it. A tight number cuts the answer off mid-sentence. */
-const MAX_OUTPUT_TOKENS = 2048;
+/** Measured on the real models: a draft is about 120 tokens of email but 2,300 to 3,400 tokens including the model's thinking. Anything under about 4,000 is cut off. */
+const MAX_OUTPUT_TOKENS = 6144;
+/** The slowest model in the chain took 24 seconds for one draft, so 30 was too close. */
+export const DRAFT_TIMEOUT_MS = 40_000;
 
 export const LINT_RULES_PLAIN = [
   "The whole email (greeting and sign-off included) is 60 to 130 words. The subject is at most 60 characters, not all capitals, and not a fake Re: or Fwd:.",
@@ -166,7 +168,7 @@ export async function draftEmail(input: DraftInput): Promise<DraftResult> {
     let data: unknown;
     try {
       common.aiCalls += 1;
-      const res = await ai.generateJson({ purpose: "draft", system, user, schema, temperature: 0.6, maxOutputTokens: MAX_OUTPUT_TOKENS, timeoutMs: input.timeoutMs ?? 30_000 });
+      const res = await ai.generateJson({ purpose: "draft", system, user, schema, temperature: 0.6, maxOutputTokens: MAX_OUTPUT_TOKENS, timeoutMs: input.timeoutMs ?? DRAFT_TIMEOUT_MS });
       common.usage = addUsage(common.usage, res.usage);
       common.model = res.model;
       budget.charge(res.usage);

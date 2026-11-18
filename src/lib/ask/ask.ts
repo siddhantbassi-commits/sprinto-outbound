@@ -18,7 +18,7 @@ export const MAX_ROUNDS = 4;
 const MAX_CALLS_PER_ROUND = 3;
 const MAX_ANSWER = 1500;
 /** Room for the answer plus the model's own thinking, which counts against it. A tight number cuts the answer off mid-sentence. */
-export const ROUND_OUTPUT_TOKENS = 1536;
+export const ROUND_OUTPUT_TOKENS = 4096;
 
 export function askSystemPrompt(): string {
   return [
