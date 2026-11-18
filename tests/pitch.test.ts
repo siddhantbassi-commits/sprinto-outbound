@@ -57,6 +57,32 @@ describe("detectSignals", () => {
 });
 
 describe("scorePains and shortlist", () => {
+  describe("a pain whose premise the facts contradict", () => {
+    const withCert = (value: "none_visible" | "in_progress" | "soc2_type1" | "iso_only" | "soc2_type2" | "soc2_iso", quote = "SOC 2 Type II") =>
+      facts({ enterprisePlan: [true, "high", [Q_ENT]], compliance: [value, "high", value === "none_visible" ? [] : [quote]], healthData: [true, "high", ["we handle protected health information"]] });
+    const ids = (f: Facts, role: Role = "cto") => scorePains(f, role).map((x) => x.pain.id);
+
+    it("does not offer P1 (a missing security report) to a company that already holds a SOC 2 Type 2 report", () => {
+      expect(ids(withCert("soc2_type2"))).not.toContain("P1");
+      expect(ids(withCert("soc2_iso"))).not.toContain("P1");
+      expect(shortlist(withCert("soc2_type2"), "cto").items.map((x) => x.pain.id)).not.toContain("P1");
+    });
+
+    it("still offers P1 when no certificate is visible, when one is in progress, or when only a Type 1 or an ISO certificate is held", () => {
+      for (const v of ["none_visible", "in_progress", "soc2_type1", "iso_only"] as const) expect(ids(withCert(v))).toContain("P1");
+    });
+
+    it("keeps the other pains, so a certified company still gets a real choice", () => {
+      expect(ids(withCert("soc2_type2")).length).toBe(PAINS.length - 1);
+    });
+
+    it("detects the held report as a signal, with the page's own quote", () => {
+      const s = detectSignals(withCert("soc2_type2", "SOC 2 Type II")).find((e) => e.id === "reportHeld");
+      expect(s).toMatchObject({ kind: "quote", quotes: ["SOC 2 Type II"] });
+      expect(detectSignals(withCert("none_visible")).some((e) => e.id === "reportHeld")).toBe(false);
+    });
+  });
+
   it("scores 10 points per signal plus the role's weight", () => {
     const p1 = scorePains(ENTERPRISE_NO_CERT, "cto").find((s) => s.pain.id === "P1")!;
     expect(p1).toMatchObject({ signalPoints: 20, personaPoints: 30, score: 50 });

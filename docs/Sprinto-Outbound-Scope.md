@@ -12,7 +12,7 @@ Working name: **Sprinto Outbound**. Companion file: [Sprinto-Outbound-Components
 
 This document began as the plan. It has been corrected to match what exists; where the build departs from the plan, the section says so.
 
-**What exists.** A Next.js app on Vercel (Mumbai) at https://sprinto-outbound-eight.vercel.app, invite-only, in test mode. Supabase holds the data and sign-in (11 migrations, row level security, append-only history). A GitHub Actions worker runs every 15 minutes. Gemini, Hunter and Gmail are all live. 1,312 automated tests in 54 files pass and the typecheck is clean. The logic that decides things (score, ranking, lint, edit measure, scorecard, run view) was also checked by deliberately breaking it and confirming a test fails; survivors were either harmless or became new tests.
+**What exists.** A Next.js app on Vercel (Mumbai) at https://sprinto-outbound-eight.vercel.app, invite-only, in test mode. Supabase holds the data and sign-in (11 migrations, row level security, append-only history). A GitHub Actions worker runs every 15 minutes. Gemini, Hunter and Gmail are all live. 1,317 automated tests in 54 files pass and the typecheck is clean. The logic that decides things (score, ranking, lint, edit measure, scorecard, run view) was also checked by deliberately breaking it and confirming a test fails; survivors were either harmless or became new tests.
 
 **Pages:** Runs, New run, Run detail, Why, Review, Impact, Scorecard, Quality, Ask, Rulebook, ICP and replay, Settings, People (and a Test inbox in demo mode only).
 
@@ -22,7 +22,9 @@ This document began as the plan. It has been corrected to match what exists; whe
 1. **Thinking tokens eat the answer.** The Gemini 3.x models spend output tokens thinking before they answer or call a tool. At 300 or 512 tokens a round could end with no tool call, which the loop reads as "nothing more to fetch", and a real six-page site overran the 4,096-token extraction budget. Budgets were measured against the real models and raised (loop 1,024, extraction 12,288).
 2. **Promoting a "maybe" failed.** It sent the company back through the whole qualify step, which then collided with its own saved facts. A promoted "maybe" now carries on without being read again, and a re-run adds a second pass of facts. The test that had written the broken behaviour down as expected was corrected.
 3. **The hook was not the strongest signal.** The first draft opened on an Enterprise License line while the strongest evidence (SOC 2 planned for 2026) ranked low. Hook options are now ordered by the company's highest-scoring quotes first.
-4. **A smoke test that passed for the wrong reason, and a grant that was too wide.** With a wrong Supabase key the anonymous check passed vacuously (a check that the key is accepted was added), and a catalog check of the live database found a helper function callable by the public (closed by a migration).
+4. **A pain that contradicted the company's own facts.** The draft for `trigger.dev` told a company that already holds SOC 2 Type II that prospects ask for a report it "cannot yet hand over". Pain P1 was triggered by an enterprise tier alone. A pain can now name signals that contradict it (here, a held SOC 2 Type 2 report) and is then not offered at all. The 12 checks cannot catch this kind of fault; it was found by reading a real draft, which is what the approval step is for.
+5. **A draft cut off by its own thinking.** A draft is about 120 tokens of email but 2,300 to 3,400 with the model's thinking, so a 2,048-token ceiling cut it off almost every time (the first real draft only got through by luck). The draft ceiling is now 6,144 tokens and its timeout 40 seconds.
+6. **A smoke test that passed for the wrong reason, and a grant that was too wide.** With a wrong Supabase key the anonymous check passed vacuously (a check that the key is accepted was added), and a catalog check of the live database found a helper function callable by the public (closed by a migration).
 
 **Added beyond the plan.** A **human approval gate**: every draft waits on the Review desk, where a person approves, edits (measured in words, and re-checked against the same 12 rules) or rejects with a reason; each decision is a permanent row. A **Scorecard** that checks the class's own kill criteria against those decisions (stop if over 50% of emails are rewritten, if the right person is chosen under 60% of the time, or if the system costs more time than it saves), and says "too early to say" below 8 decisions. **Impact** (the funnel and time saved with its working), a **Rulebook** page (the evidence map and rules in words), a live run view, a paste box that finds domains in any text, a readiness checklist, and a design in Sprinto's own colours.
 
@@ -493,7 +495,7 @@ JSON-schema output and function calling are **kept in separate requests**. [Rese
 - Rate limit and "one in flight per user" gate (reused from Freshroots); per-domain and per-run token budgets; a time budget that stops with a plain message.
 - Every response is logged with tokens, latency and model, so cost is visible on Quality watch.
 - Tests use a **scripted fake Gemini client**, as in Freshroots, so the suite is offline and repeatable. The real models were then measured separately (`npm run smoke`, including a real dry run on one company), which is how the thinking-token budgets were found.
-- Each call has room for the answer **and** the model's thinking: loop rounds 1,024 tokens, Ask 1,536, pains and draft 2,048, extraction 12,288.
+- Each call has room for the answer **and** the model's thinking: loop rounds 1,024 tokens, Ask and pains 4,096, draft 6,144, extraction 12,288.
 
 ---
 
@@ -645,7 +647,7 @@ There is no Supabase service-role key anywhere: the worker signs in as its own l
 | **Live smoke** | `npm run smoke` checks every service; `-- --pipeline domain` runs one real company through the real site and the real model, with nothing sent. This is what found the thinking-token budgets |
 | **Approvals, scorecard and run view** | The approval gate (approve, edit, reject, switched off, rate-limited retry), the edit measure, the kill-criteria rules at every boundary, and the run page's progress, estimate and filters, each with deliberate-break checks |
 | **Every control does something** | `tests/controls.test.ts` reads the syntax tree of every component and page and fails on a button with no type or handler, a link to nowhere, a form with no action, an empty handler, or a permanently disabled button; each rule was proven by planting a dead control in a real page |
-| **Totals** | 1,312 tests in 54 files, offline and repeatable |
+| **Totals** | 1,317 tests in 54 files, offline and repeatable |
 
 ---
 

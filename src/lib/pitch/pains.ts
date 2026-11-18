@@ -9,7 +9,7 @@ import type { Facts } from "@/lib/icp/types";
  */
 
 export type PainId = "P1" | "P2" | "P3" | "P4" | "P5" | "P6" | "P7" | "P8" | "P9";
-export type SignalId = "enterprise" | "noCert" | "certInProgress" | "smallTeam" | "noSecurityHire" | "oneCertHeld" | "regulated" | "friction" | "type1" | "securityRole" | "dataHeavy" | "sensitive";
+export type SignalId = "enterprise" | "noCert" | "certInProgress" | "smallTeam" | "noSecurityHire" | "oneCertHeld" | "regulated" | "friction" | "type1" | "securityRole" | "dataHeavy" | "sensitive" | "reportHeld";
 
 export interface Evidence {
   /** The signal id; this is what the model cites and what code checks. */
@@ -52,6 +52,7 @@ export const SIGNALS: SignalDef[] = [
     },
   },
   { id: "friction", text: "Signs of security-review friction (questionnaires, request-access trust page)", test: (f) => ({ hit: use(f.securityFriction) === true, quotes: f.securityFriction.quotes }) },
+  { id: "reportHeld", text: "A SOC 2 Type 2 report is already held", test: (f) => ({ hit: is(f.compliance, "soc2_type2", "soc2_iso"), quotes: f.compliance.quotes }) },
   { id: "type1", text: "A SOC 2 Type 1 is held, with Type 2 still ahead", test: (f) => ({ hit: use(f.compliance) === "soc2_type1", quotes: f.compliance.quotes }) },
   { id: "securityRole", text: "A security or GRC role is open", test: (f) => ({ hit: use(f.securityHiring) === "security_role", quotes: f.securityHiring.quotes }) },
   { id: "dataHeavy", text: "Holds customers' data", test: (f) => ({ hit: use(f.customerData) === "stated", quotes: f.customerData.quotes }) },
@@ -72,12 +73,17 @@ export interface PainDef {
   /** The pain in the person's own words, which the email may lean on. */
   plain: string;
   signals: SignalId[];
+  /**
+   * Signals that contradict this pain's premise. If the facts show one, the pain is not offered at all, however many of its own
+   * signals hit: telling a company it "cannot yet hand over a SOC 2 report" when it already holds one is wrong, not just weak.
+   */
+  unless?: SignalId[];
   /** 0 to 30: how much this pain is felt by each role. A missing role is 0. */
   persona: Partial<Record<Role, number>>;
 }
 
 export const PAINS: PainDef[] = [
-  { id: "P1", label: "An enterprise deal is stalling on a missing or ageing security report", plain: "larger prospects asking for a SOC 2 report you cannot yet hand over", signals: ["enterprise", "noCert"], persona: { ceo: 30, cto: 30, coo: 20, security_lead: 15, eng_head: 10, grc: 5, it_head: 5 } },
+  { id: "P1", label: "An enterprise deal is stalling on a missing or ageing security report", plain: "larger prospects asking for a SOC 2 report you cannot yet hand over", signals: ["enterprise", "noCert"], unless: ["reportHeld"], persona: { ceo: 30, cto: 30, coo: 20, security_lead: 15, eng_head: 10, grc: 5, it_head: 5 } },
   { id: "P2", label: "Audit preparation eats engineering time", plain: "engineers pulled off product work to gather audit evidence", signals: ["certInProgress", "smallTeam"], persona: { cto: 30, eng_head: 30, it_head: 15, ceo: 10, security_lead: 10, grc: 10, coo: 5 } },
   { id: "P3", label: "The founder is the accidental compliance owner", plain: "compliance landing on a founder or CTO who has no time for it", signals: ["smallTeam", "noSecurityHire"], persona: { ceo: 30, cto: 30, coo: 10, eng_head: 10, it_head: 5 } },
   { id: "P4", label: "A second or third framework repeats the same work", plain: "starting from scratch on a second framework after the first audit", signals: ["oneCertHeld", "regulated"], persona: { security_lead: 30, grc: 30, cto: 10, it_head: 10, eng_head: 5, coo: 5 } },
@@ -113,7 +119,7 @@ export function detectSignals(facts: Facts): Evidence[] {
 
 export function scorePains(facts: Facts, role: Role | null): ScoredPain[] {
   const signals = new Map(detectSignals(facts).map((e) => [e.id, e]));
-  return PAINS.map((pain) => {
+  return PAINS.filter((pain) => !(pain.unless ?? []).some((id) => signals.has(id))).map((pain) => {
     const evidence = pain.signals.flatMap((id) => (signals.has(id) ? [signals.get(id) as Evidence] : []));
     const personaPoints = role ? (pain.persona[role] ?? 0) : 0;
     const signalPoints = evidence.length * POINTS_PER_SIGNAL;
