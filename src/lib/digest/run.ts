@@ -115,7 +115,7 @@ export async function runDigest(d: DigestDeps): Promise<DigestResult> {
     found = out.found
       .filter((f) => f.standing === "new" && !seen.has(f.domain))
       .slice(0, MAX_KEPT)
-      .map((f) => ({ domain: f.domain, name: f.name, about: f.about, because: f.because, emailsTotal: f.emailsTotal }));
+      .map((f) => ({ domain: f.domain, name: f.name, about: f.about, because: f.because, emailsTotal: f.emailsTotal, band: f.band }));
   } catch (e) {
     problems.push(e instanceof Error ? e.message : "The search failed.");
   }

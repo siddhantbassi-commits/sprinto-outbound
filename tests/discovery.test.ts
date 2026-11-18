@@ -238,6 +238,70 @@ describe("looking at a home page", () => {
   });
 });
 
+describe("one search per size band", () => {
+  const crit: Criteria = { regions: ["AMER"], sizes: ["11-50", "51-200"], angles: ["software"], want: 10 };
+  const known = { blocklist: [], researched: new Set<string>(), suppressed: new Set<string>(), mailed: new Set<string>() };
+  const fetchDeps = { resolve: async () => [], transport: async () => { throw new Error("no network in tests"); }, userAgent: "t" } as never;
+  const soft: Peek = { reachable: true, reason: null, title: "T", about: "A workflow platform for teams.", looksLikeSoftware: true, signals: ["platform", "api"] };
+  const peek = async () => soft;
+
+  function byBand(answers: Record<string, DiscoverCompany[] | Error>): { client: HunterClient; asked: string[][] } {
+    const asked: string[][] = [];
+    return {
+      asked,
+      client: {
+        account: async () => { throw new Error("x"); }, domainSearch: async () => { throw new Error("x"); },
+        discover: async (filters) => {
+          const bands = (filters as { headcount: string[] }).headcount;
+          asked.push(bands);
+          const a = answers[bands.join(",")];
+          if (a instanceof Error) throw a;
+          return { companies: a ?? [], total: (a ?? []).length };
+        },
+      },
+    };
+  }
+
+  it("asks for one band at a time and says which band each company was found under", async () => {
+    const { client, asked } = byBand({ "11-50": [co("small.io")], "51-200": [co("mid.io")] });
+    const o = await discover(crit, { hunter: client, fetchDeps, known, peek });
+    expect(asked.map((b) => b.join(",")).sort()).toEqual(["11-50", "51-200"]);
+    expect(Object.fromEntries(o.found.map((f) => [f.domain, f.band]))).toEqual({ "small.io": "11-50", "mid.io": "51-200" });
+  });
+
+  it("does not claim a band for a company two bands both returned", async () => {
+    const { client } = byBand({ "11-50": [co("both.io"), co("one.io")], "51-200": [co("both.io")] });
+    const o = await discover(crit, { hunter: client, fetchDeps, known, peek });
+    expect(Object.fromEntries(o.found.map((f) => [f.domain, f.band]))).toEqual({ "both.io": null, "one.io": "11-50" });
+  });
+
+  it("asks once per band for every angle: nine requests for three bands and three angles", async () => {
+    const { client, asked } = byBand({});
+    await discover({ ...crit, sizes: ["11-50", "51-200", "201-500"], angles: ["hiring", "software", "regulated"] }, { hunter: client, fetchDeps, known, peek });
+    expect(asked).toHaveLength(9);
+  });
+
+  it("keeps what came back when one band failed, and says some companies may be missing", async () => {
+    const { client } = byBand({ "11-50": new HunterError("api_error"), "51-200": [co("mid.io")] });
+    const o = await discover(crit, { hunter: client, fetchDeps, known, peek });
+    expect(o.found.map((f) => f.domain)).toEqual(["mid.io"]);
+    expect(o.byAngle.software).toBe(1);
+    expect(o.problems[0]).toMatch(/1 of 2 size bands could not be searched/);
+  });
+
+  it("fails the angle only when every band failed, and stops at once on a plan without Discover", async () => {
+    const all = byBand({ "11-50": new HunterError("quota"), "51-200": new HunterError("quota") });
+    await expect(discover(crit, { hunter: all.client, fetchDeps, known, peek })).rejects.toMatchObject({ code: "quota" });
+    const none = byBand({ "11-50": new HunterError("no_discover"), "51-200": [co("a.io")] });
+    await expect(discover(crit, { hunter: none.client, fetchDeps, known, peek })).rejects.toMatchObject({ code: "no_discover" });
+  });
+
+  it("puts the band in the request and leaves it to the criteria when none is given", () => {
+    expect((angleRequest(crit, "software", [], "51-200") as { headcount: string[] }).headcount).toEqual(["51-200"]);
+    expect((angleRequest(crit, "software", []) as { headcount: string[] }).headcount).toEqual(["11-50", "51-200"]);
+  });
+});
+
 describe("a whole search", () => {
   const crit: Criteria = { regions: ["AMER"], sizes: ["51-200"], angles: ["hiring", "software", "regulated"], want: 10 };
   const known = (over: Partial<Known> = {}): Known => ({ blocklist: [], researched: new Set(), suppressed: new Set(), mailed: new Set(), ...over });

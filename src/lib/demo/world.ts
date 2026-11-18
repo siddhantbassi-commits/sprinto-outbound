@@ -65,11 +65,13 @@ export function demoHunter(): HunterClient {
     // The stand-in for Hunter Discover: each angle returns the sample companies it would plausibly find, so the merge,
     // the ranking and the clean-up of the list can all be seen working.
     discover: async (filters) => {
-      const f = filters as { job_openings?: unknown; keywords?: { include?: string[] } };
+      const f = filters as { job_openings?: unknown; keywords?: { include?: string[] }; headcount?: string[] };
       const all = [...DEMO_DISCOVERABLE, ...DEMO_COMPANIES];
       const hiring = Boolean(f.job_openings);
       const regulated = Boolean(f.keywords?.include?.includes("fintech"));
-      const pick = all.filter((c) => (hiring ? c.hiring === "security_role" : regulated ? Boolean(c.s.health || c.s.payments) : true));
+      // Like the real thing, only companies in a requested size band come back.
+      const inBand = (c: (typeof all)[number]) => !f.headcount || (c.band !== null && f.headcount.includes(c.band));
+      const pick = all.filter((c) => inBand(c) && (hiring ? c.hiring === "security_role" : regulated ? Boolean(c.s.health || c.s.payments) : true));
       const companies = pick.map((c) => ({ domain: c.domain, name: c.name, emailsTotal: c.contacts.length * 4 + 3, emailsPersonal: c.contacts.length * 3 }));
       return { companies, total: companies.length };
     },

@@ -13,6 +13,8 @@ export interface DigestCompany {
   /** Why it was suggested, one line per reason. */
   because: string[];
   emailsTotal: number;
+  /** The size band Hunter found it under, when known. Carried into the run so size is not unknown for a site that never states it. */
+  band?: string | null;
 }
 
 export interface DigestEmailInput {

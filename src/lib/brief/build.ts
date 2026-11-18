@@ -19,7 +19,7 @@ export interface BriefInput {
   scoreReason: string | null;
   parts: { id: string; group: string; label: string; points: number; max: number; quotes: string[] }[];
   missing: string[];
-  facts: Record<string, { value: unknown; confidence: string; quotes: string[] }> | null;
+  facts: Record<string, { value: unknown; confidence: string; quotes: string[]; source?: string }> | null;
   contact: { name: string; title: string | null; email: string | null; verification: string | null; confidence: number | null; source: string; rankScore: number | null } | null;
   candidates: number;
   picks: { id: string; label: string; plain: string; reason: string; evidence: { id: string; text: string; quotes: string[]; kind: string }[] }[];
@@ -36,7 +36,7 @@ export interface Cited {
 }
 
 export interface Brief {
-  company: { name: string; domain: string; about: string; size: string | null; certification: string | null; product: string | null };
+  company: { name: string; domain: string; about: string; size: string | null; sizeFromHunter: boolean; certification: string | null; product: string | null };
   fit: { verdict: string; label: string; score: number | null; summary: string; strengths: (Cited & { points: number; max: number })[]; gaps: string[] };
   contact: { name: string; title: string | null; email: string | null; trust: string; why: string } | null;
   whyNow: Cited[];
@@ -114,7 +114,7 @@ export function buildBrief(i: BriefInput): Brief {
   ];
 
   return {
-    company: { name, domain: i.domain, about: home ? aboutFrom(home.text, home.title ?? "") : "", size: size ? String(size) : null, certification: cert ? (SIGNAL_LABEL[String(cert)] ?? String(cert)) : null, product: product ? String(product) : null },
+    company: { name, domain: i.domain, about: home ? aboutFrom(home.text, home.title ?? "") : "", size: size ? String(size) : null, sizeFromHunter: Boolean(size) && i.facts?.headcount?.source === "hunter_discover", certification: cert ? (SIGNAL_LABEL[String(cert)] ?? String(cert)) : null, product: product ? String(product) : null },
     fit: { verdict, label: FIT_LABEL[verdict] ?? "Not assessed", score: i.score, summary: fitSummary, strengths, gaps },
     contact,
     whyNow,
@@ -134,7 +134,7 @@ export function briefToText(b: Brief): string {
   out.push(`DISCOVERY CALL BRIEF: ${b.company.name} (${b.company.domain})`);
   if (b.company.about) out.push(`They say: "${b.company.about}"`);
   out.push(`Fit: ${b.fit.label}${b.fit.score !== null ? ` (${b.fit.score}/100)` : ""}. ${b.fit.summary}`);
-  const facts = [b.company.size ? `${b.company.size} people` : null, b.company.certification].filter(Boolean);
+  const facts = [b.company.size ? `${b.company.size} people${b.company.sizeFromHunter ? " (per Hunter)" : ""}` : null, b.company.certification].filter(Boolean);
   if (facts.length) out.push(facts.join(" · "));
   if (b.contact) {
     h("Who to speak to");

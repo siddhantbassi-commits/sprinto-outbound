@@ -54,7 +54,7 @@ export default async function Brief({ params }: { params: Promise<{ id: string }
           <p style={{ margin: 0 }}>{b.fit.summary}</p>
           {b.company.about ? <p className="small about" style={{ margin: 0 }}>They describe themselves: “{b.company.about}”</p> : null}
           <div className="row">
-            {b.company.size ? <span className="chip">{b.company.size} people</span> : null}
+            {b.company.size ? <span className="chip" title={b.company.sizeFromHunter ? "Hunter Discover found this company under this size; the site does not state it." : undefined}>{b.company.size} people{b.company.sizeFromHunter ? " (per Hunter)" : ""}</span> : null}
             {b.company.certification ? <span className="chip">{b.company.certification}</span> : null}
             {b.company.product ? <span className="chip">{b.company.product}</span> : null}
           </div>

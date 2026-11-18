@@ -118,6 +118,7 @@ export async function qualifyStep(p: ProspectRow, d: PipelineDeps): Promise<Step
     cfg: icp.config,
     deadline: d.now() + d.stepBudgetMs,
     now: d.now,
+    hints: await d.store.hints(p.run_id, p.domain),
   });
 
   // A model that was down or slow is not a verdict. Wait and try again; never score what was not read.
@@ -143,6 +144,8 @@ export async function qualifyStep(p: ProspectRow, d: PipelineDeps): Promise<Step
     rounds: r.rounds,
     stopped_because: r.stoppedBecause,
     trace: r.trace,
+    // What was known before the site was read, and whether it was used: the Why page shows it, so a size that came from Hunter is never passed off as read from the site.
+    hints: r.hints,
     grounding_failures: r.passes.flatMap((x) => x.grounding.failures),
     injection: r.passes.flatMap((x) => x.injection.map((i) => ({ url: i.url, rules: i.scan.matches.map((m) => m.rule) }))),
   };

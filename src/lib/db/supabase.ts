@@ -31,7 +31,7 @@ export interface SupabaseLike {
  */
 export const SCALAR_FUNCTIONS = new Set([
   "create_run", "extend_lease", "release_prospect", "reserve_send", "sweep_stuck_sends", "record_tick", "run_retention", "run_tokens",
-  "is_suppressed", "run_is_paused", "holds_lease", "current_app_role", "can_read", "can_work", "is_human_operator", "is_admin", "is_valid_domain",
+  "is_suppressed", "run_is_paused", "holds_lease", "current_app_role", "can_read", "can_work", "is_human_operator", "is_admin", "is_valid_domain", "set_prospect_hints",
 ]);
 
 const fail = (what: string, e: { message: string }) => new DbError(`${what}: ${e.message}`);

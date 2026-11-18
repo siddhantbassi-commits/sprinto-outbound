@@ -88,7 +88,7 @@ function parts(facts: Facts, cfg: IcpConfig): Part[] {
     [...(plan ? facts.enterprisePlan.quotes : []), ...(logos ? facts.enterpriseLogos.quotes : []), ...(sec ? facts.enterpriseSecurity.quotes : [])]);
 
   const band = use(facts.headcount);
-  add("size", "fit", "Company size", band ? p.size[band] : 0, Math.max(...Object.values(p.size)), facts.headcount.quotes);
+  add("size", "fit", facts.headcount.source === "hunter_discover" && band ? `Company size (${band} per Hunter, not stated on the site)` : "Company size", band ? p.size[band] : 0, Math.max(...Object.values(p.size)), facts.headcount.quotes);
 
   // Need (40)
   const status = use(facts.compliance);
@@ -121,7 +121,7 @@ export function scoreIcp(facts: Facts, ctx: ScoreContext, cfg: IcpConfig = ICP_V
   const cov = coverage(facts, cfg);
   const flags: string[] = [];
   if (!known(facts.headcount)) flags.push("Company size is unknown");
-  if (use(facts.headcount) !== null && facts.headcount.confidence === "medium") flags.push("Company size is an estimate");
+  if (use(facts.headcount) !== null && facts.headcount.confidence === "medium") flags.push(facts.headcount.source === "hunter_discover" ? "Company size comes from Hunter, not the company's site" : "Company size is an estimate");
 
   const raw = ps.reduce((sum, x) => sum + x.points, 0);
   const score = Math.max(0, Math.min(100, raw));

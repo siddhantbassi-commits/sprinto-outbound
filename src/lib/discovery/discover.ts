@@ -90,17 +90,22 @@ export async function discover(c: Criteria, deps: DiscoverDeps): Promise<Outcome
   const problems: string[] = [];
   let firstError: unknown = null;
   for (const angle of ANGLES.filter((a) => c.angles.includes(a.id))) {
-    try {
-      const res = await run(angleRequest(c, angle.id, exclude), 100);
-      found[angle.id] = res.companies;
-      byAngle[angle.id] = res.companies.length;
-    } catch (e) {
-      // A plan without Discover will fail every angle the same way, so say that and stop. Anything else fails one angle only.
-      if (e instanceof HunterError && e.code === "no_discover") throw e;
+    // One request per size band, together, so each company is known by the band it was found under.
+    const tries = await Promise.allSettled(c.sizes.map((band) => run(angleRequest(c, angle.id, exclude, band), 100).then((res) => res.companies.map((co) => ({ ...co, band })))));
+    // A plan without Discover will fail every request the same way, so say that and stop.
+    for (const t of tries) if (t.status === "rejected" && t.reason instanceof HunterError && t.reason.code === "no_discover") throw t.reason;
+    const ok = tries.flatMap((t) => (t.status === "fulfilled" ? [t.value] : []));
+    const bad = tries.flatMap((t) => (t.status === "rejected" ? [t.reason] : []));
+    if (ok.length === 0) {
       byAngle[angle.id] = null;
-      firstError ??= e;
-      problems.push(`${angle.label}: ${e instanceof Error ? e.message : "that search failed"}`);
+      firstError ??= bad[0];
+      problems.push(`${angle.label}: ${bad[0] instanceof Error ? bad[0].message : "that search failed"}`);
+      continue;
     }
+    found[angle.id] = ok.flat();
+    byAngle[angle.id] = new Set(ok.flat().map((x) => x.domain)).size;
+    // Some bands answered and some did not: keep what came back, and say so, because those companies are missing from the list.
+    if (bad.length) problems.push(`${angle.label}: ${bad.length} of ${tries.length} size bands could not be searched, so some companies may be missing.`);
   }
   if (Object.values(byAngle).every((v) => v === null) && firstError) throw firstError;
 

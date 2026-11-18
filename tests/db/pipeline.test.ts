@@ -264,6 +264,41 @@ describe("decisions that end a journey early, with the reason", () => {
     expect(p.lane_reason).toMatch(/Not enough to judge; still unknown: .*compliance/);
   });
 
+  describe("a size that Hunter Discover supplied", () => {
+    const noSize = () => extraction({ headcount: [null, "low", []] });
+    const scoreOf = async (hint: boolean) => {
+      const r = await rig({ json: [noSize(), noSize(), noSize()] });
+      const run = await r.w.startRun(["acme.com"]);
+      if (hint) await r.w.s.operator.query("select public.set_prospect_hints($1, $2::jsonb)", [run, JSON.stringify([{ domain: "acme.com", kind: "headcount", value: "51-200" }])]);
+      await r.run(2);
+      const p = await one(r.w);
+      const [f] = await r.w.db.admin<{ facts: { headcount: { value: string | null; confidence: string; quotes: string[]; source?: string } } }>("select facts from public.facts where prospect_id = $1 order by pass desc limit 1", [p.id]);
+      const [sc] = await r.w.db.admin<{ parts: { id: string; label: string; points: number; quotes: string[] }[]; flags: string[] }>("select parts, flags from public.scores where prospect_id = $1", [p.id]);
+      const q = (await events(r.w, p.id)).find((e) => e.step === "qualify")!;
+      return { p, f: f!.facts, size: sc!.parts.find((x) => x.id === "size")!, flags: sc!.flags, output: q.output };
+    };
+
+    it("is used when the site did not state a size: scored, stored as Hunter's, labelled, flagged, and recorded in the trace", async () => {
+      const a = await scoreOf(true);
+      expect(a.f.headcount).toEqual({ value: "51-200", confidence: "medium", quotes: [], source: "hunter_discover" });
+      expect(a.size.points).toBeGreaterThan(0);
+      expect(a.size.label).toBe("Company size (51-200 per Hunter, not stated on the site)");
+      expect(a.output.hints).toEqual([{ kind: "headcount", value: "51-200", source: "hunter_discover", used: true }]);
+    });
+
+    it("leaves a company without one exactly as before: size unknown, no points, nothing recorded", async () => {
+      const b = await scoreOf(false);
+      expect(b.f.headcount.value).toBeNull();
+      expect(b.size.points).toBe(0);
+      expect(b.output.hints).toEqual([]);
+    });
+
+    it("raises the score by what the size is worth, and no more", async () => {
+      const [a, b] = [await scoreOf(true), await scoreOf(false)];
+      expect(a.p.score! - b.p.score!).toBe(a.size.points);
+    });
+  });
+
   it("never writes to a competitor, however good the fit", async () => {
     const r = await rig({ extraDomains: acmeSite("vanta.com") });
     await r.w.startRun(["vanta.com"]);

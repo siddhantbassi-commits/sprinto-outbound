@@ -1,4 +1,5 @@
 import type { DbPort, Row } from "@/lib/db/port";
+import { readHints, type Hints } from "@/lib/icp/hints";
 import type { IcpConfig } from "@/lib/icp/config";
 import type { Candidate } from "@/lib/contacts/rank";
 import type { CachedSearch, ContactCache } from "@/lib/contacts/find";
@@ -175,6 +176,12 @@ export class Store {
   async usage(runId: string, prospectId: string | null, kind: "gemini_tokens" | "hunter_credits", units: number, model?: string) {
     if (units <= 0) return;
     await this.db.insert("usage_ledger", { run_id: runId, prospect_id: prospectId, kind, units, model: model ?? null });
+  }
+
+  // ----- hints -----
+  /** What was known about this company before its site was read (the size band Hunter Discover found it under). */
+  async hints(runId: string, domain: string): Promise<Hints> {
+    return readHints((await this.db.select("prospect_hints", { run_id: runId, domain })) as unknown as { kind: string; value: string }[]);
   }
 
   // ----- contacts -----

@@ -209,6 +209,7 @@ export function DiscoverForm({ initial, facts }: { initial: Criteria; facts: { a
               <form action={startAction} className="dock card" data-tour="dock">
                 <input type="hidden" name="domains" value={JSON.stringify(picked)} />
                 <input type="hidden" name="source" value="discover" />
+                <input type="hidden" name="hints" value={JSON.stringify(Object.fromEntries(fresh.filter((f) => picked.includes(f.domain) && f.band).map((f) => [f.domain, f.band])))} />
                 <div className="dockinfo">
                   <b><CountUp to={picked.length} ms={300} /> selected</b>
                   <span className="small muted">

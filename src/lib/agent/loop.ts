@@ -5,6 +5,7 @@ import { NO_USAGE, addUsage, type AiClient, type Content, type ToolDecl, type Us
 import { extractFacts, type ExtractOk } from "@/lib/extract/extract";
 import { ICP_V1, type IcpConfig } from "@/lib/icp/config";
 import { coverage, scoreIcp } from "@/lib/icp/score";
+import { applyHints, type AppliedHint, type Hints } from "@/lib/icp/hints";
 import { emptyFacts, type Facts, type ScoreContext, type ScoreResult } from "@/lib/icp/types";
 import type { FetchOutcome, Site } from "@/lib/scrape/site";
 
@@ -85,6 +86,8 @@ export interface QualifyInput {
   /** Epoch milliseconds by which the loop must stop starting new rounds, so one invocation stays inside its time limit. */
   deadline?: number;
   now?: () => number;
+  /** What is already known before the site is read (for now, the size band Hunter Discover found the company under). */
+  hints?: Hints;
 }
 
 /** A round (a model call, a fetch and a re-read) needs about this long; do not start one with less left. */
@@ -103,6 +106,8 @@ export interface QualifyResult {
   aiCalls: number;
   /** Why the model could not be used, when it could not. The caller decides whether that is worth a retry. */
   failure: { code: string; reason: string } | null;
+  /** Which hints there were and whether each was used (a size the site states takes precedence over a hint). */
+  hints: AppliedHint[];
 }
 
 type Args = Record<string, unknown>;
@@ -146,7 +151,7 @@ function roundPrompt(missing: string[], site: Site): string {
 
 const tokensOf = (u: Usage) => u.totalTokens;
 
-export async function qualify({ ai, site, budget, context, cfg = ICP_V1, deadline, now = Date.now }: QualifyInput): Promise<QualifyResult> {
+export async function qualify({ ai, site, budget, context, cfg = ICP_V1, deadline, now = Date.now, hints = {} }: QualifyInput): Promise<QualifyResult> {
   const trace: RoundTrace[] = [];
   const passes: ExtractOk[] = [];
   let usage: Usage = NO_USAGE;
@@ -161,10 +166,19 @@ export async function qualify({ ai, site, budget, context, cfg = ICP_V1, deadlin
     if (res.ok) passes.push(res);
     return res;
   };
+  let appliedHints: AppliedHint[] = [];
+  /** Fills in what a hint knows wherever the site did not say, after every read, so the loop does not go looking for what it has. */
+  const withHints = (f: Facts): Facts => {
+    const r = applyHints(f, hints);
+    appliedHints = r.applied;
+    return r.facts;
+  };
   const finish = (facts: Facts, rounds: number): QualifyResult => {
     const pages = site.pages();
     const score = scoreIcp(facts, { ...context, textChars: pages.reduce((n, p) => n + p.text.length, 0), pages: pages.length }, cfg);
-    return { facts, score, trace, rounds, stoppedBecause, extraction: passes.at(-1) ?? null, passes, usage, aiCalls, failure };
+    // The stored facts are what the score was computed from, so a replay under another ICP reaches the same verdict.
+    const stored = passes.length && facts !== passes.at(-1)!.facts ? passes.map((p, i) => (i === passes.length - 1 ? { ...p, facts } : p)) : passes;
+    return { facts, score, trace, rounds, stoppedBecause, extraction: stored.at(-1) ?? null, passes: stored, usage, aiCalls, failure, hints: appliedHints };
   };
 
   const first = await read();
@@ -173,7 +187,7 @@ export async function qualify({ ai, site, budget, context, cfg = ICP_V1, deadlin
     stoppedBecause = first.code === "budget" ? "budget" : "extraction_failed";
     return finish(emptyFacts(), 0);
   }
-  let facts = first.facts;
+  let facts = withHints(first.facts);
 
   const contents: Content[] = [];
   let idle = 0;
@@ -262,7 +276,7 @@ export async function qualify({ ai, site, budget, context, cfg = ICP_V1, deadlin
         stoppedBecause = again.code === "budget" ? "budget" : "extraction_failed";
         break;
       }
-      facts = again.facts;
+      facts = withHints(again.facts);
     } else {
       idle += 1;
       if (idle >= 2) {

@@ -83,10 +83,12 @@ export const HUNTER_EXCLUDE_LIMIT = 100;
  * One Hunter request per angle. Filters are ANDed by Hunter, so every angle is narrowed to software companies; without that,
  * "hiring a security role" finds hotels, universities and charities (a guard is a security role too).
  */
-export function angleRequest(c: Criteria, angle: AngleId, excludeDomains: string[]): Record<string, unknown> {
+export function angleRequest(c: Criteria, angle: AngleId, excludeDomains: string[], band?: SizeId): Record<string, unknown> {
   const body: Record<string, unknown> = {
     headquarters_location: { include: c.regions.map((r) => ({ business_region: r })) },
-    headcount: c.sizes,
+    // Hunter does not say which size a company is in, only that it matched the filter. Asking for one band at a time is how
+    // a company's band is known, so the search is run once per chosen band and each company is tagged with the one it came from.
+    headcount: band ? [band] : c.sizes,
     company_type: { exclude: NOT_COMPANIES },
     industry: { include: ["Software Development"] },
   };
@@ -101,6 +103,8 @@ export interface Candidate {
   domain: string;
   name: string;
   emailsTotal: number;
+  /** The size band Hunter found it under, or null when two bands both claimed it (so it is not known). */
+  band: SizeId | null;
   /** Every angle that found this company. More agreement, better lead. */
   angles: AngleId[];
   /** Why it was suggested, in plain words. */
@@ -116,6 +120,8 @@ const PER_ANGLE = 10;
 const contactBonus = (emails: number) => (emails <= 0 ? 0 : Math.min(4, Math.round(Math.log2(1 + emails))));
 
 export function mergeAngles(found: Partial<Record<AngleId, DiscoverCompany[]>>): Candidate[] {
+  const claimed = new Map<string, Set<SizeId>>();
+  for (const def of ANGLES) for (const co of found[def.id] ?? []) if (co.band) claimed.set(co.domain, (claimed.get(co.domain) ?? new Set()).add(co.band as SizeId));
   const byDomain = new Map<string, Candidate>();
   for (const def of ANGLES) {
     for (const co of found[def.id] ?? []) {
@@ -126,10 +132,14 @@ export function mergeAngles(found: Partial<Record<AngleId, DiscoverCompany[]>>):
           have.because.push(def.because);
         }
         have.emailsTotal = Math.max(have.emailsTotal, co.emailsTotal);
-      } else byDomain.set(co.domain, { domain: co.domain, name: co.name, emailsTotal: co.emailsTotal, angles: [def.id], because: [def.because], rank: 0 });
+      } else byDomain.set(co.domain, { domain: co.domain, name: co.name, emailsTotal: co.emailsTotal, band: null, angles: [def.id], because: [def.because], rank: 0 });
     }
   }
   const out = [...byDomain.values()];
+  for (const c of out) {
+    const bands = claimed.get(c.domain);
+    c.band = bands && bands.size === 1 ? [...bands][0]! : null;
+  }
   for (const c of out) c.rank = c.angles.length * PER_ANGLE + (c.angles.includes("hiring") ? HIRING_BONUS : 0) + contactBonus(c.emailsTotal);
   return out.sort((a, b) => b.rank - a.rank || b.emailsTotal - a.emailsTotal || a.name.localeCompare(b.name));
 }

@@ -97,7 +97,7 @@ describe("running the digest, from the demo world", () => {
     const deps = (over: Partial<DigestDeps> = {}): DigestDeps => ({ db: worker, hunter: demoHunter(), fetchDeps: demoFetchDeps(), gmail: w.gmail, appUrl: "https://app.example.com", trigger: "cron", ...over });
     return { w, worker, operator, deps };
   }
-  const fake = (domains: string[]) => async (): Promise<Outcome> => ({ found: domains.map((d) => ({ domain: d, name: d, emailsTotal: 3, angles: ["software" as const], because: ["A B2B software company"], rank: 10, standing: "new" as const, about: "x", title: "t", verified: true, note: null })), considered: domains.length, byAngle: { software: domains.length }, problems: [], hidden: { notSoftware: 0, unreachable: 0 } });
+  const fake = (domains: string[]) => async (): Promise<Outcome> => ({ found: domains.map((d) => ({ domain: d, name: d, emailsTotal: 3, band: null, angles: ["software" as const], because: ["A B2B software company"], rank: 10, standing: "new" as const, about: "x", title: "t", verified: true, note: null })), considered: domains.length, byAngle: { software: domains.length }, problems: [], hidden: { notSoftware: 0, unreachable: 0 } });
   const gmailThat = (outcome: SendOutcome, calls: unknown[] = []): GmailSender => ({ recipient: "demo-inbox@example.com", sendTest: async (d) => (calls.push(d), outcome) });
 
   it("does nothing, and says why, until a search is saved and switched on", async () => {

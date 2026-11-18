@@ -2,11 +2,15 @@
 
 export type Confidence = "high" | "medium" | "low";
 
+/** Where a fact came from when it was not read off the site. A fact with no source was read from the company's own pages. */
+export type FactSource = "hunter_discover";
+
 export interface Fact<T> {
   /** null means "not found on the pages", never a guess. */
   value: T | null;
   confidence: Confidence;
   quotes: string[];
+  source?: FactSource;
 }
 
 export const unknown = <T>(): Fact<T> => ({ value: null, confidence: "low", quotes: [] });

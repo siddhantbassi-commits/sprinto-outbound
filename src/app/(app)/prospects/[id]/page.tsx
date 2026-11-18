@@ -36,7 +36,8 @@ export default async function Why({ params }: { params: Promise<{ id: string }> 
   const { prospect: p, events, pages, facts, score, contacts, emails, decisions, reviews } = d;
   const canAct = s.user.role === "operator" || s.user.role === "admin";
 
-  const lastFacts = facts.at(-1)?.facts as Record<string, { value: unknown; confidence: string; quotes: string[] }> | undefined;
+  const lastFacts = facts.at(-1)?.facts as Record<string, { value: unknown; confidence: string; quotes: string[]; source?: string }> | undefined;
+  const hints = asArray<{ kind: string; value: string; source: string; used: boolean }>(events.find((e) => e.step === "qualify")?.output.hints);
   const pageFor = (quote: string) => pages.find((pg) => String(pg.text).toLowerCase().replace(/\s+/g, " ").includes(quote.toLowerCase().replace(/\s+/g, " ")))?.url as string | undefined;
   const parts = asArray<Part>(score?.parts);
   const gates = asArray<Gate>(score?.gates);
@@ -130,6 +131,12 @@ export default async function Why({ params }: { params: Promise<{ id: string }> 
           </>
         ) : <p className="muted">It was not scored{p.lane === "skipped" ? ": it was skipped before reading." : " yet."}</p>}
 
+        {hints.length ? (
+          <Banner tone="info" title={hints.some((h) => h.used) ? "Part of this score rests on Hunter, not the site" : "Hunter also gave a size, but the site stated one"}>
+            {hints.map((h) => (h.used ? `Company size ${h.value} comes from Hunter Discover, which found this company by searching for that size band. The site does not state its headcount. It counts as an estimate.` : `Hunter Discover found it under ${h.value} people, but the site states its own size, so the site was used.`)).join(" ")}
+          </Banner>
+        ) : null}
+
         {trace.length ? (
           <details>
             <summary>The extra pages the model asked for ({trace.length})</summary>
@@ -144,7 +151,7 @@ export default async function Why({ params }: { params: Promise<{ id: string }> 
           <summary>Evidence the model quoted (checked against the page text){groundingFails.length ? `, ${groundingFails.length} did not check out and were set to unknown` : ""}</summary>
           {lastFacts ? Object.entries(lastFacts).filter(([, f]) => f.value !== null).map(([k, f]) => (
             <div key={k} className="stack" style={{ marginBottom: 10 }}>
-              <div><span className="tag">{k}</span> = <strong>{String(f.value)}</strong> <Pill tone={f.confidence === "high" ? "good" : "muted"}>{f.confidence}</Pill>{f.quotes.length === 0 ? <span className="small muted"> · confirmed by checking the pages (no quote can prove an absence)</span> : null}</div>
+              <div><span className="tag">{k}</span> = <strong>{String(f.value)}</strong> <Pill tone={f.confidence === "high" ? "good" : "muted"}>{f.confidence}</Pill>{f.source === "hunter_discover" ? <span className="small muted"> · from Hunter Discover, which found this company by searching for this size; the site does not state it, so there is no quote</span> : f.quotes.length === 0 ? <span className="small muted"> · confirmed by checking the pages (no quote can prove an absence)</span> : null}</div>
               {f.quotes.map((q, i) => <Quote key={i} text={q} source={pageFor(q)} />)}
             </div>
           )) : <p className="muted">No facts were extracted.</p>}

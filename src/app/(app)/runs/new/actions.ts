@@ -4,6 +4,7 @@ import { MAX_INPUT_CHARS, parseList, type ParsedList } from "@/lib/app/list";
 import { activeSuppressions, currentSettings } from "@/lib/app/queries";
 import { getSession, hunterBalance } from "@/lib/app/runtime";
 import { planHunterBudget, type BudgetPlan } from "@/lib/contacts/quota";
+import { parseHintInput } from "@/lib/icp/hints";
 import { PROMPT_VERSIONS } from "@/lib/versions";
 
 export interface CheckResult {
@@ -85,6 +86,19 @@ export async function startRun(_prev: StartResult | null, formData: FormData): P
     id = String(Object.values(row ?? {})[0]);
   } catch (e) {
     return { message: e instanceof Error ? e.message : "The run could not be started." };
+  }
+  // A run chosen from Discover also carries the size band each company was found under, so size is not "unknown" for a site that
+  // never states it. The scorer labels it as Hunter's and a size the site states always wins. If this fails the run still goes
+  // ahead and each company is judged from its site alone.
+  if (source === "discover") {
+    let raw: unknown = null;
+    try {
+      raw = JSON.parse(String(formData.get("hints") ?? "null"));
+    } catch {
+      /* no usable hints */
+    }
+    const hints = parseHintInput(raw, domains.map((d) => d.toLowerCase().trim()));
+    if (hints.length) await s.db.rpc("set_prospect_hints", { p_run: id, p_hints: hints }).catch(() => undefined);
   }
   redirect(`/runs/${id}`);
 }

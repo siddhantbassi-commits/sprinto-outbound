@@ -75,6 +75,7 @@ export function DigestList({ companies, researched, maxRun }: { companies: Diges
       <form action={startAction} className="dock card">
         <input type="hidden" name="domains" value={JSON.stringify(picked)} />
         <input type="hidden" name="source" value="discover" />
+        <input type="hidden" name="hints" value={JSON.stringify(Object.fromEntries(companies.filter((c) => picked.includes(c.domain) && c.band).map((c) => [c.domain, c.band])))} />
         <div className="dockinfo">
           <b>{picked.length} selected</b>
           <span className="small muted">{picked.length === 0 ? "Choose at least one company." : `About ${(cost.tokens / 1000).toFixed(0)}k AI tokens and ${cost.minutes} ${cost.minutes === 1 ? "minute" : "minutes"}. You can leave the page; progress is saved.`}</span>

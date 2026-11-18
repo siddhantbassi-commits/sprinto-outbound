@@ -55,6 +55,8 @@ export interface DomainSearchResult {
 }
 
 export interface DiscoverCompany {
+  /** Set by the caller that asked for one size band at a time; Hunter does not return it. */
+  band?: string;
   domain: string;
   name: string;
   /** How many addresses Hunter holds for the company, which is a fair sign it will be able to name a contact. */
