@@ -68,6 +68,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     { href: "/", label: "Runs", icon: "runs", group: "Work" },
     ...(canRun ? [{ href: "/runs/new", label: "Paste a list", icon: "list", group: "Work" } as NavItem] : []),
     { href: "/leads", label: "Leads", icon: "target", group: "Work" },
+    { href: "/digest", label: "Weekly digest", icon: "mail", group: "Work" },
     { href: "/review", label: "Review", icon: "bell", group: "Work", badge: attention },
     { href: "/impact", label: "Impact", icon: "chart", group: "Insight" },
     { href: "/scorecard", label: "Scorecard", icon: "flag", group: "Insight" },

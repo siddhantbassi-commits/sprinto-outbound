@@ -911,3 +911,6 @@ fieldset.crit legend { padding: 0; margin-bottom: 8px; font-size: 0.72rem; font-
 .outdetails summary::-webkit-details-marker { display: none; }
 .outdetails summary::before { content: "+ "; }
 .outdetails[open] summary::before { content: "− "; }
+
+/* ---- The weekly digest -------------------------------------------------------------------------------------------- */
+.digestsave { margin-top: 6px; padding-top: 14px; border-top: 1px solid var(--line); }

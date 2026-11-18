@@ -104,6 +104,7 @@ export interface DemoWorld {
   db: Db;
   users: Record<Exclude<Role, "pending">, string> & { pending: string };
   outbox: OutboxMessage[];
+  gmail: GmailSender;
   deps(store: Store): PipelineDeps;
 }
 
@@ -144,6 +145,7 @@ async function build(): Promise<DemoWorld> {
     db,
     users,
     outbox,
+    gmail,
     deps: (store) => ({ store, ai: demoAi(), fetchDeps: demoFetchDeps(), hunter: demoHunter(), gmail, appUrl: null, now: Date.now, stepBudgetMs: 45_000 }),
   };
 

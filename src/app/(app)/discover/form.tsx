@@ -2,6 +2,8 @@
 import Link from "next/link";
 import { useActionState, useEffect, useMemo, useState } from "react";
 import { searchCompanies, type SearchResult } from "./actions";
+import { saveDigestSearch, type DigestResult } from "../digest/actions";
+import { toast } from "@/components/toast";
 import { startRun, type StartResult } from "../runs/new/actions";
 import { CountUp } from "@/components/count-up";
 import { Icon } from "@/components/icons";
@@ -41,6 +43,8 @@ export function DiscoverForm({ initial, facts }: { initial: Criteria; facts: { a
   const [crit, setCrit] = useState<Criteria>(initial);
   const [found, searchAction, searching] = useActionState<SearchResult | null, FormData>(searchCompanies, null);
   const [start, startAction, starting] = useActionState<StartResult | null, FormData>(startRun, null);
+  const [saved, saveAction, saving] = useActionState<DigestResult | null, FormData>(saveDigestSearch, null);
+  useEffect(() => { if (saved) toast(saved.message, saved.ok); }, [saved]);
   const [picked, setPicked] = useState<string[]>([]);
   const [seen, setSeen] = useState<SearchResult | null>(null);
 
@@ -133,6 +137,15 @@ export function DiscoverForm({ initial, facts }: { initial: Criteria; facts: { a
             <li><b>Then it is judged properly.</b> A match here is only a lead. Fit is decided after the company&apos;s own site is read and scored against your ICP, with a quote for every point.</li>
           </ol>
           <p className="small muted">Competitors and anyone on the do-not-contact list never appear.</p>
+          <form action={saveAction} className="stack tight digestsave">
+            <input type="hidden" name="criteria" value={JSON.stringify(crit)} />
+            <b>Want this every week?</b>
+            <p className="small muted" style={{ margin: 0 }}>Save these criteria and each Monday you will be emailed only the companies you have not seen before.</p>
+            <div className="row">
+              <button className="btn small" type="submit" disabled={saving}>{saving ? "Saving…" : "Save as the weekly digest"}</button>
+              <Link className="small" href="/digest">See the digest</Link>
+            </div>
+          </form>
         </aside>
       </div>
 

@@ -1,0 +1,36 @@
+# The weekly discovery digest. Every Monday at 9:00 India time it asks the app to run the saved search, keep only companies not
+# shown before, and email the owner a short note. Discover costs no Hunter credit and the digest uses no model, so it spends
+# nothing. The app skips it if one ran in the last six days, if no search is saved, or if the search is switched off, so a late
+# or doubled start does no harm. It can also be started by hand.
+name: Weekly digest
+on:
+  schedule:
+    - cron: "30 3 * * 1"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: digest
+  cancel-in-progress: false
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Run the weekly discovery digest
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -u
+          if [ -z "${APP_URL}" ] || [ -z "${CRON_SECRET}" ]; then
+            echo "APP_URL and CRON_SECRET must be set as repository secrets." >&2
+            exit 1
+          fi
+          out=$(curl -sS --fail-with-body --max-time 150 -X POST -H "Authorization: Bearer ${CRON_SECRET}" "${APP_URL%/}/api/worker/digest") || { echo "The digest call failed: ${out:-no body}" >&2; exit 1; }
+          echo "$out" | jq -c .
+          if [ "$(echo "$out" | jq -r 'has("skipped")')" = "true" ]; then echo "Skipped: $(echo "$out" | jq -r .skipped)"; exit 0; fi
+          if [ "$(echo "$out" | jq -r '.problems // [] | length')" != "0" ]; then echo "::warning::Part of the search failed: $(echo "$out" | jq -r '.problems | join(" ")')"; fi
+          if [ "$(echo "$out" | jq -r '.email // ""')" = "failed" ]; then echo "::error::The digest was found but the email failed." >&2; exit 1; fi

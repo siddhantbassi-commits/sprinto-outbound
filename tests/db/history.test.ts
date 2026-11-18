@@ -3,7 +3,7 @@ import { world, type World } from "./world";
 
 const APPEND_ONLY = [
   "settings_versions", "icp_versions", "icp_signoffs", "sprinto_facts_versions", "runs", "step_events", "pages", "facts", "scores",
-  "contacts", "manual_contacts", "hunter_cache", "suppressions", "decisions", "usage_ledger", "worker_ticks", "emails", "role_changes", "golden_runs", "email_reviews", "lead_outcomes",
+  "contacts", "manual_contacts", "hunter_cache", "suppressions", "decisions", "usage_ledger", "worker_ticks", "emails", "role_changes", "golden_runs", "email_reviews", "lead_outcomes", "digest_searches", "digests",
 ];
 
 describe("history cannot be rewritten", () => {

@@ -12,7 +12,7 @@ import type { DbPort } from "@/lib/db/port";
 import { pgPort } from "@/lib/db/pg-port";
 import { supabasePort, type SupabaseLike } from "@/lib/db/supabase";
 import { demoFetchDeps, demoHunter, getDemo } from "@/lib/demo/world";
-import { createGmailSender } from "@/lib/email/gmail";
+import { createGmailSender, type GmailSender } from "@/lib/email/gmail";
 import { readEnv, type AppEnv } from "@/lib/env";
 import { nodeTransport, systemResolver, type FetchDeps } from "@/lib/scrape/fetch";
 import { botUserAgent } from "@/lib/scrape/site";
@@ -153,6 +153,15 @@ export function askSetup(): { ok: true; ai: AiClient; standIn: boolean } | { ok:
   if (e.mode === "demo") return { ok: true, ai: demoAskAi(), standIn: true };
   if (!e.gemini) return { ok: false, reason: "The Gemini key is not set, so Ask cannot answer." };
   return { ok: true, ai: createGeminiClient({ apiKey: e.gemini.apiKey, models: modelChain({ GEMINI_MODEL: e.gemini.model }) }), standIn: false };
+}
+
+/** What the weekly digest needs on top of discovery: the way to tell the owner, and where to link to. In demo mode the "inbox" is the pretend one. */
+export async function digestSetup(): Promise<{ ok: true; hunter: HunterClient; fetchDeps: FetchDeps; gmail: GmailSender | null; appUrl: string | null } | { ok: false; reason: string }> {
+  const base = discoverySetup();
+  if (!base.ok) return base;
+  const e = env();
+  if (e.mode === "demo") return { ...base, gmail: (await getDemo()).gmail, appUrl: null };
+  return { ...base, gmail: e.gmail && e.testTo ? createGmailSender({ ...e.gmail, testTo: e.testTo }) : null, appUrl: e.appUrl };
 }
 
 /** What company discovery needs: Hunter (Discover is free) and polite page fetching. In demo mode both are the stand-ins. */
