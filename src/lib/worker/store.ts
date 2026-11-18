@@ -143,7 +143,11 @@ export class Store {
   }
   async insertFacts(prospectId: string, passes: { facts: Facts; grounding: unknown; absences: unknown; injection: unknown; problems: unknown; model: string; promptVersion: string; truncated: boolean }[]) {
     if (passes.length === 0) return;
-    await this.db.insert("facts", passes.map((p, i) => ({ prospect_id: prospectId, pass: i + 1, facts: p.facts, grounding: p.grounding, absences: p.absences, injection: p.injection, problems: p.problems, model: p.model, prompt_version: p.promptVersion, truncated: p.truncated })));
+    // A company that is read again (a person asked for a re-run) adds passes after the ones it already has. Starting from 1
+    // again would collide with the first reading, which is kept as history and never overwritten.
+    const [last] = await this.db.select("facts", { prospect_id: prospectId }, { order: "pass", ascending: false, limit: 1, columns: "pass" });
+    const offset = Number((last as { pass?: number } | undefined)?.pass ?? 0);
+    await this.db.insert("facts", passes.map((p, i) => ({ prospect_id: prospectId, pass: offset + i + 1, facts: p.facts, grounding: p.grounding, absences: p.absences, injection: p.injection, problems: p.problems, model: p.model, prompt_version: p.promptVersion, truncated: p.truncated })));
   }
   async latestFacts(prospectId: string): Promise<Facts | null> {
     const rows = await this.db.select("facts", { prospect_id: prospectId }, { order: "pass", ascending: false, limit: 1 });
@@ -151,6 +155,18 @@ export class Store {
   }
   async insertScore(prospectId: string, icpVersionId: string, s: ScoreResult) {
     await this.db.insert("scores", { prospect_id: prospectId, icp_version_id: icpVersionId, score: Math.round(s.score), verdict: s.verdict, parts: s.parts, gates: s.gates, missing: s.missing, flags: s.flags, reason: s.reason });
+  }
+  /**
+   * A person promoted this company after it was scored a "maybe". That is their decision to carry on, so the company is not
+   * read and scored again: it would be judged the same way and parked again, and the model would be paid twice.
+   */
+  async promotedAfterMaybe(prospectId: string): Promise<{ score: number } | null> {
+    const [score] = await this.db.select("scores", { prospect_id: prospectId, replay: false }, { order: "created_at", ascending: false, limit: 1, columns: "score,verdict,created_at" });
+    if (!score || score.verdict !== "maybe") return null;
+    const decisions = await this.db.select("decisions", { prospect_id: prospectId }, { order: "seq", ascending: false, limit: 20, columns: "kind,created_at" });
+    const last = decisions.find((d) => d.kind === "promote" || d.kind === "rerun");
+    if (!last || last.kind !== "promote") return null;
+    return new Date(last.created_at as string).getTime() >= new Date(score.created_at as string).getTime() ? { score: Number(score.score) } : null;
   }
   async latestScore(prospectId: string): Promise<{ score: number; verdict: string; parts: { label: string; points: number; quotes: string[] }[] } | null> {
     const r = one(await this.db.select("scores", { prospect_id: prospectId, replay: false }, { order: "created_at", ascending: false, limit: 1 }));

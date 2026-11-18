@@ -96,6 +96,11 @@ export async function scrape(p: ProspectRow, d: PipelineDeps): Promise<StepResul
 const TRANSIENT_AI = new Set(["timeout", "rate_limited", "overloaded", "api_error", "bad_json", "empty"]);
 
 export async function qualifyStep(p: ProspectRow, d: PipelineDeps): Promise<StepResult> {
+  // A person has already decided about a "maybe": carry on to the contact. Reading it again would only reach the same
+  // verdict, park it again, and spend the model's tokens a second time.
+  const promoted = await d.store.promotedAfterMaybe(p.id);
+  if (promoted) return advance({ verdict: "maybe", score: promoted.score, promoted_by_person: true, reason: "A person promoted this maybe, so it was not read again." });
+
   const settings = await d.store.settings();
   const icp = await d.store.icpForRun(p.run_id);
   const stored = await d.store.pages(p.id);

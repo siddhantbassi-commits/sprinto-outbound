@@ -277,10 +277,54 @@ describe("decisions that end a journey early, with the reason", () => {
     expect(p).toMatchObject({ lane: "review", step: "scraped", verdict: "maybe" });
     expect(p.lane_reason).toMatch(/Maybe \(\d+\/100\)/);
     expect(r.hunter!.log.searches).toBe(0);
+    const readOnce = r.ai.jsonRequests.length;
     await r.w.s.operator.query("select * from public.resume_prospect($1, 'Worth a look')", [p.id]);
     await r.run();
     p = await one(r.w);
-    expect(p.step).toBe("scraped"); // promoted: it re-reads the company, and the same stricter rule parks it again
+    // The person's decision is final: it is not read or scored again, and it carries on to the end.
+    expect(p).toMatchObject({ step: "sent", lane: "sent" });
+    expect(r.hunter!.log.searches).toBe(1);
+    expect(r.ai.jsonRequests.length - readOnce).toBe(2); // only the pains and the draft; no second reading of the site
+    const facts = await r.w.db.admin<{ pass: number }>("select pass from public.facts where prospect_id = $1", [p.id]);
+    expect(facts.map((f) => f.pass)).toEqual([1]);
+    const ev = await events(r.w, p.id);
+    const skipped = ev.filter((e) => e.step === "qualify" && e.status === "ok");
+    expect(skipped).toHaveLength(1);
+    expect(skipped[0]!.output).toMatchObject({ promoted_by_person: true, verdict: "maybe" });
+  });
+
+  it("only waves a promoted company through when it was a 'maybe', not when the system could not judge it", async () => {
+    const r = await rig();
+    const { ICP_V1 } = await import("@/lib/icp/config");
+    await r.w.s.admin.query("insert into public.icp_versions (config, reason) values ($1::jsonb, 'stricter: qualify only at 99')", [JSON.stringify({ ...ICP_V1, version: 2, qualifyAt: 99, maybeAt: 40 })]);
+    await r.w.s.admin.query("insert into public.icp_signoffs (icp_version_id, note) select id, 'ok' from public.icp_versions order by version desc limit 1");
+    await r.w.startRun(["acme.com"]);
+    await r.run();
+    const p = await one(r.w);
+    const store = new Store(pgPort(r.w.s.worker));
+    expect(await store.promotedAfterMaybe(p.id)).toBeNull(); // nobody has promoted it yet
+    // The latest reading is one the system could not judge, and a person then promotes it.
+    await r.w.db.admin("insert into public.scores (prospect_id, icp_version_id, score, verdict) select $1, id, 30, 'needs_more' from public.icp_versions order by version desc limit 1", [p.id]);
+    await r.w.s.operator.query("select * from public.resume_prospect($1, 'Try it anyway')", [p.id]);
+    expect(await store.promotedAfterMaybe(p.id)).toBeNull(); // it is read again, not carried on unjudged
+  });
+
+  it("reads a company again, as a second pass of facts, when a person asks for a re-run", async () => {
+    const r = await rig({ json: [extraction(), extraction(), pains(), draft()] });
+    const { ICP_V1 } = await import("@/lib/icp/config");
+    await r.w.s.admin.query("insert into public.icp_versions (config, reason) values ($1::jsonb, 'stricter: qualify only at 99')", [JSON.stringify({ ...ICP_V1, version: 2, qualifyAt: 99, maybeAt: 40 })]);
+    await r.w.s.admin.query("insert into public.icp_signoffs (icp_version_id, note) select id, 'ok' from public.icp_versions order by version desc limit 1");
+    await r.w.startRun(["acme.com"]);
+    await r.run();
+    let p = await one(r.w);
+    expect(p).toMatchObject({ lane: "review", verdict: "maybe" });
+    await r.w.s.operator.query("select * from public.resume_prospect($1, 'Read it again', 'rerun')", [p.id]);
+    const t = await r.run();
+    expect(t.errors).toEqual([]);
+    p = await one(r.w);
+    const facts = await r.w.db.admin<{ pass: number }>("select pass from public.facts where prospect_id = $1 order by pass", [p.id]);
+    expect(facts.map((f) => f.pass)).toEqual([1, 2]);
+    expect(p.lane).toBe("review"); // read again under the same strict rule, it is a maybe again
   });
 
   it("parks a site it cannot read as needs more, with the reason, when the page is simply not there", async () => {
