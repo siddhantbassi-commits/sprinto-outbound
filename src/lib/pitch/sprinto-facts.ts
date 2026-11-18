@@ -48,6 +48,16 @@ export function factsFileProblems(file: SprintoFactsFile): string[] {
   return problems;
 }
 
+/**
+ * The figures an email may state about Sprinto: the file's own short list (15 for the length of the call, and the digits in
+ * SOC 2 and ISO 27001) plus any figure that appears in a claim a person has verified. A figure in an unverified claim is
+ * never allowed, because the model is never shown an unverified claim.
+ */
+export function allowedNumbersFor(file: SprintoFactsFile): string[] {
+  const found = verifiedClaims(file).flatMap((i) => i.claim.match(/\d[\d,.]*%?/g) ?? []).map((n) => n.replace(/[.,]$/, ""));
+  return [...new Set([...file.allowedNumbers, ...found])];
+}
+
 export const verifiedClaims = (file: SprintoFactsFile): FactsFileItem[] => file.items.filter((i) => i.verifiedBy && i.verifiedBy.trim() !== "" && i.verifiedAt);
 
 export const optOutFooter = (file: SprintoFactsFile) => `If this isn't relevant, reply "no" and I won't write again. ${file.postalAddress.trim()}`;

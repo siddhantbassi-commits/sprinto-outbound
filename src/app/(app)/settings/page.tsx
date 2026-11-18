@@ -173,7 +173,7 @@ export default async function Settings() {
       </section>
 
       <section id="claims" className="stack tight" aria-label="What an email may say about Sprinto">
-        <SectionTitle icon="book" title="What an email may say about Sprinto" sub={`Only claims verified by a person against their source can appear in an email.${unverified ? ` ${unverified} still to verify.` : ""}`} />
+        <SectionTitle icon="book" title="What an email may say about Sprinto" sub={`Only claims verified by a person against their source can appear in an email, and a figure in a verified claim may be quoted.${unverified ? ` ${unverified} still to verify.` : ""}`} />
         {fileProblems.length ? <Banner tone="warn" title="Not ready for drafting">{fileProblems.join(" ")}</Banner> : null}
         <div className="tablewrap"><table>
           <thead><tr><th>Claim</th><th>Source</th><th>Verified</th></tr></thead>

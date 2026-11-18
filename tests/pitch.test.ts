@@ -6,7 +6,7 @@ import { choosePains, painsSchema, painsSystemPrompt, painsUserPrompt, validateP
 import { composeBody, draftEmail, draftSystemPrompt, draftUserPrompt, isUsableFirstName, LINT_RULES_PLAIN, MAX_REPAIRS, type DraftInput } from "@/lib/pitch/draft";
 import { allQuotes, hookOptions } from "@/lib/pitch/hooks";
 import { detectSignals, PAIN_BY_ID, PAINS, scorePains, shortlist, SIGNALS, type PainId } from "@/lib/pitch/pains";
-import { factsFileProblems, optOutFooter, SPRINTO_FACTS_SEED, verifiedClaims, type SprintoFactsFile } from "@/lib/pitch/sprinto-facts";
+import { allowedNumbersFor, factsFileProblems, optOutFooter, SPRINTO_FACTS_SEED, verifiedClaims, type SprintoFactsFile } from "@/lib/pitch/sprinto-facts";
 import { emptyFacts, type Facts } from "@/lib/icp/types";
 import type { Role } from "@/lib/contacts/rank";
 
@@ -384,6 +384,41 @@ describe("draftEmail", () => {
     expect(r.hook).toMatchObject({ id: "H1", source: "https://acme.com/pricing" });
     expect(r.attempts).toHaveLength(1);
     expect(r.aiCalls).toBe(1);
+  });
+
+  describe("figures from verified claims", () => {
+    const withClaim = (verified: boolean): SprintoFactsFile => ({
+      ...sprinto,
+      items: [...sprinto.items, { id: "F3", kind: "proof", claim: "Sprinto is used by more than 4,000 SaaS companies, and 98% renew.", sourceUrl: "sprinto.com", verifiedBy: verified ? "Siddhant" : null, verifiedAt: verified ? "2026-11-18" : null }],
+    });
+    const WITH_FIGURE = GOOD.replace("compliance for SaaS companies.", "compliance for more than 4,000 SaaS companies.");
+
+    it("allows the file's own figures, plus any figure in a verified claim, and nothing from an unverified one", () => {
+      expect(allowedNumbersFor(SPRINTO_FACTS_SEED)).toEqual(["2", "27001", "15"]);
+      expect(allowedNumbersFor(withClaim(true))).toEqual(expect.arrayContaining(["2", "27001", "15", "4,000", "98%"]));
+      expect(allowedNumbersFor(withClaim(false))).toEqual(["2", "27001", "15"]);
+      expect(allowedNumbersFor(withClaim(false))).not.toContain("4,000");
+    });
+
+    it("drops a full stop or comma that merely ends the sentence, and keeps each figure once", () => {
+      const f: SprintoFactsFile = { ...sprinto, items: [{ ...sprinto.items[0]!, claim: "Founded in 2019. Over 4,000 customers, 4,000 teams." }] };
+      const n = allowedNumbersFor(f);
+      expect(n).toContain("2019");
+      expect(n.filter((x) => x === "4,000")).toHaveLength(1);
+      expect(n).not.toContain("2019.");
+    });
+
+    it("lets an email state a figure that a verified claim contains", async () => {
+      const r = await draftEmail(base(scriptedAi({ json: [good({ message: WITH_FIGURE })] }), { facts: withClaim(true) }));
+      expect(r.status).toBe("ok");
+      if (r.status === "ok") expect(r.checks.find((c) => c.id === "L7")?.pass).toBe(true);
+    });
+
+    it("still refuses that figure when the claim has not been verified", async () => {
+      // The unverified claim is never shown to the model, so the figure has no source and the number check fails.
+      const r = await draftEmail(base(scriptedAi({ json: [good({ message: WITH_FIGURE }), good({ message: WITH_FIGURE }), good({ message: WITH_FIGURE })] }), { facts: withClaim(false) }));
+      expect(r.status).not.toBe("ok");
+    });
   });
 
   it("drops a greeting the model added anyway, so there is only one", async () => {

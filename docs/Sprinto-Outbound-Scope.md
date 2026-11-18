@@ -12,7 +12,7 @@ Working name: **Sprinto Outbound**. Companion file: [Sprinto-Outbound-Components
 
 This document began as the plan. It has been corrected to match what exists; where the build departs from the plan, the section says so.
 
-**What exists.** A Next.js app on Vercel (Mumbai) at https://sprinto-outbound-eight.vercel.app, invite-only, in test mode. Supabase holds the data and sign-in (11 migrations, row level security, append-only history). A GitHub Actions worker runs every 15 minutes. Gemini, Hunter and Gmail are all live. 1,302 automated tests in 53 files pass and the typecheck is clean. The logic that decides things (score, ranking, lint, edit measure, scorecard, run view) was also checked by deliberately breaking it and confirming a test fails; survivors were either harmless or became new tests.
+**What exists.** A Next.js app on Vercel (Mumbai) at https://sprinto-outbound-eight.vercel.app, invite-only, in test mode. Supabase holds the data and sign-in (11 migrations, row level security, append-only history). A GitHub Actions worker runs every 15 minutes. Gemini, Hunter and Gmail are all live. 1,312 automated tests in 54 files pass and the typecheck is clean. The logic that decides things (score, ranking, lint, edit measure, scorecard, run view) was also checked by deliberately breaking it and confirming a test fails; survivors were either harmless or became new tests.
 
 **Pages:** Runs, New run, Run detail, Why, Review, Impact, Scorecard, Quality, Ask, Rulebook, ICP and replay, Settings, People (and a Test inbox in demo mode only).
 
@@ -33,7 +33,7 @@ This document began as the plan. It has been corrected to match what exists; whe
 - Gmail is a personal account with the OAuth app in **Testing**; Google would not let it be published without a domain we own, so the sign-in lasts about 7 days and is renewed with `npm run gmail-token`.
 - The browser sweep and Playwright tests in the original plan were not built; pages were checked by hand in a browser pane, on desktop and phone width.
 
-**Still open.** The postal address in Settings was a bare postcode and needs a full address before real use. One verified claim about Sprinto exists (F1, checked against the case brief), and the figures a claim may contain are still fixed at 2, 27001 and 15. A static test that fails on a button with no action is not written. The second "maybe" (trigger.dev) is waiting for a person's decision.
+**Still open.** The postal address in Settings was a bare postcode and needs a full address before real use. One verified claim about Sprinto exists (F1, checked against the case brief). The second "maybe" (trigger.dev) is waiting for a person's decision. An automated browser sweep that clicks every control is not written, and the draft prompt changed (a verified claim's figures may now be quoted), so the golden set should be re-run on the real model.
 
 ---
 
@@ -501,7 +501,7 @@ JSON-schema output and function calling are **kept in separate requests**. [Rese
 
 One shell, one design system (the Freshroots tokens: dark by default with a light theme, a single accent, colour kept for meaning, phone-width layouts, visible keyboard focus, reduced motion respected). New accent colour so it reads as its own product. Colour meaning: green = qualified or sent, amber = needs a person, red = failed or blocked, blue = information.
 
-**The "no dummy buttons" rule.** Every control either works or is not shown. Things that are off are shown as *status* (a "Test mode" chip with a sentence), not as disabled buttons. At present this is kept by review and by checking each page in a browser; an automated test that fails on a control with no action is still to be written.
+**The "no dummy buttons" rule.** Every control either works or is not shown. Things that are off are shown as *status* (a "Test mode" chip with a sentence), not as disabled buttons. This is enforced by a test (`tests/controls.test.ts`) that fails on a control that plainly does nothing, and each page was also checked in a browser. The test cannot know that a handler is *useful*, only that it is not empty.
 
 Every page has a loading skeleton, an empty state that says what to do, and an error state that says what happened. The design uses Sprinto's own palette (plum, warm paper, a lime accent), dark and light themes, a command palette (press Cmd-K to jump to any page or company), and motion that explains something (progress, arrival, success) and switches off for people who ask for reduced motion.
 
@@ -596,7 +596,7 @@ sprinto-outbound/
   src/lib/{scrape,extract,icp,contacts,pitch,email,ai,agent,worker,ask,quality,app,db,demo,smoke}
   supabase/migrations/        11 files, append-only history, each applied once
   scripts/{keys,smoke,golden,gmail-token}.ts
-  tests/                      53 test files; tests/db runs the real migrations on PGlite (a real Postgres)
+  tests/                      54 test files; tests/db runs the real migrations on PGlite (a real Postgres)
   .github/workflows/{ci,worker,golden}.yml
   docs/{Sprinto-Outbound-Components-Map.pdf,Sprinto-Outbound-Scope.md,DEMO.md,REHEARSAL.md,map/}
 ```
@@ -641,10 +641,11 @@ There is no Supabase service-role key anywhere: the worker signs in as its own l
 | **Pipeline end to end (PGlite + fakes)** | A domain goes from queued to a sent test email through the real queue and roles, with a fake web, Gemini, Hunter and Gmail; plus every early exit, retry, unknown send, lost lease and the privacy rule |
 | **Pipeline on the demo world** | All 7 steps on invented companies with a scripted model, including an injection page, a JavaScript-only page, a competitor and a company that needs approval |
 | **Golden set** | Known companies must land in the expected lane. Runs in CI and weekly (catches a prompt or model change moving verdicts) |
-| **Browser** | *Not automated.* Pages were checked by hand in a browser pane at desktop and phone width, and the live app's headers were checked with `curl`. An automated browser sweep (and a dead-control check) is still to be written |
+| **Browser** | *Not automated.* Pages were checked by hand in a browser pane at desktop and phone width, and the live app's headers were checked with `curl`. A static dead-control test exists (below); an automated browser sweep that clicks every control is still to be written |
 | **Live smoke** | `npm run smoke` checks every service; `-- --pipeline domain` runs one real company through the real site and the real model, with nothing sent. This is what found the thinking-token budgets |
 | **Approvals, scorecard and run view** | The approval gate (approve, edit, reject, switched off, rate-limited retry), the edit measure, the kill-criteria rules at every boundary, and the run page's progress, estimate and filters, each with deliberate-break checks |
-| **Totals** | 1,302 tests in 53 files, offline and repeatable |
+| **Every control does something** | `tests/controls.test.ts` reads the syntax tree of every component and page and fails on a button with no type or handler, a link to nowhere, a form with no action, an empty handler, or a permanently disabled button; each rule was proven by planting a dead control in a real page |
+| **Totals** | 1,312 tests in 54 files, offline and repeatable |
 
 ---
 
@@ -715,7 +716,7 @@ The current script is `docs/DEMO.md`, and the practice run behind it is `docs/RE
 - **Headcount and stage are inferred** from the site (stated team size, job counts). They are flagged as estimates; we do not scrape LinkedIn.
 - **Hunter's quota is small.** The free allowance is 50 credits a month, and only companies that qualify or are promoted spend one. Cached results and hand-picked contacts stretch it.
 - **The ICP weights are a researched hypothesis**, not tuned on Sprinto's won and lost deals. They should be tuned against real outcomes once there are some.
-- **Sprinto's own site blocked our research**, so the facts file depends on a person verifying it. One claim (F1) is verified, against the case brief; the figures a claim may contain are fixed at 2, 27001 and 15.
+- **Sprinto's own site blocked our research**, so the facts file depends on a person verifying it. One claim (F1) is verified, against the case brief. A figure inside a verified claim may be quoted in an email; a figure in an unverified claim never can, because the model is never shown an unverified claim.
 - **Test mode proves the pipeline, not deliverability or replies.** Spam filtering, sender reputation and reply handling are untested until live.
 - **Gemini is not perfectly repeatable** across model updates. The golden set exists to notice.
 - **A quote on the page is not proof the page is true** (section 7.2). Grounding stops the model inventing evidence; it cannot stop a company overstating itself.

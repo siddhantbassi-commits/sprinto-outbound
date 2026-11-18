@@ -522,8 +522,8 @@ details[open] > summary { margin-bottom: 8px; }
 h1, h2, h3, h4 { font-weight: 560; }
 h1 { letter-spacing: -0.03em; font-weight: 520; }
 a { text-underline-offset: 3px; }
-:root[data-theme="dark"] a:not(.btn):not([class*="queue"]) { color: var(--orange); }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]):not([data-theme="dark"]) a:not(.btn):not([class*="queue"]) { color: var(--orange); } }
+:root[data-theme="dark"] a:not(.btn):not(.skip):not([class*="queue"]) { color: var(--orange); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]):not([data-theme="dark"]) a:not(.btn):not(.skip):not([class*="queue"]) { color: var(--orange); } }
 .nav a, .topbar a, .search-btn, .crumbs a, .rangetabs a, .segmented a, a.card, .tablewrap a.btn { color: inherit; }
 .nav a { color: var(--side-ink); }
 .nav a:hover, .nav a[aria-current="page"] { color: var(--side-ink-strong); }

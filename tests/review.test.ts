@@ -74,6 +74,24 @@ describe("editing a draft", () => {
     expect((await lint("", item.email.body)).ok).toBe(false);
   }, 90_000);
 
+  it("allows a figure that a verified claim contains, only once an admin has verified that claim", async () => {
+    const { d } = await draftWaiting();
+    const item = (await approvalQueue(as(d, "admin"), true)).find((x) => x.domain === "northwind.io")!;
+    const text = item.email.body.replace(/\n\n/, "\n\nCustomers cut audit prep by 94% in the first quarter.\n\n");
+    const lint = () => lintDraftEdit(as(d, "operator"), item.email.id, item.email.subject, text);
+    expect((await lint()).failed.map((f) => f.id)).toContain("L7"); // no claim contains 94%
+    const admin = as(d, "admin");
+    const [row] = await admin.select("sprinto_facts_versions", {}, { order: "version", ascending: false, limit: 1 });
+    const content = row!.content as { items: Record<string, unknown>[] };
+    const claim = { id: "F9", kind: "proof", claim: "Customers cut audit prep by 94%.", sourceUrl: "https://example.com/proof" };
+    // Added but not verified: the figure is still refused.
+    await admin.insert("sprinto_facts_versions", { content: { ...content, items: [...content.items, { ...claim, verifiedBy: null, verifiedAt: null }] }, reason: "Added claim F9, not yet verified" });
+    expect((await lint()).failed.map((f) => f.id)).toContain("L7");
+    // Verified by a person: the same figure is now sourced.
+    await admin.insert("sprinto_facts_versions", { content: { ...content, items: [...content.items, { ...claim, verifiedBy: "an admin", verifiedAt: "2026-11-18" }] }, reason: "Verified F9" });
+    expect((await lint()).failed.map((f) => f.id)).not.toContain("L7");
+  }, 90_000);
+
   it("says plainly that a draft which no longer exists cannot be checked", async () => {
     const { d } = await draftWaiting();
     expect(await lintDraftEdit(as(d, "operator"), "00000000-0000-4000-8000-000000000000", "s", "b")).toMatchObject({ ok: false });

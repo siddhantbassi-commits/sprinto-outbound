@@ -2,7 +2,7 @@ import type { DbPort, Row } from "@/lib/db/port";
 import { lintEmail, type LintCheck } from "@/lib/email/lint";
 import { companyName } from "@/lib/pitch/company";
 import { allQuotes } from "@/lib/pitch/hooks";
-import type { SprintoFactsFile } from "@/lib/pitch/sprinto-facts";
+import { allowedNumbersFor, type SprintoFactsFile } from "@/lib/pitch/sprinto-facts";
 import type { Facts } from "@/lib/icp/types";
 import { withSettings } from "@/lib/worker/pipeline";
 import type { Settings } from "@/lib/worker/store";
@@ -125,7 +125,7 @@ export async function lintDraftEdit(db: DbPort, emailId: string, subject: string
     company: companyName(String(prospect.domain), (home?.title as string | undefined) ?? null),
     hookQuote: hook?.quote ?? null,
     evidenceQuotes: factsRow ? allQuotes(factsRow.facts as Facts) : [],
-    allowedNumbers: file.allowedNumbers,
+    allowedNumbers: allowedNumbersFor(file),
     postalAddress: file.postalAddress.trim(),
   });
   return { ok: res.ok, failed: res.checks.filter((c) => !c.pass).map((c) => ({ id: c.id, message: c.message })) };

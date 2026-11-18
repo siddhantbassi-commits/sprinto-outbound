@@ -5,7 +5,7 @@ import { UNTRUSTED_NOTICE, newDelimiter, wrapUntrusted } from "@/lib/ai/untruste
 import { lintEmail, type LintCheck } from "@/lib/email/lint";
 import type { HookOption } from "./hooks";
 import type { PainPick } from "./choose-pains";
-import { factsFileProblems, optOutFooter, verifiedClaims, type SprintoFactsFile } from "./sprinto-facts";
+import { allowedNumbersFor, factsFileProblems, optOutFooter, verifiedClaims, type SprintoFactsFile } from "./sprinto-facts";
 
 /**
  * Step 6. Code owns everything that must be exact (the greeting, the sign-off, the opt-out footer and address) and the
@@ -13,7 +13,7 @@ import { factsFileProblems, optOutFooter, verifiedClaims, type SprintoFactsFile 
  * a failing draft goes back for at most two repairs and is then held, with the reasons, rather than sent.
  */
 
-export const DRAFT_PROMPT_VERSION = "draft-v1";
+export const DRAFT_PROMPT_VERSION = "draft-v2";
 export const MAX_REPAIRS = 2;
 /** Room for the answer plus the model's own thinking, which counts against it. A tight number cuts the answer off mid-sentence. */
 const MAX_OUTPUT_TOKENS = 2048;
@@ -24,7 +24,7 @@ export const LINT_RULES_PLAIN = [
   "Open from the chosen hook: reuse at least two of the hook quote's own words.",
   "Ask exactly one question, and make it the last sentence before the sign-off. No other question marks.",
   "No links, emoji or exclamation marks.",
-  "Use no figures except 15 (the length of the call), the digits in SOC 2 and ISO 27001, and figures inside the hook quote.",
+  "Use no figures except 15 (the length of the call), the digits in SOC 2 and ISO 27001, figures inside the hook quote, and figures that appear in the Sprinto facts you are given.",
   "Never claim a source we did not use: no LinkedIn, podcasts, webinars, talks or posts unless the hook quote says so.",
   "Avoid stock phrases: hope this finds you well, I came across, touching base, circling back, reach out, game-changer, best-in-class, guarantee.",
 ];
@@ -194,7 +194,7 @@ export async function draftEmail(input: DraftInput): Promise<DraftResult> {
       company: company.name,
       hookQuote: hook?.quote ?? null,
       evidenceQuotes: input.evidenceQuotes,
-      allowedNumbers: facts.allowedNumbers,
+      allowedNumbers: allowedNumbersFor(facts),
       postalAddress: facts.postalAddress.trim(),
     });
     lastChecks = lint.checks;
