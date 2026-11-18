@@ -2,13 +2,21 @@
 
 Cold outreach at scale for Sprinto (SOC 2, ISO 27001 and GDPR automation). It starts by **finding companies that look like Sprinto customers** (Hunter Discover, narrowed by the signed-off ICP, each home page checked), or you can paste a list. For each chosen company it reads the public website, decides whether it fits, finds one named decision-maker, picks the two pains that person most likely has, writes a formal email with a hook taken from the site, and, after a person approves it, sends it through Gmail. Every researched company also gets a **discovery-call brief**: why now, talking points with the company's own words as evidence, questions to ask, and likely objections.
 
-**Live:** https://sprinto-outbound-eight.vercel.app (invite-only, test mode: mail goes only to the configured test address). Deployed on Vercel in Mumbai, with Supabase for data and sign-in and a GitHub Actions worker every 15 minutes.
+**Just want to look? Open the public demo: https://sprinto-outbound-demo.vercel.app** No sign-in. A short welcome animation opens on the Today page, and every page and button works on eight invented companies. Nothing is real behind it and nothing is sent anywhere (see "Two deployments" below).
+
+**The real app:** https://sprinto-outbound-eight.vercel.app (invite-only, test mode: mail goes only to the configured test address). Deployed on Vercel in Mumbai, with Supabase for data and sign-in, a GitHub Actions worker every 15 minutes and a weekly discovery digest.
 
 **Gemini reads and writes. Code decides.** Every extracted fact carries a verbatim quote that code checks against the stored page text. Scores, verdicts, the choice of person, the lint on the draft and the send safety are all deterministic and tested. Every step writes an append-only trace, and the "Why" page is that trace made readable.
 
 **Test mode only.** The recipient is a server setting. `sendTest` accepts no recipient, so the real contact is never mailed: the email lands in your own inbox as a formal letter (HTML with a plain-text twin), with a small notice under it saying who it *would* have gone to and why.
 
 Built for MESA AI-Native Track, Case 02 (3 November 2026). Scope and reasoning: [`docs/Sprinto-Outbound-Scope.md`](docs/Sprinto-Outbound-Scope.md). Components map: [`docs/Sprinto-Outbound-Components-Map.pdf`](docs/Sprinto-Outbound-Components-Map.pdf). Demo script: [`docs/DEMO.md`](docs/DEMO.md). Practice run and failure drills: [`docs/REHEARSAL.md`](docs/REHEARSAL.md).
+
+## Two deployments, and why
+
+The real app holds real leads, contact addresses and credentials, so it asks for an invited sign-in and cannot be opened by a link. The public demo is the same code with a sample world instead of a database: no sign-in, no credentials, nothing real. It is a separate Vercel project that holds only two settings, `DEMO_MODE=1` and `DEMO_PUBLIC=1`. The code refuses to start in demo mode in production unless the deployment holds no real credential (it names any it finds, never their values), so the public build cannot be pointed at real data. A first-time visitor sees a short welcome animation (`/enter`, which also warms the sample world up) and lands on Today; "Skip" is always there, and the animation is switched off for people who ask for reduced motion.
+
+Honest limits of the public demo: its state lives in each server instance's memory, so what a visitor changes may reset after a quiet period; its companies are invented and its model is a scripted stand-in, so it shows how the product behaves, not how well it performs on the market.
 
 ## Try it now, with no keys
 
@@ -17,9 +25,9 @@ npm install
 npm run dev:demo      # http://localhost:3100
 ```
 
-Demo mode runs the whole product on eight invented companies, in memory: a real Postgres engine with the real schema, the real worker, the real quote check, scoring, lint and send safety. Only the outside world is pretend (the websites, the model, Hunter and Gmail). Nothing leaves your computer, and it refuses to start in production or beside a real database. Use the **View as** switch at the top to see what an admin, an operator, a viewer and a not-yet-approved person can each do.
+Demo mode (the same thing the public link runs) runs the whole product on eight invented companies, in memory: a real Postgres engine with the real schema, the real worker, the real quote check, scoring, lint and send safety. Only the outside world is pretend (the websites, the model, Hunter and Gmail). Nothing leaves your computer, and it refuses to start beside a real database, or in production unless it is the credential-free public demo. Use the **View as** switch at the top to see what an admin, an operator, a viewer and a not-yet-approved person can each do.
 
-Things worth clicking: a company's **Why** page (every score point with its quote and the page it came from), **Needs attention** (a "maybe", a company with no usable contact), **Discover** (find companies, with the reason for each suggestion), **Leads** and a company's **brief** (what to know before the call), **Test inbox** (the formal email as it would land in your Gmail, with the defence under it), and **Settings** (what must be true before anything can send), **Impact** (the funnel, where the rest went, and time saved with its working), **Scorecard** (the three kill criteria set before the build, and where each stands, with "not enough data" until 8 decisions exist), **Quality** (this week against last week, with "not enough data" shown where a sample is too small, and the golden set), **Ask** (plain-English questions answered from the records, with what it looked at shown), and **ICP and replay** (change a weight and see which stored companies would move, without re-reading a single site).
+Things worth clicking: **Today** (what needs you now), a company's **Why** page (every score point with its quote and the page it came from), **Needs attention** (a "maybe", a company with no usable contact), **Discover** (find companies, with the reason for each suggestion), **Leads** and a company's **brief** (what to know before the call), **Test inbox** (the formal email as it would land in your Gmail, with the defence under it), and **Settings** (what must be true before anything can send), **Impact** (the funnel, where the rest went, and time saved with its working), **Scorecard** (the three kill criteria set before the build, and where each stands, with "not enough data" until 8 decisions exist), **Quality** (this week against last week, with "not enough data" shown where a sample is too small, and the golden set), **Ask** (plain-English questions answered from the records, with what it looked at shown), and **ICP and replay** (change a weight and see which stored companies would move, without re-reading a single site).
 
 ## What exists today
 
@@ -84,11 +92,12 @@ The dry run reads a real company's real site and asks the real model, in a throw
 
 ## Deploying
 
-1. **Supabase:** follow [`supabase/README.md`](supabase/README.md) (create the project, turn off sign-ups, apply the migrations, promote yourself, create the worker account).
+1. **Supabase:** follow [`supabase/README.md`](supabase/README.md) (create the project, turn off sign-ups, apply the 16 migrations, promote yourself, create the worker account).
 2. **Vercel:** link the repository (region `bom1`, set in `vercel.json`) and set the environment variables listed in [`.env.local.example`](.env.local.example), either in the dashboard or with `npx vercel env add`. A `.vercelignore` keeps uploads to source only (without it the CLI also tries to upload build caches). Deploy with `npx vercel deploy --prod`. Add the live address to Supabase's Site URL and redirect list.
 3. **GitHub:** add the repository secrets `APP_URL` and `CRON_SECRET` (the same value as in Vercel). The Worker workflow then calls the app every 15 minutes. Opening a run in the browser also drives the worker, because GitHub's scheduler can run late.
 4. **In the app, as admin:** set the test address, sender and a full postal address; sign off the ICP; verify at least one claim about Sprinto against its source. Until all three are done, nothing can send. Every draft then waits for a person's approval (a setting an admin can change, with a reason).
-5. **Gmail:** `npm run gmail-token` makes the send-only sign-in. While the Google app is in Testing mode it expires after about 7 days, so renew it (and the copy on Vercel) before any demo. `docs/REHEARSAL.md` has the steps.
+5. **Public demo (optional):** create a second Vercel project from the same repository, give it only `DEMO_MODE=1` and `DEMO_PUBLIC=1` (no database, model, Hunter or Gmail setting of any kind), and deploy it. Leave its Deployment Protection off so the link opens without a Vercel login.
+6. **Gmail:** `npm run gmail-token` makes the send-only sign-in. While the Google app is in Testing mode it expires after about 7 days, so renew it (and the copy on Vercel) before any demo. `docs/REHEARSAL.md` has the steps.
 
 ## Running the checks
 

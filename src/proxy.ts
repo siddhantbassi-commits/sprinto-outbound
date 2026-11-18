@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { INTRO_COOKIE, wantsIntro } from "@/lib/app/enter";
 import { readEnv } from "@/lib/env";
 
 /**
@@ -8,7 +9,7 @@ import { readEnv } from "@/lib/env";
  * The pages check the session again themselves; this is the early, cheap check, not the only one.
  */
 
-const PUBLIC = [/^\/login(\/|$)/, /^\/auth\//, /^\/api\/worker\//];
+const PUBLIC = [/^\/login(\/|$)/, /^\/auth\//, /^\/api\/worker\//, /^\/enter(\/|$)/];
 
 export async function proxy(request: NextRequest) {
   const env = readEnv();
@@ -27,6 +28,14 @@ export async function proxy(request: NextRequest) {
     "frame-ancestors 'none'",
     ...(dev ? [] : ["upgrade-insecure-requests"]),
   ].join("; ");
+
+  // The public demo opens with a short welcome while the sample workspace starts, once per browser session.
+  if (wantsIntro({ mode: env.mode, method: request.method, hasCookie: request.cookies.has(INTRO_COOKIE), accept: request.headers.get("accept") ?? "", path: request.nextUrl.pathname })) {
+    const to = request.nextUrl.clone();
+    to.search = `?to=${encodeURIComponent(request.nextUrl.pathname + request.nextUrl.search)}`;
+    to.pathname = "/enter";
+    return NextResponse.redirect(to);
+  }
 
   const headers = new Headers(request.headers);
   headers.set("x-nonce", nonce);

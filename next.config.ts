@@ -5,6 +5,8 @@ const config: NextConfig = {
   distDir: process.env.NEXT_DIST_DIR || ".next",
   // The demo database is a WebAssembly Postgres; keep it out of the bundle and load it from node_modules.
   serverExternalPackages: ["@electric-sql/pglite"],
+  // A deployment that runs the demo needs the database's WebAssembly files shipped with its functions; the real one does not.
+  ...(process.env.DEMO_MODE === "1" ? { outputFileTracingIncludes: { "/**": ["./node_modules/@electric-sql/pglite/dist/**/*"] } } : {}),
   poweredByHeader: false,
   async headers() {
     return [

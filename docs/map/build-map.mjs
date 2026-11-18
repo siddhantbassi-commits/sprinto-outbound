@@ -18,7 +18,7 @@ const BOUNDARY = [
   "The platform researches, scores and drafts, and sends only what a person has approved. In test mode every email goes to the Growth Lead's own inbox, so no prospect is ever mailed. Gemini only reads page text and writes drafts: it never picks a recipient, changes a score or sends anything. Every score comes from code, on facts that carry a quote from the page.",
   "Which companies to pursue, whether each draft goes out, whether to ever go live, and what to say when someone replies stays with the Growth Lead. Going live is a deliberate admin change after review, not a button anyone can press. The Scorecard says when to stop: over half the drafts rewritten, the wrong person more than 4 times in 10, or more time spent than saved.",
 ];
-const FOOTER = "Live: sprinto-outbound-eight.vercel.app (test mode)  ·  Built from MESA AI-Native Track Case 02 and the PitchPrep components-map style reference";
+const FOOTER = "Public demo, no sign-in: sprinto-outbound-demo.vercel.app  ·  Real app, invite-only, test mode: sprinto-outbound-eight.vercel.app  ·  MESA AI-Native Track Case 02";
 
 const COLS = ["Actor", "Trigger", "Input", "Context", "Processing", "AI", "Output"];
 const KIND = ["", "trigger", "input", "context", "processing", "ai", "output"];
@@ -30,21 +30,21 @@ const ROWS = [
     boxes: {
       1: "She opens Discover to find companies, or has a list of domains ready",
       2: "Her criteria and the companies she picks, or pasted domains; her call on each maybe and draft",
-      6: "Progress with time left, ranked leads each with a discovery-call brief, drafts to approve, a plain-English 'why' for every company",
+      6: "Today (what needs her), progress with time left, a leads board with a call brief each, drafts to approve, a plain 'why' for every company",
     },
   },
   {
     name: "Company discovery", sub: "(Hunter Discover · paste · CSV)", tint: "#fdf5ea",
     boxes: {
-      3: "Three free Hunter searches from the ICP, merged and ranked, each home page checked; or pasted text; suppressed domains explained",
+      3: "Three free Hunter searches from the ICP, merged and ranked, home pages checked; a Monday digest of new ones; or pasted text",
       4: "Saved as a run with one job per domain; a domain mailed in the last 30 days is skipped",
     },
   },
   {
     name: "Outbound app", sub: "(Next.js on Vercel · invite-only)", tint: "#eff8f1",
     boxes: {
-      1: "Every 15 minutes a GitHub Actions worker, or a live run open in the browser",
-      3: "Checks the signed-in role, loads the signed-off ICP, the verified Sprinto facts and today's caps",
+      1: "A GitHub Actions worker every 15 minutes and a digest job on Mondays, or a live run open in the browser",
+      3: "Checks the signed-in role, loads the signed-off ICP, verified Sprinto facts and today's caps. The public demo has no sign-in and no real data",
       4: "Claims the next step of the next job; each step is saved before the next begins; failures retried with back-off",
     },
   },
@@ -76,7 +76,7 @@ const ROWS = [
   {
     name: "Database", sub: "(Supabase · Postgres)", tint: "#fdf6ec",
     boxes: {
-      3: "Runs, steps, evidence, contacts, emails, reviews, ICP versions, suppressions, usage; invite-only sign-in; row level security",
+      3: "Runs, evidence, contacts, drafts, reviews, outcomes, digests, ICP versions, suppressions; invite-only sign-in; row level security",
       4: "Append-only: no edits or deletes; time and name stamped by the database",
     },
   },
@@ -116,6 +116,16 @@ const ROWS = [
     },
   },
   {
+    name: "Leads and follow-up", sub: "(Today · board · outcomes · go-live)", tint: "#f1f7fb",
+    boxes: {
+      1: "She opens Today, or the Monday digest lands in her inbox",
+      2: "She records what came of each lead (replied, meeting, not interested) with a note and a follow-up date",
+      3: "Researched companies, the verified Sprinto facts, outcomes so far, and the sending domain's SPF, DKIM and DMARC",
+      4: "Board stages built by code; call sheet and buying group; paid address check (1 credit); outcomes compared with the ICP",
+      6: "Leads board with CSV and HubSpot export, a printable call sheet, 'what is working', and a go-live readiness list",
+    },
+  },
+  {
     name: "Operations and Quality", sub: "(Budgets · Suppression · Scorecard)", tint: "#fdf1f1",
     boxes: {
       1: "A run ends, or a week closes",
@@ -141,7 +151,8 @@ const LINKS = [
   ["h", "9,3", "9,4"], ["h", "9,4", "9,6"], ["v", "9,4", "10,4"],
   ["h", "10,1", "10,2"], ["h", "10,2", "10,3"], ["h", "10,3", "10,4"], ["h", "10,4", "10,6"], ["v", "10,4", "11,4"],
   ["h", "11,1", "11,2"], ["h", "11,2", "11,3"], ["h", "11,3", "11,4"], ["h", "11,4", "11,6"], ["v", "11,4", "12,4"],
-  ["h", "12,1", "12,2"], ["h", "12,2", "12,3"], ["h", "12,3", "12,4"], ["h", "12,4", "12,6"],
+  ["h", "12,1", "12,2"], ["h", "12,2", "12,3"], ["h", "12,3", "12,4"], ["h", "12,4", "12,6"], ["v", "12,4", "13,4"],
+  ["h", "13,1", "13,2"], ["h", "13,2", "13,3"], ["h", "13,3", "13,4"], ["h", "13,4", "13,6"],
   ["rail", "11,6", "1,6"],
 ];
 

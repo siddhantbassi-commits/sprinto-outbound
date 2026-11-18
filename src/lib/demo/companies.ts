@@ -34,8 +34,8 @@ export interface DemoCompany {
   contacts: Candidate[];
 }
 
-const person = (first: string, last: string, position: string, dept: string, seniority: Candidate["seniority"], domain: string, confidence = 92): Candidate => ({
-  source: "hunter", firstName: first, lastName: last, position, email: `${first.toLowerCase()}@${domain}`, type: "personal", seniority, department: dept, confidence, verification: "valid",
+const person = (first: string, last: string, position: string, dept: string, seniority: Candidate["seniority"], domain: string, confidence = 92, verification: Candidate["verification"] = "valid"): Candidate => ({
+  source: "hunter", firstName: first, lastName: last, position, email: `${first.toLowerCase()}@${domain}`, type: "personal", seniority, department: dept, confidence, verification,
 });
 const generic = (domain: string): Candidate => ({ source: "hunter", firstName: null, lastName: null, position: "Sales", email: `sales@${domain}`, type: "generic", seniority: null, department: "sales", confidence: 60, verification: "unknown" });
 
@@ -100,7 +100,8 @@ export const DEMO_COMPANIES: DemoCompany[] = [
       logos: "Trusted by Orchard Market and Tern Goods.",
       data: "Payment records are stored in your Harbor Pay account.",
     },
-    contacts: [person("Imran", "Qureshi", "CISO", "security", "executive", "harborpay.com", 90)],
+    // Hunter could only call this address "accept all", so the brief offers to check it properly (a paid check, shown in the demo).
+    contacts: [person("Imran", "Qureshi", "CISO", "security", "executive", "harborpay.com", 90, "accept_all")],
   },
   {
     domain: "cobaltledger.io", name: "Cobalt Ledger", kind: "strong", compliance: "in_progress", band: "51-200", hiring: "security_role",

@@ -1,6 +1,8 @@
 # Demo script (3 minutes) and the questions to expect
 
-Start with `npm run dev:demo` (sample data) or the live deployment (real data, test mode).
+Start with the public demo at https://sprinto-outbound-demo.vercel.app (sample data, no sign-in; a short welcome animation opens on Today), `npm run dev:demo` (the same thing locally), or the real deployment (real data, test mode, invited sign-in). The public demo's state sits in server memory and may reset after a quiet period, so refresh it before a run-through rather than relying on a company having stayed where you left it.
+
+**One minute before the three minutes:** open **Today** ("what needs me now"), then **Leads** and drag a card across the board. Say that the board is built from recorded facts, and that each lead can record what came of it.
 
 ## The three minutes
 

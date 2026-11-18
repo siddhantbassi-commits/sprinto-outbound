@@ -27,6 +27,15 @@ const clean = (v: string | undefined) => (v ?? "").replace(/\s+/g, "");
 const text = (v: string | undefined) => (v ?? "").trim();
 const some = (v: string | undefined) => (clean(v) === "" ? null : clean(v));
 
+/**
+ * The names (never the values) of any real credentials present. A public demo is allowed in production only when this is empty:
+ * it must be a deployment that holds nothing real, so there is nothing for a visitor to reach even if every page is open.
+ */
+export function realCredentials(raw: Raw): string[] {
+  const names = ["NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY", "SUPABASE_ANON_KEY", "SUPABASE_SERVICE_ROLE_KEY", "WORKER_EMAIL", "WORKER_PASSWORD", "CRON_SECRET", "GEMINI_API_KEY", "HUNTER_API_KEY", "GMAIL_CLIENT_ID", "GMAIL_CLIENT_SECRET", "GMAIL_REFRESH_TOKEN", "GMAIL_FROM", "OUTBOUND_TEST_TO"];
+  return names.filter((n) => clean(raw[n]) !== "");
+}
+
 export function readEnv(raw: Raw = process.env): AppEnv {
   const problems: string[] = [];
   const url = some(raw.NEXT_PUBLIC_SUPABASE_URL) ?? some(raw.SUPABASE_URL);
@@ -35,8 +44,10 @@ export function readEnv(raw: Raw = process.env): AppEnv {
 
   let mode: AppEnv["mode"] = "supabase";
   if (raw.DEMO_MODE === "1") {
-    if (production) problems.push("DEMO_MODE is set in a production deployment, so it was ignored.");
-    else if (url) problems.push("DEMO_MODE is set but a Supabase project is configured, so demo mode was ignored.");
+    const real = realCredentials(raw);
+    if (url) problems.push("DEMO_MODE is set but a Supabase project is configured, so demo mode was ignored.");
+    else if (production && raw.DEMO_PUBLIC !== "1") problems.push("DEMO_MODE is set in a production deployment, so it was ignored.");
+    else if (production && real.length > 0) problems.push(`DEMO_MODE is set in a production deployment that also holds real credentials (${real.join(", ")}), so it was ignored. A public demo must hold none.`);
     else mode = "demo";
   }
 

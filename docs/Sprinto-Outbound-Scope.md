@@ -12,9 +12,11 @@ Working name: **Sprinto Outbound**. Companion file: [Sprinto-Outbound-Components
 
 This document began as the plan. It has been corrected to match what exists; where the build departs from the plan, the section says so.
 
-**What exists.** A Next.js app on Vercel (Mumbai) at https://sprinto-outbound-eight.vercel.app, invite-only, in test mode. Supabase holds the data and sign-in (12 migrations, row level security, append-only history). A GitHub Actions worker runs every 15 minutes. Gemini, Hunter and Gmail are all live. 1,415 automated tests in 61 files pass and the typecheck is clean. The logic that decides things (score, ranking, lint, edit measure, scorecard, run view) was also checked by deliberately breaking it and confirming a test fails; survivors were either harmless or became new tests.
+**What exists.** A Next.js app on Vercel (Mumbai) at https://sprinto-outbound-eight.vercel.app, invite-only, in test mode. Supabase holds the data and sign-in (16 migrations, row level security, append-only history). A GitHub Actions worker runs every 15 minutes, and a weekly job runs the discovery digest. Gemini, Hunter and Gmail are all live. 1,607 automated tests in 75 files pass and the typecheck is clean. The logic that decides things (score, ranking, lint, edit measure, scorecard, run view) was also checked by deliberately breaking it and confirming a test fails; survivors were either harmless or became new tests.
 
-**Pages:** Discover, Runs, Paste a list, Run detail, Leads, Call brief, Why, Review, Impact, Scorecard, Quality, Ask, Rulebook, ICP and replay, Settings, People (and a Test inbox in demo mode only).
+**Pages:** Today, Discover, Runs, Paste a list, Run detail, Weekly digest, Leads (board, search, saved views, exports), Call brief, Why, Review, Impact, Scorecard, What is working, Quality, Ask, Rulebook, ICP and replay, Settings, Go-live readiness, People (and a Test inbox in demo mode only).
+
+**Two deployments, on purpose.** The real app (https://sprinto-outbound-eight.vercel.app) holds real leads, contact addresses and credentials, so it stays behind invite-only sign-in. A second deployment, **https://sprinto-outbound-demo.vercel.app**, is for anyone who only wants to look: no sign-in, a short welcome animation that opens on the Today page, and nothing real behind it. It runs the same code in demo mode (invented companies, a real Postgres engine and the real pipeline in memory, a scripted stand-in for the model, Hunter and Gmail). The code refuses to run demo mode in production unless the deployment holds no real credential at all, so the public build cannot be pointed at real data by mistake; the demo project has only two settings, `DEMO_MODE` and `DEMO_PUBLIC`. Its state lives in each server instance's memory, so changes a visitor makes may reset after a quiet period; nothing a visitor does leaves that instance, and no email is sent anywhere.
 
 **The first real run.** Two real companies (`documenso.com`, `trigger.dev`) were read, scored and judged in 55 seconds. Both scored "maybe" (58 and 52) because headcount was not on their sites, so company size scored 0 and nothing was guessed. No Hunter credit was spent until a person promoted one. Documenso was promoted for its own compliance page ("SOC 2: Planned (2026)", 25 points). Hunter found a Co-Founder (confidence 85); the system chose two pains, wrote the email (about 14,500 model tokens for the whole company), passed all 12 checks, held it for approval, and after a person approved it as written, sent it to the test inbox. The trace and the Why page show every step.
 
@@ -531,10 +533,14 @@ Every page has a loading skeleton, an empty state that says what to do, and an e
 
 | Page | What it is for |
 |---|---|
-| **Runs** (home) | A readiness checklist until everything required is in place; then the last 7 days against the 7 before, what needs a decision, where every company has ended up, and the list of runs |
+| **Today** (home) | What needs her now: drafts to approve, follow-ups due, new companies from the digest, what is running, and a readiness checklist until everything required is in place |
+| **Runs** | The list of runs, the last 7 days against the 7 before, and where every company has ended up |
+| **Weekly digest** | The saved search that runs every Monday (or on demand), keeps only companies that are new, emails the owner a short note and records it. Free: no Hunter credit, no model, no company contacted |
+| **What is working** | Recorded outcomes compared with the ICP score and the signals behind it, shown only once ten companies have been reached, never as a guess |
+| **Go-live readiness** | A plain list of what is still needed before real sending: the sending domain's SPF, DKIM and DMARC records, the sender, the postal address, the unsubscribe header, and a gradual ramp-up |
 | **Discover** | Describe a good customer (pre-filled from the ICP), see ranked companies with the reason for each, choose which to research, and see the cost before starting |
-| **Leads** | Every researched company, best fit first, with who to speak to, the two pains and a link to its call brief |
-| **Call brief** | Everything for the discovery call on one page, copyable as text |
+| **Leads** | Every researched company as a list or a board you can drag across stages, with search, filters, sort and saved views; who to speak to, the two pains, what came of each lead (reached out, replied, meeting booked, not interested, bounced, wrong person, with a note and a follow-up date) and exports to CSV and HubSpot |
+| **Call brief** | Everything for the discovery call on one page, copyable as text or printed as a call sheet; the other people worth speaking to with a different angle for each; a paid check (one Hunter credit) that an address is deliverable |
 | **Paste a list** | A paste box that finds domains in any text (a spreadsheet column, an email thread, links) as you type, with a one-click tidy and a CSV drop zone. *Check the list* shows what will run, what is skipped and why, and the Hunter credits it could use, before anything starts |
 | **Run detail** | A progress ring and one-line status, a time estimate that waits for enough data, how many companies reached each of the seven steps, a dot track per company, filters, a feed of what just happened, and Pause with a reason |
 | **Why (a company)** | The defence page. A plain-English summary written by code from the recorded facts; then the score with each point's quote and source page, the ranked contact candidates, the two pains, the draft with its 12 checks, the person's decision on it, and the full append-only trace. Actions: promote, put back in the queue, re-run, do not contact, add a contact by hand |
@@ -618,13 +624,14 @@ Every page has a loading skeleton, an empty state that says what to do, and an e
 
 ```
 sprinto-outbound/
-  src/app/(app)/{page(runs),runs/new,runs/[id],prospects/[id],review,impact,scorecard,quality,ask,rulebook,icp,settings,people,outbox}
-  src/app/api/{worker/tick,worker/golden,runs/advance}
-  src/lib/{scrape,extract,icp,contacts,pitch,email,ai,agent,worker,ask,quality,app,db,demo,smoke}
-  supabase/migrations/        11 files, append-only history, each applied once
+  src/app/(app)/{page(today),discover,runs,runs/new,runs/[id],leads,digest,prospects/[id],prospects/[id]/brief,review,impact,scorecard,learning,quality,ask,rulebook,icp,settings,golive,people,outbox}
+  src/app/enter/               the welcome animation of the public demo
+  src/app/api/{worker/tick,worker/golden,worker/digest,runs/advance,demo/warm}
+  src/lib/{scrape,extract,icp,discovery,digest,brief,golive,contacts,pitch,email,ai,agent,worker,ask,quality,app,db,demo,smoke}
+  supabase/migrations/        16 files, append-only history, each applied once
   scripts/{keys,smoke,golden,gmail-token}.ts
-  tests/                      54 test files; tests/db runs the real migrations on PGlite (a real Postgres)
-  .github/workflows/{ci,worker,golden}.yml
+  tests/                      75 test files; tests/db runs the real migrations on PGlite (a real Postgres)
+  .github/workflows/{ci,worker,golden,digest}.yml
   docs/{Sprinto-Outbound-Components-Map.pdf,Sprinto-Outbound-Scope.md,DEMO.md,REHEARSAL.md,map/}
 ```
 
@@ -672,7 +679,7 @@ There is no Supabase service-role key anywhere: the worker signs in as its own l
 | **Live smoke** | `npm run smoke` checks every service; `-- --pipeline domain` runs one real company through the real site and the real model, with nothing sent. This is what found the thinking-token budgets |
 | **Approvals, scorecard and run view** | The approval gate (approve, edit, reject, switched off, rate-limited retry), the edit measure, the kill-criteria rules at every boundary, and the run page's progress, estimate and filters, each with deliberate-break checks |
 | **Every control does something** | `tests/controls.test.ts` reads the syntax tree of every component and page and fails on a button with no type or handler, a link to nowhere, a form with no action, an empty handler, or a permanently disabled button; each rule was proven by planting a dead control in a real page |
-| **Totals** | 1,317 tests in 54 files, offline and repeatable |
+| **Totals** | 1,607 tests in 75 files, offline and repeatable |
 
 ---
 
@@ -733,7 +740,7 @@ The current script is `docs/DEMO.md`, and the practice run behind it is `docs/RE
 - *What if Hunter has no one?* Manual contact, or the review lane.
 - *What do we do when the quota ends?* It says so, and hand-picked contacts still work.
 - *Why 65?* It is a hypothesis. Replay and the golden set are how we tune it.
-- *What is not built?* Live sending, reply tracking (so conversion cannot be measured yet), follow-ups.
+- *What is not built?* Live sending, and automatic reply tracking: replies and meetings are recorded by hand on each lead, so conversion is only as complete as what a person records.
 
 ---
 
@@ -749,7 +756,9 @@ The current script is `docs/DEMO.md`, and the practice run behind it is `docs/RE
 - **A quote on the page is not proof the page is true** (section 7.2). Grounding stops the model inventing evidence; it cannot stop a company overstating itself.
 - **Gemini's behaviour is now measured, but it can change.** With the real key, JSON-schema output and function calling both work on the three models in the chain, and `nullable` together with `enum` is accepted. The models spend output tokens thinking, which is why each call's budget leaves room for it. A model update could change this; `npm run smoke` and the golden set exist to notice.
 - **The Gmail sign-in expires about every 7 days** while the Google app is in Testing mode, and cannot be published without a domain we own (section 8.4). Renew it before any demo.
-- **Conversion is not measured.** Nobody outside is mailed in test mode and replies are not tracked, so the pipeline-conversion aim in the class's plan cannot be checked. The Scorecard says so instead of guessing.
+- **Conversion is measured only from what a person records.** Nobody outside is mailed in test mode, and replies are not read from an inbox: a person records each outcome on the lead. Until real outreach happens the counts are zero, and the Scorecard and What is working say so instead of guessing.
+- **The public demo is a demonstration, not a measurement.** Its companies are invented, its model is a scripted stand-in, and its state sits in server memory, so it can reset. It proves how the product behaves, not how well it performs on the real market.
+- **The sender is a personal Gmail address** and the postal address in Settings is incomplete, so the Go-live page lists both as open. Real sending needs a sending domain with its own SPF, DKIM and DMARC records and a full postal address.
 - **Many companies score as a "maybe".** Headcount is often not on a site and the system does not guess it, so company size scores 0 and a person decides.
 - **Time saved is an estimate** from assumptions in Settings (manual minutes, review minutes), not a stopwatch, and is labelled as such everywhere it appears.
 - **The hook is a model's pick** among real quotes from the company's own pages. The strongest scoring signals are now offered first, but the model may still choose another; a person sees it before anything goes out.

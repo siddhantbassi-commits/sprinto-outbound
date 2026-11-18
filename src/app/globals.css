@@ -1001,3 +1001,30 @@ fieldset.crit legend { padding: 0; margin-bottom: 8px; font-size: 0.72rem; font-
 .bellpanel ul { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 0; }
 .bellpanel li { display: grid; gap: 2px; padding: 10px 0; border-top: 1px solid var(--line); }
 .bellpanel li:first-child { border-top: 0; }
+
+/* ---- The welcome animation of the public demo ------------------------------------------------------------------------ */
+.intro { position: fixed; inset: 0; z-index: 200; display: grid; place-items: center; background: var(--side-bg); color: #fff; overflow: hidden; transition: opacity 0.38s ease, transform 0.38s ease; }
+.intro.leaving { opacity: 0; transform: scale(1.03); pointer-events: none; }
+.intro-glow { position: absolute; width: 620px; height: 620px; border-radius: 50%; background: radial-gradient(circle, rgba(237, 251, 168, 0.28), transparent 65%); animation: intro-breathe 4s ease-in-out infinite; }
+.intro-body { position: relative; display: grid; justify-items: center; gap: 14px; padding: 24px; width: min(420px, 100%); text-align: center; }
+.intro-mark { position: relative; width: 84px; height: 84px; display: grid; place-items: center; border-radius: 26px; background: var(--lime); color: var(--brand); font-size: 2.6rem; font-weight: 800; animation: intro-pop 0.7s cubic-bezier(0.2, 0.9, 0.3, 1.25) both; }
+.intro-mark i { position: absolute; inset: -10px; border-radius: 32px; border: 2px solid rgba(237, 251, 168, 0.55); animation: intro-ring 2.2s ease-out infinite; }
+.intro-mark b { position: relative; }
+.intro h1 { margin: 6px 0 0; font-size: 2rem; letter-spacing: -0.02em; animation: rise 0.7s 0.25s both; }
+.intro-tag { margin: 0; opacity: 0.8; animation: rise 0.7s 0.4s both; }
+.intro-steps { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 8px; text-align: left; animation: rise 0.7s 0.55s both; }
+.intro-steps li { display: flex; align-items: center; gap: 10px; opacity: 0.45; font-size: 0.92rem; transition: opacity 0.3s; }
+.intro-steps li.now, .intro-steps li.done { opacity: 1; }
+.intro-steps .dot { width: 9px; height: 9px; border-radius: 50%; border: 2px solid rgba(255, 255, 255, 0.6); transition: background 0.3s, border-color 0.3s; }
+.intro-steps .now .dot { background: var(--lime); border-color: var(--lime); animation: ping 1.4s ease-out infinite; }
+.intro-steps .done .dot { background: var(--lime); border-color: var(--lime); }
+.intro-bar { width: 100%; height: 5px; border-radius: 99px; background: rgba(255, 255, 255, 0.16); overflow: hidden; margin-top: 4px; }
+.intro-bar i { display: block; height: 100%; border-radius: 99px; background: var(--lime); transition: width 0.6s ease; }
+.intro-skip { appearance: none; border: 0; background: none; color: rgba(255, 255, 255, 0.75); font: inherit; font-size: 0.86rem; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; margin-top: 4px; }
+.intro-skip:hover { color: #fff; }
+.intro-fail { display: grid; gap: 8px; justify-items: center; }
+.intro-fail p { margin: 0; }
+.intro-note { margin: 10px 0 0; font-size: 0.78rem; opacity: 0.6; }
+@keyframes intro-pop { from { opacity: 0; transform: scale(0.4) rotate(-12deg); } to { opacity: 1; transform: none; } }
+@keyframes intro-ring { from { transform: scale(0.85); opacity: 0.9; } to { transform: scale(1.35); opacity: 0; } }
+@keyframes intro-breathe { 50% { transform: scale(1.12); opacity: 0.8; } }

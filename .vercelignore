@@ -1,7 +1,7 @@
 # Keep the upload to source only. Vercel installs and builds on its own, and gets its settings from the project.
 node_modules
 .next
-.next-demo
+.next*
 .git
 .claude
 .vercel

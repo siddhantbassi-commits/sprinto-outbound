@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { readEnv, sameSecret } from "@/lib/env";
+import { readEnv, realCredentials, sameSecret } from "@/lib/env";
 
 const FULL = {
   NEXT_PUBLIC_SUPABASE_URL: "https://abc.supabase.co", NEXT_PUBLIC_SUPABASE_ANON_KEY: "anon", WORKER_EMAIL: "worker@x.co", WORKER_PASSWORD: "pw",
@@ -59,6 +59,44 @@ describe("demo mode can never sit beside real data", () => {
     const e = readEnv({ DEMO_MODE: "1", VERCEL_ENV: "production" });
     expect(e.mode).toBe("supabase");
     expect(e.problems[0]).toMatch(/production deployment, so it was ignored/);
+  });
+});
+
+describe("a public demo in production", () => {
+  const PROD = { DEMO_MODE: "1", DEMO_PUBLIC: "1", VERCEL_ENV: "production" };
+
+  it("runs only when it is asked for twice and holds nothing real", () => {
+    const e = readEnv(PROD);
+    expect(e.mode).toBe("demo");
+    expect(e.problems).toEqual([]);
+  });
+
+  it("is still refused in production without the public flag", () => {
+    expect(readEnv({ DEMO_MODE: "1", VERCEL_ENV: "production" }).mode).toBe("supabase");
+    expect(readEnv({ DEMO_PUBLIC: "1", VERCEL_ENV: "production" }).mode).toBe("supabase");
+  });
+
+  it("is refused when any real credential is present, and names which, never their values", () => {
+    for (const name of ["SUPABASE_ANON_KEY", "WORKER_PASSWORD", "CRON_SECRET", "GEMINI_API_KEY", "HUNTER_API_KEY", "GMAIL_REFRESH_TOKEN", "GMAIL_FROM", "OUTBOUND_TEST_TO", "SUPABASE_SERVICE_ROLE_KEY"]) {
+      const e = readEnv({ ...PROD, [name]: "super-secret-value" });
+      expect(e.mode, name).toBe("supabase");
+      expect(e.problems.join(" ")).toContain(name);
+      expect(e.problems.join(" ")).not.toContain("super-secret-value");
+    }
+  });
+
+  it("is refused beside a Supabase project, in production or not", () => {
+    expect(readEnv({ ...PROD, NEXT_PUBLIC_SUPABASE_URL: "https://x.supabase.co" }).mode).toBe("supabase");
+    expect(readEnv({ DEMO_MODE: "1", DEMO_PUBLIC: "1", SUPABASE_URL: "https://x.supabase.co" }).mode).toBe("supabase");
+  });
+
+  it("ignores blanks, so an empty variable does not count as a credential", () => {
+    expect(readEnv({ ...PROD, GEMINI_API_KEY: "", HUNTER_API_KEY: "  " }).mode).toBe("demo");
+  });
+
+  it("has no effect on a normal deployment that merely sets the public flag", () => {
+    expect(readEnv({ ...FULL, DEMO_PUBLIC: "1", VERCEL_ENV: "production" }).mode).toBe("supabase");
+    expect(realCredentials({})).toEqual([]);
   });
 });
 

@@ -29,7 +29,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   const demoBar = demo ? (
     <div className="demo-bar">
       <strong>Demo mode</strong>
-      <span>Sample companies and a scripted model. No real mail is sent and nothing leaves this computer.</span>
+      <span>Sample companies and a scripted model. No real mail is sent and nothing is sent anywhere.</span>
       <form action={setDemoRole}>
         <label htmlFor="demo-role" style={{ color: "inherit", display: "inline" }}>View as</label>
         <select id="demo-role" name="role" defaultValue={s.user.role}>
