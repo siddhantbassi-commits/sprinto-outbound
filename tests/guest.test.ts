@@ -36,6 +36,13 @@ describe("what a guest may start", () => {
     expect(guestMay(1, { ...FRESH, hunterToday: 5 }, CAPS)).toEqual({ ok: true });
   });
 
+  it("never lets a run dip below the credits kept for the owner, and says how many it can take", () => {
+    expect(guestMay(3, { ...FRESH, hunterRemaining: 18 }, CAPS)).toEqual({ ok: true });
+    const v = guestMay(4, { ...FRESH, hunterRemaining: 18 }, CAPS);
+    expect(msg(v)).toMatch(/only 3 credits to spare.*at most 3 companies/);
+    expect(msg(guestMay(2, { ...FRESH, hunterRemaining: 16 }, CAPS))).toMatch(/only 1 credit to spare.*at most 1 company\./);
+  });
+
   it("does not block on an unknown Hunter balance, because the other caps still hold", () => {
     expect(guestMay(1, { ...FRESH, hunterRemaining: null }, CAPS)).toEqual({ ok: true });
   });

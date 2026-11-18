@@ -6,6 +6,7 @@ import { HunterError } from "@/lib/contacts/hunter";
 import { defaultCriteria, normaliseCriteria, type Criteria } from "@/lib/discovery/criteria";
 import { discover, type Outcome } from "@/lib/discovery/discover";
 import { ICP_V1 } from "@/lib/icp/config";
+import { GUEST_MAX_PER_RUN } from "@/lib/app/guest";
 
 export interface SearchResult {
   ok: boolean;
@@ -44,8 +45,9 @@ export async function searchCompanies(_prev: SearchResult | null, formData: Form
       ok: true,
       criteria,
       outcome,
-      hunter: balance && balance.remaining !== undefined ? { remaining: balance.remaining, reserve: settings?.hunter_reserve ?? 3 } : null,
-      maxRun: settings?.max_run_size ?? null,
+      hunter: balance && balance.remaining !== undefined ? { remaining: balance.remaining, reserve: Math.max(settings?.hunter_reserve ?? 3, s.guest ? (s.env.guest?.keepCredits ?? 0) : 0) } : null,
+      // A guest run holds at most GUEST_MAX_PER_RUN companies, so the form preselects no more than that.
+      maxRun: s.guest ? Math.min(settings?.max_run_size ?? GUEST_MAX_PER_RUN, GUEST_MAX_PER_RUN) : (settings?.max_run_size ?? null),
       tookMs: Date.now() - started,
     };
   } catch (e) {

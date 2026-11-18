@@ -53,7 +53,7 @@ export function DiscoverForm({ initial, facts }: { initial: Criteria; facts: { a
     if (found?.ok && found.outcome && found !== seen) {
       setSeen(found);
       const want = found.criteria?.want ?? crit.want;
-      setPicked(found.outcome.found.filter((f) => f.standing === "new").slice(0, want).map((f) => f.domain));
+      setPicked(found.outcome.found.filter((f) => f.standing === "new").slice(0, Math.min(want, found.maxRun ?? want)).map((f) => f.domain));
     }
   }, [found, seen, crit.want]);
 
@@ -179,7 +179,7 @@ export function DiscoverForm({ initial, facts }: { initial: Criteria; facts: { a
           ) : (
             <>
               <div className="row">
-                <button type="button" className="linkbtn" onClick={() => setPicked(fresh.slice(0, MAX_WANT).map((f) => f.domain))}>Select the top {Math.min(fresh.length, MAX_WANT)}</button>
+                <button type="button" className="linkbtn" onClick={() => setPicked(fresh.slice(0, Math.min(MAX_WANT, maxRun ?? MAX_WANT)).map((f) => f.domain))}>Select the top {Math.min(fresh.length, MAX_WANT, maxRun ?? MAX_WANT)}</button>
                 <button type="button" className="linkbtn" onClick={() => setPicked([])}>Clear</button>
               </div>
               <ul className="leads" data-tour="leads">

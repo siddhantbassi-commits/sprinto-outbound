@@ -37,6 +37,11 @@ export function guestMay(requested: number, u: GuestUsage, c: GuestCaps): GuestV
   if (requested > GUEST_MAX_PER_RUN) return { ok: false, message: `A guest run can hold up to ${GUEST_MAX_PER_RUN} companies. You chose ${requested}. Remove some, then add the rest in a second run.` };
   if (u.companiesToday + requested > c.dailyCompanies) return { ok: false, message: `The guest allowance of researched companies for today is used up. It starts again tomorrow (UTC). ${ALL_OPEN}` };
   if (u.tokensToday >= c.dailyTokens) return { ok: false, message: `The guest allowance of model time for today is used up. It starts again tomorrow (UTC). ${ALL_OPEN}` };
+  // A company that qualifies costs one credit, so a run of n could spend n. Never let it dip into the credits kept for the owner.
+  if (u.hunterRemaining !== null) {
+    const spare = u.hunterRemaining - c.keepCredits;
+    if (spare >= 1 && requested > spare) return { ok: false, message: `Hunter has only ${spare} credit${spare === 1 ? "" : "s"} to spare for guests this month, so choose at most ${spare} compan${spare === 1 ? "y" : "ies"}. ${ALL_OPEN}` };
+  }
   return guestMayPay(u, c);
 }
 
