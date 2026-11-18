@@ -315,6 +315,21 @@ describe("hookOptions", () => {
     expect(h[0]!.fact).toBe("recentLaunchOrFunding");
   });
 
+  it("keeps preferred quotes in the order given, so the first one named leads", () => {
+    const g = facts({ enterprisePlan: [true, "high", [Q_ENT]], recentLaunchOrFunding: [true, "high", ["We announced our Series B in September."]], product: ["saas", "high", ["Acme builds tooling."]] });
+    const a = hookOptions(g, pages, ["We announced our Series B in September.", Q_ENT]).map((h) => h.fact);
+    expect(a.slice(0, 2)).toEqual(["recentLaunchOrFunding", "enterprisePlan"]);
+    const b = hookOptions(g, pages, [Q_ENT, "We announced our Series B in September."]).map((h) => h.fact);
+    expect(b.slice(0, 2)).toEqual(["enterprisePlan", "recentLaunchOrFunding"]);
+    expect(a[2]).toBe("product"); // anything not preferred comes after
+  });
+
+  it("uses the earliest position when a preferred quote is named twice", () => {
+    const g = facts({ enterprisePlan: [true, "high", [Q_ENT]], recentLaunchOrFunding: [true, "high", ["We announced our Series B in September."]] });
+    const h = hookOptions(g, pages, ["We announced our Series B in September.", Q_ENT, "We announced our Series B in September."]).map((x) => x.fact);
+    expect(h).toEqual(["recentLaunchOrFunding", "enterprisePlan"]);
+  });
+
   it("dedupes, caps the list and numbers the ids", () => {
     const many = facts({ enterprisePlan: [true, "high", [Q_ENT]], enterpriseLogos: [true, "high", [Q_ENT]] });
     expect(hookOptions(many, pages)).toHaveLength(1);

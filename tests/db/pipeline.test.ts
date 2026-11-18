@@ -265,6 +265,18 @@ describe("decisions that end a journey early, with the reason", () => {
     expect(r.hunter!.log.searches).toBe(0);
   });
 
+  it("offers the company's strongest scoring quote as the first hook the model sees", async () => {
+    const r = await rig();
+    await r.w.startRun(["acme.com"]);
+    await r.run();
+    const p = await one(r.w);
+    const [sc] = await r.w.db.admin<{ parts: { points: number; quotes: string[] }[] }>("select parts from public.scores where prospect_id = $1 and replay = false", [p.id]);
+    const top = [...sc!.parts].filter((x) => x.points > 0).sort((a, b) => b.points - a.points)[0]!.quotes[0]!;
+    const asked = r.ai.jsonRequests.find((q) => q.purpose === "draft")!;
+    const h1 = asked.user.slice(asked.user.indexOf("H1:"), asked.user.includes("H2:") ? asked.user.indexOf("H2:") : undefined);
+    expect(h1).toContain(top);
+  });
+
   it("parks a 'maybe' for a person to promote, then carries on when they do", async () => {
     const r = await rig();
     // A stricter ICP version (qualify at 99, maybe from 40) turns a strong company into a 'maybe'.

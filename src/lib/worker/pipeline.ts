@@ -261,7 +261,11 @@ export async function draftStep(p: ProspectRow, d: PipelineDeps): Promise<StepRe
   if (!chosen.first_name) return park("held", "The contact's name has been removed by the retention rule, so no email can be written.");
 
   const pages = await d.store.pages(p.id);
-  const preferred = pains.picks.flatMap((x) => x.evidence.flatMap((e) => e.quotes));
+  // The company's strongest scoring signals lead, because that is the most relevant thing on their site; then the evidence for
+  // the two pains. Each is still a verified quote from a stored page, and the model still picks.
+  const score = await d.store.latestScore(p.id);
+  const strongest = [...(score?.parts ?? [])].filter((x) => x.points > 0).sort((a, b) => b.points - a.points).slice(0, 2).flatMap((x) => x.quotes.slice(0, 1));
+  const preferred = [...strongest, ...pains.picks.flatMap((x) => x.evidence.flatMap((e) => e.quotes))];
   const hooks = hookOptions(facts, pages, preferred);
   const budgets = await budgetsFor(d.store, settings, p.run_id);
   const company = { name: companyName(p.domain, pages.find((x) => x.kind === "home")?.title ?? null), domain: p.domain };
