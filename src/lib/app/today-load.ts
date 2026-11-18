@@ -11,6 +11,7 @@ import { followUpsDue, nextToCall, pipelineCounts, type FollowUpItem, type Stage
 import { loadDigests, loadSearch, type DigestRow } from "@/lib/digest/run";
 import { factsFileProblems, type SprintoFactsFile } from "@/lib/pitch/sprinto-facts";
 import { withSettings } from "@/lib/worker/pipeline";
+import { seesContacts } from "@/lib/app/privacy";
 
 const DAY = 86_400_000;
 
@@ -39,7 +40,7 @@ export async function loadToday(s: AppSession, now = Date.now()): Promise<TodayD
     hunterBalance(),
     impactData(s.db),
     needsAttention(s.db),
-    listLeads(s.db, s.user.role !== "viewer"),
+    listLeads(s.db, seesContacts(s)),
     approvalQueue(s.db, canDecide),
     runStatuses(s.db, 5),
     loadSearch(s.db),

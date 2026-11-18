@@ -7,6 +7,7 @@ import type { HunterClient } from "@/lib/contacts/hunter";
 import { HunterBudget } from "@/lib/contacts/quota";
 import type { GmailSender } from "@/lib/email/gmail";
 import { buildInboxHeader, composeTestBody } from "@/lib/email/inbox-header";
+import { maskEmail, maskName } from "@/lib/email/mask";
 import { renderEmailHtml } from "@/lib/email/render";
 import { isExcludedDomain } from "@/lib/icp/blocklist";
 import { use } from "@/lib/icp/score";
@@ -37,6 +38,8 @@ export interface PipelineDeps {
   gmail: GmailSender | null;
   /** Where the Why page lives, for the link in the inbox header. */
   appUrl: string | null;
+  /** The public demo with live research: show a contact as an initial and a masked address, even in the test notice. */
+  maskContacts?: boolean;
   now: () => number;
   /** How long one step may run before it stops starting new work. */
   stepBudgetMs: number;
@@ -356,9 +359,9 @@ export async function sendStep(p: ProspectRow, d: PipelineDeps): Promise<StepRes
     const pages = await d.store.pages(p.id);
     const name = companyName(p.domain, pages.find((x) => x.kind === "home")?.title ?? null);
     const notice = {
-      contactName: [chosen?.first_name, chosen?.last_name].filter(Boolean).join(" ") || "(name removed)",
+      contactName: d.maskContacts ? maskName(chosen?.first_name) : [chosen?.first_name, chosen?.last_name].filter(Boolean).join(" ") || "(name removed)",
       contactTitle: chosen?.position ?? null,
-      contactEmail: chosen?.email ?? null,
+      contactEmail: d.maskContacts ? maskEmail(chosen?.email) : (chosen?.email ?? null),
       company: name,
       domain: p.domain,
       emailVerification: chosen?.verification ?? null,
@@ -367,7 +370,7 @@ export async function sendStep(p: ProspectRow, d: PipelineDeps): Promise<StepRes
       score: p.score ?? score?.score ?? 0,
       reasons: (score?.parts ?? []).filter((x) => x.points > 0).sort((a, b) => b.points - a.points).slice(0, 3).map((x) => ({ label: x.label, quote: x.quotes?.[0] ?? null })),
       chosenScore: chosen?.rank_score ?? 0,
-      runnerUp: runnerUp ? { name: [runnerUp.first_name, runnerUp.last_name].filter(Boolean).join(" ") || "(name removed)", title: runnerUp.position, score: runnerUp.rank_score ?? 0 } : null,
+      runnerUp: runnerUp ? { name: d.maskContacts ? maskName(runnerUp.first_name) : [runnerUp.first_name, runnerUp.last_name].filter(Boolean).join(" ") || "(name removed)", title: runnerUp.position, score: runnerUp.rank_score ?? 0 } : null,
       pains: email.picks.map((x) => ({ id: x.id, label: x.label })),
       hookSource: email.hook?.source ?? null,
       traceUrl: d.appUrl ? `${d.appUrl.replace(/\/+$/, "")}/prospects/${p.id}` : null,

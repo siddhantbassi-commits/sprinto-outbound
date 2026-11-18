@@ -11,7 +11,8 @@ import { createHunterClient, type HunterClient } from "@/lib/contacts/hunter";
 import type { DbPort } from "@/lib/db/port";
 import { pgPort } from "@/lib/db/pg-port";
 import { supabasePort, type SupabaseLike } from "@/lib/db/supabase";
-import { demoFetchDeps, demoHunter, getDemo } from "@/lib/demo/world";
+import { cappedAi, liveHunter, liveShared } from "@/lib/demo/live";
+import { demoFetchDeps, demoHunter, getDemo, type LiveParts } from "@/lib/demo/world";
 import { createGmailSender, type GmailSender } from "@/lib/email/gmail";
 import { readEnv, type AppEnv } from "@/lib/env";
 import { nodeTransport, systemResolver, type FetchDeps } from "@/lib/scrape/fetch";
@@ -98,13 +99,25 @@ const unconfiguredAi: AiClient = {
   },
 };
 
+/** In a public demo with live research: the real model (behind a daily token allowance) and the real internet, for new companies only. */
+export function liveParts(e: AppEnv): LiveParts | undefined {
+  if (e.mode !== "demo" || !e.live || !e.gemini) return undefined;
+  const shared = liveShared(e.live);
+  const ai = createGeminiClient({ apiKey: e.gemini.apiKey, models: modelChain({ GEMINI_MODEL: e.gemini.model }) });
+  return {
+    ai: cappedAi(ai, shared.cap),
+    fetchDeps: { resolve: systemResolver, transport: nodeTransport, userAgent: botUserAgent(e.contactEmail) },
+    ...(e.hunterKey ? { hunter: createHunterClient({ apiKey: e.hunterKey }), hunterCounter: shared.hunter } : {}),
+  };
+}
+
 /** The worker's tools, wired from the environment. A missing key means that step explains itself; it never guesses. */
 export async function workerDeps(): Promise<PipelineDeps> {
   const e = env();
   const store = new Store(await workerPort(e));
   if (e.mode === "demo") {
     const demo = await getDemo();
-    return demo.deps(store);
+    return demo.deps(store, liveParts(e));
   }
   return {
     store,
@@ -122,7 +135,11 @@ export async function workerDeps(): Promise<PipelineDeps> {
 export async function hunterBalance(): Promise<{ remaining: number; error?: undefined } | { error: string; remaining?: undefined } | null> {
   const e = env();
   try {
-    if (e.mode === "demo") return { remaining: (await demoHunter().account()).remaining };
+    if (e.mode === "demo") {
+      const live = liveParts(e);
+      const client = live?.hunter && live.hunterCounter ? liveHunter(demoHunter(), live.hunter, live.hunterCounter) : demoHunter();
+      return { remaining: (await client.account()).remaining };
+    }
     if (!e.hunterKey) return null;
     return { remaining: (await createHunterClient({ apiKey: e.hunterKey }).account()).remaining };
   } catch (err) {
@@ -167,7 +184,12 @@ export async function digestSetup(): Promise<{ ok: true; hunter: HunterClient; f
 /** What company discovery needs: Hunter (Discover is free) and polite page fetching. In demo mode both are the stand-ins. */
 export function discoverySetup(): { ok: true; hunter: HunterClient; fetchDeps: FetchDeps } | { ok: false; reason: string } {
   const e = env();
-  if (e.mode === "demo") return { ok: true, hunter: demoHunter(), fetchDeps: demoFetchDeps() };
+  if (e.mode === "demo") {
+    // With live research, finding companies is real too (Hunter's Discover is free) and their home pages are read for real.
+    const live = liveParts(e);
+    if (live?.hunter && live.hunterCounter) return { ok: true, hunter: liveHunter(demoHunter(), live.hunter, live.hunterCounter), fetchDeps: live.fetchDeps };
+    return { ok: true, hunter: demoHunter(), fetchDeps: demoFetchDeps() };
+  }
   if (!e.hunterKey) return { ok: false, reason: "Hunter is not connected, so there is nothing to search with. Add the Hunter key in the project's environment, or paste a list instead." };
   return { ok: true, hunter: createHunterClient({ apiKey: e.hunterKey }), fetchDeps: { resolve: systemResolver, transport: nodeTransport, userAgent: botUserAgent(e.contactEmail) } };
 }

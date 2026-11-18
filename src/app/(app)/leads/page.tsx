@@ -9,6 +9,7 @@ import { applyLeadQuery, describeQuery, isFiltered, parseLeadQuery, toSearch, ty
 import { listLeads } from "@/lib/app/leads";
 import { dayOf, followUpOf, followUpText, OUTCOME_BY_ID } from "@/lib/app/outcomes";
 import { getSession } from "@/lib/app/runtime";
+import { seesContacts } from "@/lib/app/privacy";
 
 export const metadata = { title: "Leads" };
 
@@ -18,7 +19,7 @@ export default async function Leads({ searchParams }: { searchParams: Promise<Re
   const query = parseLeadQuery(await searchParams);
   const s = (await getSession())!;
   const canRun = s.user.role === "operator" || s.user.role === "admin";
-  const all = await listLeads(s.db, s.user.role !== "viewer");
+  const all = await listLeads(s.db, seesContacts(s));
   const now = Date.now();
   const today = dayOf(now);
   const rows = applyLeadQuery(all, query, now);

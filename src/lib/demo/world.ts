@@ -10,8 +10,10 @@ import { botUserAgent } from "@/lib/scrape/site";
 import type { PipelineDeps } from "@/lib/worker/pipeline";
 import { Store } from "@/lib/worker/store";
 import { tick } from "@/lib/worker/tick";
+import type { AiClient } from "@/lib/ai/types";
 import { demoAi } from "./ai";
 import { DEMO_BY_DOMAIN, DEMO_COMPANIES, DEMO_DISCOVERABLE, UP_NEXT, type DemoCompany } from "./companies";
+import { liveHunter, routeAi, routeFetch, type DailyCounter } from "./live";
 
 /**
  * Demo mode: the whole product running on sample data, in memory, with no keys and no network. The database is the real
@@ -109,7 +111,16 @@ export interface DemoWorld {
   users: Record<Exclude<Role, "pending">, string> & { pending: string };
   outbox: OutboxMessage[];
   gmail: GmailSender;
-  deps(store: Store): PipelineDeps;
+  /** `live` adds the real model and the real internet for companies that are not samples; without it everything is scripted. */
+  deps(store: Store, live?: LiveParts): PipelineDeps;
+}
+
+export interface LiveParts {
+  ai: AiClient;
+  fetchDeps: FetchDeps;
+  /** The real Hunter, when its key is set. Without it new companies get no contact lookup. */
+  hunter?: HunterClient;
+  hunterCounter?: DailyCounter;
 }
 
 const KEY = Symbol.for("sprinto-outbound.demo");
@@ -150,7 +161,18 @@ async function build(): Promise<DemoWorld> {
     users,
     outbox,
     gmail,
-    deps: (store) => ({ store, ai: demoAi(), fetchDeps: demoFetchDeps(), hunter: demoHunter(), gmail, appUrl: null, now: Date.now, stepBudgetMs: 45_000 }),
+    deps: (store, live) => ({
+      store,
+      ai: live ? routeAi(demoAi(), live.ai) : demoAi(),
+      fetchDeps: live ? routeFetch(demoFetchDeps(), live.fetchDeps) : demoFetchDeps(),
+      // Gmail is always the stand-in, so a real company is never emailed. Hunter is real only for companies that are not samples.
+      hunter: live?.hunter && live.hunterCounter ? liveHunter(demoHunter(), live.hunter, live.hunterCounter) : demoHunter(),
+      gmail,
+      maskContacts: Boolean(live),
+      appUrl: null,
+      now: Date.now,
+      stepBudgetMs: 45_000,
+    }),
   };
 
   // One finished run to start from.

@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { csvRow } from "@/lib/app/list";
 import { getRun } from "@/lib/app/queries";
 import { getSession } from "@/lib/app/runtime";
+import { seesContacts } from "@/lib/app/privacy";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   if (!s || s.user.role === "pending") return new NextResponse("Not allowed", { status: 403 });
   const data = await getRun(s.db, id);
   if (!data) return new NextResponse("Not found", { status: 404 });
-  const full = s.user.role !== "viewer";
+  const full = seesContacts(s);
 
   const lines = [csvRow(["domain", "lane", "step", "verdict", "score", "reason", "contact", "contact_title", "contact_email"])];
   for (const p of data.prospects) {

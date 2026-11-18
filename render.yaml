@@ -1,0 +1,40 @@
+# Render Blueprint for the PUBLIC demo: one always-on server, so the sample workspace and every run live in one process's memory
+# and a visitor's next request reaches the same place. (A serverless host answers from many servers and loses a run in between.)
+#
+# It holds only the two keys the live demo needs, and you type those into Render yourself; they are never written here.
+# Everything else is switched off: no database, no Gmail, nothing is sent, and real people are shown as an initial and a masked address.
+services:
+  - type: web
+    name: sprinto-outbound-demo
+    runtime: node
+    plan: free
+    region: singapore
+    branch: main
+    autoDeploy: true
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/demo/warm
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NEXT_TELEMETRY_DISABLED
+        value: "1"
+      - key: DEMO_MODE
+        value: "1"
+      - key: DEMO_PUBLIC
+        value: "1"
+      - key: DEMO_LIVE
+        value: "1"
+      # Caps on what visitors can spend. Raise them only if you want to.
+      - key: DEMO_LIVE_DAILY_TOKENS
+        value: "400000"
+      - key: DEMO_LIVE_DAILY_HUNTER
+        value: "6"
+      # Entered in the Render dashboard when the Blueprint is applied (sync: false keeps them out of this file).
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: HUNTER_API_KEY
+        sync: false
+      # Named in the crawler's user agent so a site owner can reach you. Not a secret.
+      - key: OUTBOUND_CONTACT_EMAIL
+        sync: false

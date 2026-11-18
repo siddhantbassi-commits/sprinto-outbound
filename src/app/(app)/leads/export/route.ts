@@ -3,6 +3,7 @@ import { leadsToCsv, type ExportFormat } from "@/lib/app/lead-export";
 import { applyLeadQuery, parseLeadQuery } from "@/lib/app/lead-query";
 import { listLeads } from "@/lib/app/leads";
 import { getSession } from "@/lib/app/runtime";
+import { seesContacts } from "@/lib/app/privacy";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +15,7 @@ export async function GET(req: NextRequest) {
   const format: ExportFormat = params.format === "hubspot" ? "hubspot" : "csv";
   const q = parseLeadQuery(params);
   // An export is of rows, not of a board, so the board's own view falls back to the leads in a stage.
-  const leads = applyLeadQuery(await listLeads(s.db, s.user.role !== "viewer"), q, Date.now());
+  const leads = applyLeadQuery(await listLeads(s.db, seesContacts(s)), q, Date.now());
   const stamp = new Date().toISOString().slice(0, 10);
   return new NextResponse(leadsToCsv(leads, format), {
     headers: {

@@ -1,8 +1,10 @@
 "use server";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { MAX_INPUT_CHARS, parseList, type ParsedList } from "@/lib/app/list";
 import { activeSuppressions, currentSettings } from "@/lib/app/queries";
 import { getSession, hunterBalance } from "@/lib/app/runtime";
+import { liveShared } from "@/lib/demo/live";
 import { planHunterBudget, type BudgetPlan } from "@/lib/contacts/quota";
 import { parseHintInput } from "@/lib/icp/hints";
 import { PROMPT_VERSIONS } from "@/lib/versions";
@@ -75,6 +77,13 @@ export async function startRun(_prev: StartResult | null, formData: FormData): P
     domains = Array.isArray(parsed) ? parsed.filter((d): d is string => typeof d === "string").slice(0, 1000) : [];
   } catch {
     return { message: "The list could not be read. Check it again." };
+  }
+  // A public demo that reads real companies limits how many a visitor can start; the sample companies are free and never counted.
+  if (s.env.live) {
+    const h = await headers();
+    const visitor = (h.get("x-forwarded-for") ?? "").split(",")[0]?.trim() || h.get("x-real-ip") || "unknown";
+    const verdict = liveShared(s.env.live).gate.check(visitor, domains);
+    if (!verdict.ok) return { message: verdict.message };
   }
   const wanted = formData.get("source");
   const source = wanted === "csv" ? "csv" : wanted === "discover" ? "discover" : "paste";

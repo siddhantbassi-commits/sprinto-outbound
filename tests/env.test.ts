@@ -112,3 +112,55 @@ describe("sameSecret", () => {
     expect(sameSecret("abc\0", "abc")).toBe(false);
   });
 });
+
+describe("live research in a public demo", () => {
+  const LIVE = { DEMO_MODE: "1", DEMO_PUBLIC: "1", DEMO_LIVE: "1", NODE_ENV: "production", GEMINI_API_KEY: "g-secret", HUNTER_API_KEY: "h-secret" };
+
+  it("allows exactly the Gemini and Hunter keys, and turns the live features on with caps", () => {
+    const e = readEnv(LIVE);
+    expect(e.mode).toBe("demo");
+    expect(e.problems).toEqual([]);
+    expect(e.live).toEqual({ dailyTokens: 400_000, dailyHunter: 6 });
+    expect(e.gemini?.apiKey).toBe("g-secret");
+    expect(e.hunterKey).toBe("h-secret");
+  });
+
+  it("reads the caps from the environment, ignoring nonsense", () => {
+    expect(readEnv({ ...LIVE, DEMO_LIVE_DAILY_TOKENS: "900000", DEMO_LIVE_DAILY_HUNTER: "2" }).live).toEqual({ dailyTokens: 900_000, dailyHunter: 2 });
+    expect(readEnv({ ...LIVE, DEMO_LIVE_DAILY_TOKENS: "5", DEMO_LIVE_DAILY_HUNTER: "x" }).live).toEqual({ dailyTokens: 400_000, dailyHunter: 6 });
+  });
+
+  it("still refuses every other credential, naming it and never its value", () => {
+    for (const name of ["GMAIL_REFRESH_TOKEN", "GMAIL_FROM", "OUTBOUND_TEST_TO", "WORKER_PASSWORD", "CRON_SECRET", "SUPABASE_SERVICE_ROLE_KEY"]) {
+      const e = readEnv({ ...LIVE, [name]: "very-secret" });
+      expect(e.mode, name).toBe("supabase");
+      expect(e.problems.join(" ")).toContain(name);
+      expect(e.problems.join(" ")).not.toContain("very-secret");
+    }
+  });
+
+  it("is ignored without the public flag, outside a deployment, or without a model key", () => {
+    expect(readEnv({ ...LIVE, DEMO_PUBLIC: "" }).mode).toBe("supabase");
+    const local = readEnv({ DEMO_MODE: "1", DEMO_PUBLIC: "1", DEMO_LIVE: "1", GEMINI_API_KEY: "g-secret" });
+    expect(local.live).toBeNull();
+    expect(local.gemini).toBeNull();
+    expect(local.problems.join(" ")).toMatch(/only applies to a public demo deployment/);
+    const nokey = readEnv({ DEMO_MODE: "1", DEMO_PUBLIC: "1", DEMO_LIVE: "1", NODE_ENV: "production" });
+    expect(nokey.live).toBeNull();
+    expect(nokey.problems.join(" ")).toMatch(/no GEMINI_API_KEY/);
+  });
+
+  it("never uses a key in a scripted demo, and works without the Hunter key", () => {
+    const scripted = readEnv({ DEMO_MODE: "1", GEMINI_API_KEY: "g", HUNTER_API_KEY: "h" });
+    expect(scripted.gemini).toBeNull();
+    expect(scripted.hunterKey).toBeNull();
+    const noHunter = readEnv({ ...LIVE, HUNTER_API_KEY: "" });
+    expect(noHunter.live).not.toBeNull();
+    expect(noHunter.hunterKey).toBeNull();
+  });
+
+  it("treats a plain production start (NODE_ENV) as a deployment, so the public flag is required on any host", () => {
+    expect(readEnv({ DEMO_MODE: "1", NODE_ENV: "production" }).mode).toBe("supabase");
+    expect(readEnv({ DEMO_MODE: "1", DEMO_PUBLIC: "1", NODE_ENV: "production" }).mode).toBe("demo");
+  });
+});

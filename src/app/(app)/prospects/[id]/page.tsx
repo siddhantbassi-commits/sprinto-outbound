@@ -7,6 +7,7 @@ import { ACTIONS, dateTime, STEP_ORDER, STEPS, tokens } from "@/lib/app/format";
 import { getProspect } from "@/lib/app/queries";
 import { getSession } from "@/lib/app/runtime";
 import { story } from "@/lib/app/story";
+import { seesContacts } from "@/lib/app/privacy";
 
 export const metadata = { title: "Why" };
 
@@ -30,7 +31,7 @@ function Quote({ text, source }: { text: string; source?: string | null }) {
 export default async function Why({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const s = (await getSession())!;
-  const full = s.user.role !== "viewer";
+  const full = seesContacts(s);
   const d = await getProspect(s.db, id, full);
   if (!d) notFound();
   const { prospect: p, events, pages, facts, score, contacts, emails, decisions, reviews } = d;

@@ -6,6 +6,7 @@ import { currentSettings, needsAttention } from "@/lib/app/queries";
 import { approvalQueue } from "@/lib/app/review";
 import { getSession } from "@/lib/app/runtime";
 import { ReviewDesk } from "./desk";
+import { seesContacts } from "@/lib/app/privacy";
 
 export const metadata = { title: "Review" };
 
@@ -22,7 +23,7 @@ const WHAT: Record<string, string> = {
 export default async function Review() {
   const s = (await getSession())!;
   const canDecide = s.user.role === "operator" || s.user.role === "admin";
-  const [settings, queue, attention] = await Promise.all([currentSettings(s.db), approvalQueue(s.db, canDecide), needsAttention(s.db)]);
+  const [settings, queue, attention] = await Promise.all([currentSettings(s.db), approvalQueue(s.db, seesContacts(s)), needsAttention(s.db)]);
   const inQueue = new Set(queue.map((q) => q.prospectId));
   const others = attention.filter((a) => !inQueue.has(a.id));
   const groups = ORDER.map((lane) => ({ lane, rows: others.filter((i) => i.lane === lane) })).filter((g) => g.rows.length > 0);

@@ -44,7 +44,7 @@ const ROWS = [
     name: "Outbound app", sub: "(Next.js on Vercel · invite-only)", tint: "#eff8f1",
     boxes: {
       1: "A GitHub Actions worker every 15 minutes and a digest job on Mondays, or a live run open in the browser",
-      3: "Checks the signed-in role, loads the signed-off ICP, verified Sprinto facts and today's caps. The public demo has no sign-in and no real data",
+      3: "Checks the role, loads the signed-off ICP, verified facts and caps. The public demo has no sign-in and shows no real person",
       4: "Claims the next step of the next job; each step is saved before the next begins; failures retried with back-off",
     },
   },

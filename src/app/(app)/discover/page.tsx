@@ -17,6 +17,11 @@ export default async function Discover() {
   return (
     <div className="stack" style={{ gap: 22 }}>
       <PageHead eyebrow="Work" title="Discover companies" sub="Start from who Sprinto should talk to. Set what a good customer looks like, see the companies that match, and choose which to research. Each one is read, scored against your ICP, matched to a named person and written up for a discovery call." />
+      {s.env.live ? (
+        <Banner tone="info" title="Real companies, found and read live">
+          These are real companies from Hunter Discover, which is free. Researching one reads its actual website with the real model and looks up a contact with Hunter. This public demo caps both, keeps real people&apos;s names and addresses hidden (you see an initial and a masked address), and sends nothing: the email lands only in the pretend test inbox.
+        </Banner>
+      ) : null}
       {!settings?.test_to ? <Banner tone="warn" title="Test mode has no address yet">You can research companies, but nothing will be sent until an admin sets the test address in Settings.</Banner> : null}
       <DiscoverForm initial={defaultCriteria(ICP_V1)} facts={{ approval: settings?.require_approval !== false, testTo: settings?.test_to ?? null }} />
     </div>

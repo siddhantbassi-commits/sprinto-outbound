@@ -12,6 +12,11 @@ export interface AppEnv {
   worker: { email: string; password: string } | null;
   cronSecret: string | null;
   gemini: { apiKey: string; model: string | undefined } | null;
+  /**
+   * A public demo that also finds and reads NEW companies for real (the sample companies stay scripted). Only the Gemini and Hunter
+   * keys may be present; Gmail and the database stay off, so nothing is ever sent and no real address is ever shown. Null means a fully scripted demo, or not a demo.
+   */
+  live: { dailyTokens: number; dailyHunter: number } | null;
   hunterKey: string | null;
   gmail: { clientId: string; clientSecret: string; refreshToken: string; from: string; fromName: string | undefined } | null;
   /** The only address test mode may mail. */
@@ -40,15 +45,28 @@ export function readEnv(raw: Raw = process.env): AppEnv {
   const problems: string[] = [];
   const url = some(raw.NEXT_PUBLIC_SUPABASE_URL) ?? some(raw.SUPABASE_URL);
   const anonKey = some(raw.NEXT_PUBLIC_SUPABASE_ANON_KEY) ?? some(raw.SUPABASE_ANON_KEY);
-  const production = raw.VERCEL_ENV === "production";
+  // Vercel marks its production builds, and any other host that runs `next start` sets NODE_ENV; either way this is a deployment.
+  const production = raw.VERCEL_ENV === "production" || raw.NODE_ENV === "production";
 
   let mode: AppEnv["mode"] = "supabase";
+  let live: AppEnv["live"] = null;
   if (raw.DEMO_MODE === "1") {
-    const real = realCredentials(raw);
+    // Live research may hold two real credentials, the Gemini and Hunter keys, and only when it was asked for. Everything else is still refused.
+    const wantsLive = raw.DEMO_LIVE === "1";
+    const real = realCredentials(raw).filter((n) => !(wantsLive && (n === "GEMINI_API_KEY" || n === "HUNTER_API_KEY")));
     if (url) problems.push("DEMO_MODE is set but a Supabase project is configured, so demo mode was ignored.");
     else if (production && raw.DEMO_PUBLIC !== "1") problems.push("DEMO_MODE is set in a production deployment, so it was ignored.");
     else if (production && real.length > 0) problems.push(`DEMO_MODE is set in a production deployment that also holds real credentials (${real.join(", ")}), so it was ignored. A public demo must hold none.`);
     else mode = "demo";
+    if (mode === "demo" && wantsLive) {
+      if (!some(raw.GEMINI_API_KEY)) problems.push("DEMO_LIVE is set but there is no GEMINI_API_KEY, so new companies cannot be read.");
+      else if (!production || raw.DEMO_PUBLIC !== "1") problems.push("DEMO_LIVE only applies to a public demo deployment (DEMO_PUBLIC=1), so it was ignored.");
+      else {
+        const asked = Number(raw.DEMO_LIVE_DAILY_TOKENS);
+        const hunterAsked = Number(raw.DEMO_LIVE_DAILY_HUNTER);
+        live = { dailyTokens: Number.isFinite(asked) && asked >= 50_000 ? Math.floor(asked) : 400_000, dailyHunter: Number.isFinite(hunterAsked) && hunterAsked >= 0 ? Math.floor(hunterAsked) : 6 };
+      }
+    }
   }
 
   const supabase = url && anonKey ? { url, anonKey } : null;
@@ -63,10 +81,11 @@ export function readEnv(raw: Raw = process.env): AppEnv {
   if (mode === "supabase" && (!cronSecret || cronSecret.length < 24)) problems.push("CRON_SECRET is missing or shorter than 24 characters, so the scheduled worker cannot call in.");
 
   const geminiKey = some(raw.GEMINI_API_KEY);
-  const gemini = geminiKey ? { apiKey: geminiKey, model: some(raw.GEMINI_MODEL) ?? undefined } : null;
+  // A scripted demo never uses a key, even if one is lying around.
+  const gemini = geminiKey && (mode !== "demo" || live) ? { apiKey: geminiKey, model: some(raw.GEMINI_MODEL) ?? undefined } : null;
   if (mode === "supabase" && !gemini) problems.push("GEMINI_API_KEY is not set, so companies cannot be read.");
 
-  const hunterKey = some(raw.HUNTER_API_KEY);
+  const hunterKey = mode === "demo" && !live ? null : some(raw.HUNTER_API_KEY);
   if (mode === "supabase" && !hunterKey) problems.push("HUNTER_API_KEY is not set. Only hand-picked contacts will work.");
 
   const g = { clientId: some(raw.GMAIL_CLIENT_ID), clientSecret: some(raw.GMAIL_CLIENT_SECRET), refreshToken: some(raw.GMAIL_REFRESH_TOKEN), from: some(raw.GMAIL_FROM) };
@@ -77,7 +96,7 @@ export function readEnv(raw: Raw = process.env): AppEnv {
   if (mode === "supabase" && !testTo) problems.push("OUTBOUND_TEST_TO is not set, so test mode has no address.");
 
   const appUrl = some(raw.APP_URL) ?? (raw.VERCEL_URL ? `https://${clean(raw.VERCEL_URL)}` : null);
-  return { mode, supabase, worker, cronSecret, gemini, hunterKey, gmail, testTo, appUrl, contactEmail: some(raw.OUTBOUND_CONTACT_EMAIL) ?? testTo ?? "outbound@example.com", problems };
+  return { mode, supabase, worker, cronSecret, gemini, live, hunterKey, gmail, testTo, appUrl, contactEmail: some(raw.OUTBOUND_CONTACT_EMAIL) ?? testTo ?? "outbound@example.com", problems };
 }
 
 /** Compares two secrets without leaking, through timing, how much of the first one matched. */

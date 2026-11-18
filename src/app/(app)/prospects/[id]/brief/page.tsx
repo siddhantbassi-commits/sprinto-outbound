@@ -10,6 +10,7 @@ import { dayOf, followUpOf, followUpText, OUTCOME_BY_ID, standings, type Outcome
 import { dateTime } from "@/lib/app/format";
 import { OutcomeForm } from "../../../leads/outcome-form";
 import { VerifyButton } from "./verify-button";
+import { seesContacts } from "@/lib/app/privacy";
 
 export const metadata = { title: "Discovery brief" };
 
@@ -30,7 +31,7 @@ function Evidence({ c }: { c: Cited }) {
 export default async function Brief({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const s = (await getSession())!;
-  const view = await briefFor(s.db, id, s.user.role !== "viewer");
+  const view = await briefFor(s.db, id, seesContacts(s));
   if (!view) notFound();
   const b = view.brief;
   const canRun = s.user.role === "operator" || s.user.role === "admin";
