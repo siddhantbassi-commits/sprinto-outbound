@@ -188,7 +188,7 @@ describe("computeImpact: quality and cost", () => {
     expect(computeImpact(world([SENT("a")])).replies).toEqual({ replies: 0, bounces: 0, recorded: false });
     const decisions = [{ prospect_id: "a", kind: "mark_reply", created_at: day(1) }, { prospect_id: "a", kind: "mark_bounce", created_at: day(1) }];
     expect(computeImpact(world([SENT("a")], { decisions })).replies).toEqual({ replies: 1, bounces: 1, recorded: true });
-    expect(computeImpact(world([SENT("a")])).notes.join(" ")).toMatch(/Reply rate is not measured/);
+    expect(computeImpact(world([SENT("a")])).notes.join(" ")).toMatch(/No outcomes have been recorded yet/);
   });
 });
 

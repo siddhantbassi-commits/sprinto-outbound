@@ -27,11 +27,12 @@ export async function runStatuses(db: DbPort, limit = 5): Promise<RunStatus[]> {
   return Promise.all(
     runs.map(async (r) => {
       const id = String(r.id);
-      const ps = (await db.select("prospects", { run_id: id }, { columns: "step,lane,verdict" })) as unknown as { step: string; lane: string; verdict: string | null }[];
+      const ps = (await db.select("prospects", { run_id: id }, { columns: "step,lane,verdict,lease_until" })) as unknown as { step: string; lane: string; verdict: string | null; lease_until: string | null }[];
       const [last] = await db.select("step_events", { run_id: id }, { order: "id", ascending: false, limit: 1, columns: "created_at" });
       const lastPause = decisions.find((d) => String(d.run_id) === id && (d.kind === "pause_run" || d.kind === "resume_run"));
       const paused = lastPause?.kind === "pause_run";
-      const est = estimateRun(ps, seconds);
+      const now = Date.now();
+      const est = estimateRun(ps.map((p) => ({ step: p.step, lane: p.lane, running: !!p.lease_until && new Date(p.lease_until).getTime() > now })), seconds);
       return {
         ...est,
         id,

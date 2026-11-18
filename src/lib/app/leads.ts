@@ -1,6 +1,7 @@
 import { selectAll } from "@/lib/db/all";
 import type { DbPort, Row } from "@/lib/db/port";
 import { companyName } from "@/lib/pitch/company";
+import { standings, type Standing } from "./outcomes";
 
 export interface Lead {
   id: string;
@@ -15,6 +16,8 @@ export interface Lead {
   contact: { name: string; title: string | null } | null;
   pains: string[];
   emailStatus: string | null;
+  /** Where it stands after outreach, from the newest recorded outcome. Null when nothing has been recorded. */
+  outcome: Standing | null;
 }
 
 const arr = <T,>(v: unknown): T[] => (Array.isArray(v) ? (v as T[]) : []);
@@ -40,6 +43,7 @@ export async function listLeads(db: DbPort, canSeeContacts: boolean, limit = 300
     ? await selectAll(db, "contacts", { chosen: true }, { order: "created_at", ascending: false, columns: "prospect_id,first_name,last_name,position,email" }, 3000)
     : await selectAll(db, "contacts_masked", { chosen: true }, { order: "created_at", ascending: false, columns: "prospect_id,first_initial,position" }, 3000);
   const pains = await selectAll(db, "step_events", { step: "pains", status: "ok" }, { order: "id", ascending: false, columns: "prospect_id,output" }, 3000);
+  const outcomes = standings((await selectAll(db, "lead_outcomes", {}, { order: "seq", columns: "prospect_id,seq,status,note,follow_up_on,created_at" }, 5000)) as never);
   const emails = await selectAll(db, "emails", {}, { order: "created_at", ascending: false, columns: "prospect_id,status" }, 3000);
 
   const first = (rows: Row[]) => {
@@ -71,11 +75,12 @@ export async function listLeads(db: DbPort, canSeeContacts: boolean, limit = 300
       contact: c ? { name: canSeeContacts ? [c.first_name, c.last_name].filter(Boolean).join(" ") || "A shared mailbox" : String(c.first_initial ?? "A contact"), title: (c.position as string | null) || null } : null,
       pains: picks.map((x) => x.label),
       emailStatus: emailBy.has(id) ? String(emailBy.get(id)!.status) : null,
+      outcome: outcomes.get(id) ?? null,
     };
   });
 }
 
 export type LeadFilter = "ready" | "all";
 
-/** Leads worth calling: scored a strong or possible fit. Everything else stays under "All researched". */
-export const isCallable = (l: Lead) => l.verdict === "qualified" || l.verdict === "maybe";
+/** Leads worth calling: scored a strong or possible fit, and not already a clear no. Everything else stays under "All researched". */
+export const isCallable = (l: Lead) => (l.verdict === "qualified" || l.verdict === "maybe") && l.outcome?.status !== "not_interested";

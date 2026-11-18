@@ -1,5 +1,6 @@
-import { CountUp } from "./count-up";
+"use client";
 import { Icon } from "./icons";
+import { useCreep } from "./use-creep";
 import { DOING, roughTime, WORK_STEPS, type RunEstimate } from "@/lib/app/progress";
 
 const SHORT = ["Read", "Judge", "Find person", "Choose pains", "Write", "Hand over"];
@@ -11,11 +12,12 @@ const SHORT = ["Read", "Judge", "Find person", "Choose pains", "Write", "Hand ov
  * picks it up if it is closed.
  */
 export function ProgressPanel({ est, paused }: { est: RunEstimate; paused: boolean }) {
+  const shown = Math.round(useCreep(est.percent, est.creepTo, est.creepSeconds, !paused && !est.finished));
   if (est.finished) return null;
   return (
     <div className="pp" aria-label="Research progress">
       <div className="pp-top">
-        <div className="pp-pct"><CountUp to={est.percent} ms={700} /><span>%</span></div>
+        <div className="pp-pct" aria-hidden>{shown}<span>%</span></div>
         <div className="pp-now">
           <b>{paused ? "Paused" : est.doing ?? "Working"}</b>
           <span className="small muted">
@@ -23,7 +25,7 @@ export function ProgressPanel({ est, paused }: { est: RunEstimate; paused: boole
           </span>
         </div>
       </div>
-      <div className={`bar-track t-brand pp-bar${paused ? "" : " live"}`} role="progressbar" aria-valuenow={est.percent} aria-valuemin={0} aria-valuemax={100} aria-label="Research progress"><i style={{ width: `${Math.max(3, est.percent)}%` }} /></div>
+      <div className={`bar-track t-brand pp-bar${paused ? "" : " live"}`} role="progressbar" aria-valuenow={shown} aria-valuemin={0} aria-valuemax={100} aria-label="Research progress"><i style={{ width: `${Math.max(3, shown)}%` }} /></div>
       <ol className="pp-steps" aria-label="Stages">
         {WORK_STEPS.map((s, i) => (
           <li key={s} className={est.stageIndex === null ? "" : i < est.stageIndex ? "done" : i === est.stageIndex ? "now" : ""} title={DOING[s]}>

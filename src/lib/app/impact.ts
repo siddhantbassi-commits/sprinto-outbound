@@ -9,6 +9,8 @@
  *  - Replies and bounces are counted only if someone recorded them; in test mode nobody was mailed.
  */
 
+import { summarise, type OutcomeRow, type Summary } from "@/lib/app/outcomes";
+
 export interface Assumptions {
   /** Minutes a person would take to research one company and write to it by hand. */
   manualMinutes: number;
@@ -71,6 +73,8 @@ export interface DecisionRow {
 }
 
 export interface ImpactInput {
+  /** What people recorded after reaching out. Optional, so an older caller still works. */
+  outcomes?: OutcomeRow[];
   range: Range;
   assumptions: Assumptions;
   prospects: ProspectRow[];
@@ -134,6 +138,8 @@ export interface Impact {
     decisions: number;
   };
   replies: { replies: number; bounces: number; recorded: boolean };
+  /** After the outreach: what came of the companies a person reached, from the outcomes they recorded. */
+  results: Summary & { replyRate: Rate; meetingRate: Rate };
   notes: string[];
 }
 
@@ -230,7 +236,10 @@ export function computeImpact(i: ImpactInput): Impact {
   if (researched < 5) notes.push(`Only ${researched} ${researched === 1 ? "company has" : "companies have"} been researched in this period, so the rates below can swing a lot on a single company.`);
   const replies = i.decisions.filter((d) => d.prospect_id !== null && ids.has(d.prospect_id) && d.kind === "mark_reply").length;
   const bounces = i.decisions.filter((d) => d.prospect_id !== null && ids.has(d.prospect_id) && d.kind === "mark_bounce").length;
-  notes.push("Reply rate is not measured: in test mode every email goes to your own inbox, so there is nobody to reply.");
+  const summary = summarise(mine(i.outcomes ?? []));
+  notes.push(summary.recorded
+    ? "Outcomes are what a person recorded after reaching out, so they are only as complete as people keep them. In test mode the emails go only to your own inbox, so these come from calls and messages made by hand."
+    : "No outcomes have been recorded yet. In test mode every email goes to your own inbox, so there is nobody to reply; record what happens after a call on the Leads page and it appears here.");
 
   return {
     range: i.range,
@@ -254,6 +263,7 @@ export function computeImpact(i: ImpactInput): Impact {
     usage: { tokens, tokensPerCompany: researched > 0 ? Math.round(tokens / researched) : null, hunterCredits: round1(credits), creditsPerContact: contactSet.size > 0 ? round1(credits / contactSet.size) : null, sends: Math.round(sum("gmail_send")) },
     time: { lines, baselineMinutes: round1(baseline), humanMinutes: round1(human), savedMinutes: round1(baseline - human), machineMinutes: Math.round((machineMs / 60_000) * 100) / 100, decisions: decisions.length },
     replies: { replies, bounces, recorded: replies + bounces > 0 },
+    results: { ...summary, replyRate: rate(summary.replied, summary.reached), meetingRate: rate(summary.meetings, summary.reached) },
     notes,
   };
 }
@@ -287,6 +297,9 @@ export function renderReport(x: Impact, when: { from: string; to: string }): str
     `  Model tokens: ${x.usage.tokens.toLocaleString("en-GB")}${x.usage.tokensPerCompany === null ? "" : ` (${x.usage.tokensPerCompany.toLocaleString("en-GB")} per company researched)`}`,
     `  Hunter credits: ${x.usage.hunterCredits}${x.usage.creditsPerContact === null ? "" : ` (${x.usage.creditsPerContact} per person found)`}`,
   ];
+  if (x.results.recorded) {
+    lines.push("", "After the outreach", `  Companies reached: ${x.results.reached}`, `  Replied: ${x.results.replied} (${pct(x.results.replyRate)} of those reached)`, `  Meetings booked: ${x.results.meetings} (${pct(x.results.meetingRate)} of those reached)`, `  Not interested: ${x.results.notInterested}, bounced: ${x.results.bounced}, wrong person: ${x.results.wrongPerson}`);
+  }
   if (x.dropoffs.length) {
     lines.push("", "Where the rest went");
     for (const d of x.dropoffs) lines.push(`  ${d.lane.replace("_", " ")}: ${d.count}${d.reasons[0] ? `, mostly “${d.reasons[0].text}”` : ""}`);

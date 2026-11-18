@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Icon } from "./icons";
 import { toast } from "./toast";
+import { useCreep } from "./use-creep";
 import { roughTime } from "@/lib/app/progress";
 import type { RunStatus } from "@/lib/app/status";
 
@@ -33,6 +34,27 @@ const write = (key: string, ids: string[]) => {
     /* private window or blocked storage: the card still works for this visit */
   }
 };
+
+/** The round gauge on the card's button. */
+function MainRing({ r }: { r: RunStatus }) {
+  const shown = Math.round(useCreep(r.percent, r.creepTo, r.creepSeconds, !r.paused && !r.finished));
+  return <span className="rc-ring" style={{ ["--p" as string]: shown }} aria-hidden><b>{shown}</b></span>;
+}
+
+/** One run's line in the card: its own bar, moving between records. */
+function RunLine({ r }: { r: RunStatus }) {
+  const shown = Math.round(useCreep(r.percent, r.creepTo, r.creepSeconds, !r.paused && !r.finished));
+  return (
+    <div className="rc-run">
+      <div className="row between">
+        <Link href={`/runs/${r.id}`}><b>{r.title}</b></Link>
+        <span className="small muted">{shown}%</span>
+      </div>
+      <div className="bar-track t-brand live" role="progressbar" aria-valuenow={shown} aria-valuemin={0} aria-valuemax={100} aria-label={`${r.title} progress`}><i style={{ width: `${Math.max(3, shown)}%` }} /></div>
+      <p className="small muted" style={{ margin: 0 }}>{r.doing ?? "Working"}{r.remainingSeconds !== null ? `, ${roughTime(r.remainingSeconds)} to go` : ""}.</p>
+    </div>
+  );
+}
 
 /**
  * Lives in the app shell, so it keeps going whichever page is open. While a run has work left it shows a small progress card
@@ -150,21 +172,12 @@ export function RunWatcher() {
   return (
     <aside className={`runcard${open ? "" : " min"}`} aria-label="Research progress">
       <button type="button" className="runcard-toggle" onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-label={open ? "Collapse progress" : "Show progress"}>
-        {main ? <span className="rc-ring" style={{ ["--p" as string]: main.percent }} aria-hidden><b>{main.percent}</b></span> : <span className="rc-ring done" aria-hidden><Icon name="check" /></span>}
-        {!open ? <span className="rc-min">{main ? `${main.percent}%` : "Ready"}</span> : null}
+        {main ? <MainRing r={main} /> : <span className="rc-ring done" aria-hidden><Icon name="check" /></span>}
+        {!open ? <span className="rc-min">{main ? "Working" : "Ready"}</span> : null}
       </button>
       {open ? (
         <div className="rc-body">
-          {running.map((r) => (
-            <div key={r.id} className="rc-run">
-              <div className="row between">
-                <Link href={`/runs/${r.id}`}><b>{r.title}</b></Link>
-                <span className="small muted">{r.percent}%</span>
-              </div>
-              <div className="bar-track t-brand live" role="progressbar" aria-valuenow={r.percent} aria-valuemin={0} aria-valuemax={100} aria-label={`${r.title} progress`}><i style={{ width: `${Math.max(3, r.percent)}%` }} /></div>
-              <p className="small muted" style={{ margin: 0 }}>{r.doing ?? "Working"}{r.remainingSeconds !== null ? `, ${roughTime(r.remainingSeconds)} to go` : ""}.</p>
-            </div>
-          ))}
+          {running.map((r) => <RunLine key={r.id} r={r} />)}
           {running.length ? (
             <p className="small rc-note">You are free to open other pages or tabs. Research carries on while this window stays open, and we will tell you here when it is ready.</p>
           ) : null}

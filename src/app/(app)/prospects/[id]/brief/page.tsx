@@ -2,10 +2,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Icon } from "@/components/icons";
 import { ReportActions } from "@/components/report-actions";
-import { Banner, LanePill, PageHead, Ring, SectionTitle } from "@/components/ui";
+import { Banner, LanePill, PageHead, Pill, Ring, SectionTitle } from "@/components/ui";
 import { briefFor } from "@/lib/app/brief";
 import { getSession } from "@/lib/app/runtime";
 import { briefToText, type Cited } from "@/lib/brief/build";
+import { dayOf, followUpOf, followUpText, OUTCOME_BY_ID, standings, type OutcomeRow } from "@/lib/app/outcomes";
+import { dateTime } from "@/lib/app/format";
+import { OutcomeForm } from "../../../leads/outcome-form";
 
 export const metadata = { title: "Discovery brief" };
 
@@ -29,6 +32,10 @@ export default async function Brief({ params }: { params: Promise<{ id: string }
   const view = await briefFor(s.db, id, s.user.role !== "viewer");
   if (!view) notFound();
   const b = view.brief;
+  const canRun = s.user.role === "operator" || s.user.role === "admin";
+  const history = (await s.db.select("lead_outcomes", { prospect_id: id }, { order: "seq", ascending: false })) as unknown as OutcomeRow[];
+  const now = standings(history).get(id) ?? null;
+  const follow = followUpOf(now, dayOf(Date.now()));
   const tone = b.fit.verdict === "qualified" ? "good" : b.fit.verdict === "not_fit" ? "bad" : b.fit.verdict === "maybe" ? "warn" : "brand";
 
   return (
@@ -101,6 +108,27 @@ export default async function Brief({ params }: { params: Promise<{ id: string }
         </div>
 
         <aside className="stack" style={{ gap: 22 }}>
+          <section className="card stack" aria-label="What happened">
+            <SectionTitle icon="flag" title="What happened" sub="Record each step after the call, so the numbers on Impact are real." />
+            {now ? (
+              <div className="row" style={{ gap: 8 }}>
+                <Pill tone={OUTCOME_BY_ID[now.status].tone}>{OUTCOME_BY_ID[now.status].label}</Pill>
+                {follow ? <Pill tone={follow.state === "overdue" ? "bad" : follow.state === "today" ? "warn" : "info"}>{followUpText(follow)}</Pill> : null}
+              </div>
+            ) : <p className="small muted" style={{ margin: 0 }}>Nothing recorded yet.</p>}
+            {history.length ? (
+              <ol className="timeline">
+                {history.map((h) => (
+                  <li key={String(h.seq)}>
+                    <div><strong>{OUTCOME_BY_ID[h.status as keyof typeof OUTCOME_BY_ID]?.label ?? h.status}</strong>{h.follow_up_on ? <span className="muted"> · follow up {standings([h]).get(id)?.followUpOn}</span> : null}</div>
+                    <div className="meta">{dateTime(h.created_at as string)}</div>
+                    {h.note ? <div className="small">{h.note}</div> : null}
+                  </li>
+                ))}
+              </ol>
+            ) : null}
+            {canRun ? <OutcomeForm prospectId={id} current={now?.status ?? null} /> : null}
+          </section>
           <section className="card stack" aria-label="Who to speak to">
             <SectionTitle icon="people" title="Who to speak to" />
             {b.contact ? (

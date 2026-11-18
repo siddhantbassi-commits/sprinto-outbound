@@ -135,6 +135,20 @@ export default async function Impact({ searchParams }: { searchParams: Promise<{
         </div>
       </section>
 
+      <section className="stack">
+        <h2>After the outreach</h2>
+        {x.results.recorded ? (
+          <div className="grid">
+            <div className="card stat"><b>{x.results.reached}</b><span>Companies reached</span><span className="small">With an outcome recorded on the Leads page.</span></div>
+            <Stat title="Replied" rate={x.results.replyRate} help="Of the companies reached." />
+            <Stat title="Meetings booked" rate={x.results.meetingRate} help="Of the companies reached." />
+            <div className="card stat"><b>{x.results.notInterested}</b><span>Not interested</span><span className="small">{x.results.bounced} bounced, {x.results.wrongPerson} wrong person.</span></div>
+          </div>
+        ) : (
+          <div className="card"><p className="small" style={{ margin: 0 }}>Nothing recorded yet. After you reach a lead, record what happened on the <a href="/leads">Leads</a> page. This is the number that shows whether the ICP and the emails are working.</p></div>
+        )}
+      </section>
+
       <section className="card stack">
         <div><h2>What it cost</h2><p className="sub">From the usage ledger. Prices are not applied: we have not looked up Gemini&rsquo;s current rates, so these are quantities, not money.</p></div>
         <dl className="kv">

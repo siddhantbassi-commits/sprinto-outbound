@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_SECONDS, DOING, estimateRun, MIN_SAMPLES, roughTime, stepSeconds, WORK_STEPS } from "@/lib/app/progress";
+import { creepValue, DEFAULT_SECONDS, DOING, estimateRun, STEPS_PER_PASS, MIN_SAMPLES, roughTime, stepSeconds, WORK_STEPS } from "@/lib/app/progress";
 
 const at = (step: string, lane = "active") => ({ step, lane });
 const PER = WORK_STEPS.reduce((n, s) => n + DEFAULT_SECONDS[s], 0);
@@ -73,6 +73,41 @@ describe("stepSeconds", () => {
     const s = stepSeconds([...many("draft", 1000, 5).map((e) => ({ ...e, status: "failed" })), ev("draft", 0), { step: "draft", status: "ok", latency_ms: null }, ...many("nonsense", 1000), ...many("scrape", 600_000, 5)]);
     expect(s.pains_chosen).toBe(DEFAULT_SECONDS.pains_chosen);
     expect(s.queued).toBe(DEFAULT_SECONDS.queued * 4);
+  });
+});
+
+describe("creep: the bar moves while a pass is under way", () => {
+  it("aims at where the work will be after one worker pass (up to three steps), for the company being worked on", () => {
+    const e = estimateRun([at("queued")]);
+    const pass = WORK_STEPS.slice(0, STEPS_PER_PASS).reduce((n, s) => n + DEFAULT_SECONDS[s], 0);
+    expect(e.creepSeconds).toBe(pass);
+    expect(e.creepTo).toBe(Math.floor((pass / PER) * 100));
+    expect(e.creepTo).toBeGreaterThan(e.percent + 20);
+  });
+
+  it("follows the company a worker holds, not the first in the list", () => {
+    const e = estimateRun([{ step: "queued", lane: "active" }, { step: "pains_chosen", lane: "active", running: true }]);
+    expect(e.creepSeconds).toBe(DEFAULT_SECONDS.pains_chosen + DEFAULT_SECONDS.drafted);
+  });
+
+  it("falls back to the furthest-behind company when no worker holds one", () => {
+    const e = estimateRun([{ step: "contact_found", lane: "active" }, { step: "scraped", lane: "active" }]);
+    expect(e.creepSeconds).toBe(WORK_STEPS.slice(1, 1 + STEPS_PER_PASS).reduce((n, s) => n + DEFAULT_SECONDS[s], 0));
+  });
+
+  it("has nothing to creep toward when the run is over, and never aims past 99", () => {
+    expect(estimateRun([at("sent", "sent")])).toMatchObject({ creepTo: 100, creepSeconds: 0 });
+    expect(estimateRun([at("queued")], { ...DEFAULT_SECONDS, queued: 1e6 }).creepTo).toBeLessThanOrEqual(99);
+  });
+
+  it("climbs with time, stops at 90% of the way, and never goes backwards or starts before the real figure", () => {
+    expect(creepValue(10, 50, 20, 0)).toBe(10);
+    expect(creepValue(10, 50, 20, 10)).toBe(30);
+    expect(creepValue(10, 50, 20, 20)).toBe(46);
+    expect(creepValue(10, 50, 20, 500)).toBe(46);
+    expect(creepValue(10, 50, 20, -5)).toBe(10);
+    expect(creepValue(60, 50, 20, 10)).toBe(60);
+    expect(creepValue(10, 50, 0, 10)).toBe(10);
   });
 });
 

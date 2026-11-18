@@ -26,7 +26,7 @@ export default async function RunPage({ params, searchParams }: { params: Promis
   const canRun = s.user.role === "operator" || s.user.role === "admin";
   const prog = runProgress(prospects, run.created_at, now, events[0]?.created_at);
   const stages = stageCounts(prospects);
-  const est = estimateRun(prospects, stepSeconds(events));
+  const est = estimateRun(prospects.map((p) => ({ step: p.step, lane: p.lane, running: !!p.lease_until && new Date(p.lease_until).getTime() > now })), stepSeconds(events));
   const listed = filterProspects(prospects, show);
   const domainOf = new Map(prospects.map((p) => [p.id, p.domain]));
   const feed = activity(events, decisions, domainOf);

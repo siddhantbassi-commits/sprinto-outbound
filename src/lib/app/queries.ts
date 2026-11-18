@@ -152,7 +152,7 @@ export async function people(db: DbPort) {
 /** Everything the Impact view counts, read in pages and only in the columns it needs (page text is never pulled). */
 export async function impactData(db: DbPort): Promise<Omit<ImpactInput, "range" | "assumptions">> {
   const all = <T,>(table: string, where: Row, columns: string, order: string) => selectAll(db, table, where, { order, columns }, 20_000) as unknown as Promise<T[]>;
-  const [prospects, events, draftEvents, facts, pages, usage, decisions] = await Promise.all([
+  const [prospects, events, draftEvents, facts, pages, usage, decisions, outcomes] = await Promise.all([
     all<ImpactInput["prospects"][number]>("prospects", {}, "id,lane,lane_reason,verdict,created_at", "created_at"),
     all<ImpactInput["events"][number]>("step_events", {}, "prospect_id,step,status,latency_ms", "id"),
     all<ImpactInput["draftEvents"][number]>("step_events", { step: "draft" }, "prospect_id,status,output", "id"),
@@ -160,8 +160,9 @@ export async function impactData(db: DbPort): Promise<Omit<ImpactInput, "range" 
     all<ImpactInput["pages"][number]>("pages", {}, "prospect_id,thin", "created_at"),
     all<ImpactInput["usage"][number]>("usage_ledger", {}, "prospect_id,kind,units", "id"),
     all<ImpactInput["decisions"][number]>("decisions", {}, "prospect_id,kind,created_at", "seq"),
+    all<NonNullable<ImpactInput["outcomes"]>[number]>("lead_outcomes", {}, "prospect_id,seq,status,note,follow_up_on,created_at", "seq"),
   ]);
-  return { prospects, events, draftEvents, facts, pages, usage, decisions };
+  return { prospects, events, draftEvents, facts, pages, usage, decisions, outcomes };
 }
 
 /** Every company that was read and scored, with its latest facts and what the qualify step saw, ready to replay. */

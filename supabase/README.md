@@ -1,6 +1,6 @@
 # Supabase: schema, queue and security
 
-Twelve migrations, applied in order. They are plain SQL and are tested against a real Postgres (PGlite) on every `npm test`.
+Thirteen migrations, applied in order. They are plain SQL and are tested against a real Postgres (PGlite) on every `npm test`.
 
 | File | What it does |
 |---|---|
@@ -16,6 +16,7 @@ Twelve migrations, applied in order. They are plain SQL and are tested against a
 | `…001000_lock_procedures.sql` | Closes a gap found by checking the live database: `revoke … on all functions` skips procedures, so `make_append_only` was executable by the public |
 | `…001100_approvals.sql` | Human approval: `settings_versions.require_approval` (on by default), the append-only `email_reviews` table (one decision per email, with how much the person changed it), and `approve_email` / `reject_email` |
 | `…001200_discover_source.sql` | A run may start from a Discover search (`runs.source` accepts `discover` alongside `paste` and `csv`); nothing else about who may start one or the caps changes |
+| `…001300_outcomes.sql` | What came of a lead: the append-only `lead_outcomes` table (reached out, replied, meeting booked, not interested, bounced, wrong person, with a note and an optional follow-up date) and `log_outcome`, the only way in. A reply or bounce is also written once as the decision Impact already counts, and "not interested" can add the company to the do-not-contact list in the same step |
 
 ## Setting up a project (about 10 minutes, once)
 
