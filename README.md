@@ -2,6 +2,8 @@
 
 Cold outreach at scale for Sprinto (SOC 2, ISO 27001 and GDPR automation). Paste a list of domains; for each one the system reads the company's public website, decides whether it fits, finds one named decision-maker, picks the two pains that person most likely has, writes a short personal email with a hook taken from the site, and sends it through Gmail.
 
+**Live:** https://sprinto-outbound-eight.vercel.app (invite-only, test mode: mail goes only to the configured test address). Deployed on Vercel in Mumbai, with Supabase for data and sign-in and a GitHub Actions worker every 15 minutes.
+
 **Gemini reads and writes. Code decides.** Every extracted fact carries a verbatim quote that code checks against the stored page text. Scores, verdicts, the choice of person, the lint on the draft and the send safety are all deterministic and tested. Every step writes an append-only trace, and the "Why" page is that trace made readable.
 
 **Test mode only.** The recipient is a server setting. `sendTest` accepts no recipient, so the real contact is never mailed: the email lands in your own inbox with a header above it saying who it *would* have gone to and why.
