@@ -10,6 +10,8 @@ export interface PaletteItem {
   href: string;
   icon: IconName;
   group: "Go to" | "Companies" | "Actions";
+  /** Instead of going to a page, do this. */
+  action?: "tour";
 }
 
 /**
@@ -47,7 +49,12 @@ export function CommandPalette({ items }: { items: PaletteItem[] }) {
   }, [items, q]);
 
   if (!open) return null;
-  const go = (i: PaletteItem | undefined) => { if (!i) return; setOpen(false); router.push(i.href); };
+  const go = (i: PaletteItem | undefined) => {
+    if (!i) return;
+    setOpen(false);
+    if (i.action === "tour") window.dispatchEvent(new Event("tour:start"));
+    else router.push(i.href);
+  };
   let last = "";
   return (
     <div className="palette-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) setOpen(false); }}>

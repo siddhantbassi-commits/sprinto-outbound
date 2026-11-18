@@ -13,7 +13,7 @@ import { allowedNumbersFor, factsFileProblems, optOutFooter, verifiedClaims, typ
  * a failing draft goes back for at most two repairs and is then held, with the reasons, rather than sent.
  */
 
-export const DRAFT_PROMPT_VERSION = "draft-v2";
+export const DRAFT_PROMPT_VERSION = "draft-v4";
 export const MAX_REPAIRS = 2;
 /** Measured on the real models: a draft is about 120 tokens of email but 2,300 to 3,400 tokens including the model's thinking. Anything under about 4,000 is cut off. */
 const MAX_OUTPUT_TOKENS = 6144;
@@ -83,15 +83,21 @@ export function draftSchema(hookIds: string[]): JsonSchema {
 
 export function draftSystemPrompt(): string {
   return [
-    "You write the middle of ONE short, plain-text cold email from a Sprinto growth lead to one named person. It must read like a person wrote it for them: specific, calm, no hype.",
+    "You write the middle of ONE short, formal business email from a Sprinto growth lead to one named person. It must read like a courteous, senior professional wrote it for them: specific, measured and respectful of their time. Use full sentences and a formal register: no contractions, no slang, no exclamations, no hype.",
     "",
     "You are given: the person's first name and title, the company, one hook to choose from (verified text from the company's own site), two likely pains, and the only facts you may state about Sprinto.",
     "",
     "Write four short pieces in two or three paragraphs, with no headings:",
-    "1. The hook: one sentence about something real on their site, built on the hook you choose.",
-    "2. The bridge: one or two sentences naming the two pains in the person's own language.",
+    "1. The hook: one complete sentence that says what their site says, built on the hook you choose. Report it plainly; do not praise them and do not tack a quote on.",
+    "2. The bridge: two sentences, one for each pain. Each pain is a theme to put in your own words, never a phrase to paste: say what it costs a person in their role, calmly and factually, and where you can, tie it to what you just said about their site. Do not chain clauses with \"when\" or \"can create\".",
     "3. The proof: one sentence using ONLY a Sprinto fact from the list. Nothing else counts as proof. Never state any other claim about Sprinto.",
     "4. The ask: one small question about a 15-minute call, last.",
+    "",
+    "The subject line is a clear, professional subject in sentence case that names the company and the topic (for example, \"SOC 2 readiness at Northwind\").",
+    "Before you answer, read each sentence on its own: it must be grammatical and mean something without the sentence before it.",
+    "",
+    "Shape to follow (a made-up company, for shape only; never reuse its words or facts):",
+    "Northwind describes its platform as built for engineering teams that deploy several times a day. Teams at that pace often find that a prospect's security review arrives before the report to answer it. And the audit itself tends to land on the engineers who would rather be shipping.",
     "",
     "Do not write a greeting, a sign-off, the sender's name or any opt-out line: those are added for you.",
     "",
@@ -113,7 +119,7 @@ export function draftUserPrompt(input: Pick<DraftInput, "contact" | "company" | 
     "Hooks (choose one by id; the quote is text from their site):",
     ...hooks.map((h) => `${h.id}: ${wrapUntrusted("quote", h.quote, token)}`),
     "",
-    "Two likely pains:",
+    "Two likely pains, as themes to rephrase in your own words (do not copy the wording):",
     ...picks.map((p) => `${p.id}. ${p.plain} (why: ${wrapUntrusted("note", p.reason, token)})`),
     "",
     "The only facts you may state about Sprinto:",
@@ -129,7 +135,7 @@ export function draftUserPrompt(input: Pick<DraftInput, "contact" | "company" | 
 const stripGreeting = (s: string) => s.trim().replace(/^(hi|hello|hey|dear)\b[^\n]*,?\s*\n+/i, "");
 
 export function composeBody(p: { firstName: string; message: string; sender: { name: string; title: string }; footer: string }): string {
-  return `Hi ${p.firstName},\n\n${stripGreeting(p.message).replace(/\r\n?/g, "\n").trim()}\n\n${p.sender.name}\n${p.sender.title}, Sprinto\n\n${p.footer}`;
+  return `Dear ${p.firstName},\n\n${stripGreeting(p.message).replace(/\r\n?/g, "\n").trim()}\n\nKind regards,\n${p.sender.name}\n${p.sender.title}, Sprinto\n\n${p.footer}`;
 }
 
 /** A first name that is safe to put in a greeting and a prompt: letters, with an apostrophe, hyphen, dot or space. */

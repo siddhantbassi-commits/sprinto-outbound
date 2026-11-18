@@ -2,7 +2,7 @@
 import { useRef, useState } from "react";
 
 /** Copies the weekly report as plain text, or prints the page. If the browser blocks the clipboard, the text is selected for the person to copy. */
-export function ReportActions({ text }: { text: string }) {
+export function ReportActions({ text, label = "Copy the report" }: { text: string; label?: string }) {
   const [state, setState] = useState("");
   const ref = useRef<HTMLTextAreaElement>(null);
 
@@ -18,7 +18,7 @@ export function ReportActions({ text }: { text: string }) {
 
   return (
     <span className="row">
-      <button className="btn" type="button" onClick={copy}>Copy the report</button>
+      <button className="btn" type="button" onClick={copy}>{label}</button>
       <button className="btn" type="button" onClick={() => window.print()}>Print</button>
       <span className="small muted" role="status" aria-live="polite">{state}</span>
       <textarea ref={ref} readOnly value={text} aria-hidden tabIndex={-1} style={{ position: "absolute", left: -9999, width: 1, height: 1 }} />

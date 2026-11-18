@@ -1,7 +1,7 @@
 /**
- * Test mode's defence, delivered in the inbox. Above the email, separated by a rule, the owner reads who it would have
- * gone to and why: the qualification, the reason this person beat the runner-up, the pains, and where the hook came from.
- * The email itself is untouched below the rule, so what is linted is exactly what a real send would carry.
+ * Test mode's defence, delivered in the inbox. Below the email, after a rule, the owner reads who it would have gone to and
+ * why: the qualification, the reason this person beat the runner-up, the pains, and where the hook came from. The email
+ * itself is untouched above the rule, so it reads like the real thing and what is linted is exactly what a real send would carry.
  */
 
 export interface HeaderInput {
@@ -39,7 +39,7 @@ export function buildInboxHeader(h: HeaderInput): string {
   const email = h.contactEmail ? ` <${line(h.contactEmail, 120)}>` : "";
   const proof = [h.emailVerification && `email ${line(h.emailVerification, 30)}`, h.emailConfidence !== null && `confidence ${Math.round(h.emailConfidence)}`].filter(Boolean).join(", ");
   const lines = [
-    "TEST MODE. This message was sent to you only. It was NOT sent to the contact.",
+    "TEST DELIVERY. This message was sent to you only. It was not sent to the contact.",
     `Would have gone to: ${who}${email}${proof ? ` (${proof})` : ""}`,
     `Qualified: ${h.verdict} ${Math.round(h.score)}/100.${h.reasons.length ? ` ${h.reasons.slice(0, 3).map((r) => (r.quote ? `${line(r.label, 80)} ("${line(r.quote, 120)}")` : line(r.label, 80))).join("; ")}.` : ""}`,
     `Chosen contact scored ${Math.round(h.chosenScore)}${h.runnerUp ? `; over ${line(h.runnerUp.name, 80)}${h.runnerUp.title ? `, ${line(h.runnerUp.title, 80)}` : ""}, ${Math.round(h.runnerUp.score)}` : " (no runner-up)"}.`,
@@ -50,7 +50,7 @@ export function buildInboxHeader(h: HeaderInput): string {
   return lines.join("\n");
 }
 
-/** The header, a rule, then the email exactly as drafted. */
+/** The email exactly as drafted, then a rule, then the test notice. */
 export function composeTestBody(header: string, body: string): string {
-  return `${header}\n${RULE}\n\n${body}`;
+  return `${body}\n\n${RULE}\n${header}`;
 }

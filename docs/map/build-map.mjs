@@ -28,15 +28,15 @@ const ROWS = [
   {
     name: "Growth Lead", sub: "(Sprinto · human)", tint: "#fdfaf2",
     boxes: {
-      1: "A list of domains is ready, or she opens Runs first thing",
-      2: "Pasted or CSV domains; an optional hand-picked contact; her decision on each maybe and each draft",
-      6: "Live progress for the run, drafts to approve, a plain-English 'why' for every company",
+      1: "She opens Discover to find companies, or has a list of domains ready",
+      2: "Her criteria and the companies she picks, or pasted domains; her call on each maybe and draft",
+      6: "Progress with time left, ranked leads each with a discovery-call brief, drafts to approve, a plain-English 'why' for every company",
     },
   },
   {
-    name: "Domain import", sub: "(Paste · CSV · hand-picked contact)", tint: "#fdf5ea",
+    name: "Company discovery", sub: "(Hunter Discover · paste · CSV)", tint: "#fdf5ea",
     boxes: {
-      3: "Domains found in any pasted text as she types; repeats, bad entries, suppressed and recently mailed domains explained",
+      3: "Three free Hunter searches from the ICP, merged and ranked, each home page checked; or pasted text; suppressed domains explained",
       4: "Saved as a run with one job per domain; a domain mailed in the last 30 days is skipped",
     },
   },
@@ -111,8 +111,8 @@ const ROWS = [
       1: "She approved the draft and today's send cap (20 a day) is not reached",
       2: "The approved text; the owner's own address as the only recipient; the real contact kept as a note",
       3: "Test mode: the 'to' address is fixed to the owner; one send per domain",
-      4: "Sent through the Gmail API with send-only permission; message id saved; failures retried",
-      6: "Email in her inbox headed 'Would have gone to name, title'; still failing after retries is held",
+      4: "Sent through the Gmail API with send-only permission as a formal HTML and plain-text letter; message id saved; failures retried",
+      6: "Formal email in her inbox with a notice under it: 'Would have gone to name, title'; still failing after retries is held",
     },
   },
   {

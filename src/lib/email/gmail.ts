@@ -17,6 +17,8 @@ const SEND_URL = "https://gmail.googleapis.com/gmail/v1/users/me/messages/send";
 export interface Draft {
   subject: string;
   body: string;
+  /** The same email laid out as HTML. Optional: without it the message is plain text only. */
+  html?: string;
   /** Appears as the X-Outbound-Run header, for finding an unknown send by hand. */
   runId: string;
 }
@@ -113,8 +115,8 @@ export function createGmailSender(cfg: GmailConfig): GmailSender {
     async sendTest(draft: Draft): Promise<SendOutcome> {
       let raw: string;
       try {
-        // Only these three fields are read from the draft. Anything else on the object, a `to` included, is ignored.
-        raw = toRaw(buildMessage({ from, fromName: cfg.fromName, to: testTo, subject: draft.subject, body: draft.body, runId: draft.runId, date: new Date(now()) }));
+        // Only these four fields are read from the draft. Anything else on the object, a `to` included, is ignored.
+        raw = toRaw(buildMessage({ from, fromName: cfg.fromName, to: testTo, subject: draft.subject, body: draft.body, html: draft.html, runId: draft.runId, date: new Date(now()) }));
       } catch (e) {
         return { status: "failed", code: "invalid_message", retryable: false, reason: e instanceof MimeError ? e.message : "The message could not be built." };
       }

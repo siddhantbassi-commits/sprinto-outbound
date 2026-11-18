@@ -76,6 +76,16 @@ describe("create_run", () => {
     await expect(w.s.worker.query("select public.create_run('{a.com}', 'paste', '', '{}'::jsonb)")).rejects.toThrow(/Only an operator/);
   });
 
+  it("records where a run came from, and refuses a source it does not know", async () => {
+    const w = await world();
+    for (const source of ["paste", "csv", "discover"]) {
+      await w.s.operator.query("select public.create_run($1::text[], $2, '', '{}'::jsonb)", [[`${source}.example.com`], source]);
+    }
+    const rows = await w.db.admin<{ source: string }>("select source from public.runs order by source");
+    expect(rows.map((r) => r.source)).toEqual(["csv", "discover", "paste"]);
+    await expect(w.s.operator.query("select public.create_run('{x.example.com}', 'scraped', '', '{}'::jsonb)")).rejects.toThrow(/runs_source_check|check constraint/);
+  });
+
   it("allows a domain only once per run", async () => {
     const w = await world();
     const run = await w.startRun(["a.com"]);

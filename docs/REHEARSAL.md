@@ -41,7 +41,8 @@ vanta.com
 10.0.0.1
 ```
 
-- [ ] **New run → paste → Check the list.** Expect: *3 domains will run*, a skipped count if any were mailed in the last 30 days,
+- [ ] **Discover first.** Open *Discover*, press *Find companies*. Expect real software companies, each with how it describes itself and why it was suggested, in about half a minute, and no Hunter credit spent. Choose one or two and read their briefs after they finish. Then, for the rehearsal below, use *Paste a list*:
+- [ ] **Paste a list → Check the list.** Expect: *3 domains will run*, a skipped count if any were mailed in the last 30 days,
       *1 not valid* (`10.0.0.1`, refused because it is a private address), and a Hunter line such as *up to 3 credits of N*.
 - [ ] **Vanta is not mailed.** It is a competitor on the blocklist: it should end as *Not a fit*, with no Hunter credit spent.
 - [ ] **Name the run** `Rehearsal` so it is easy to find later, then **Start the run**.
@@ -68,8 +69,9 @@ vanta.com
       still pass all 12 checks or it will not send.
 - [ ] **Approve** one (press **A**) and **reject** one with a reason (press **R**; try *wrong person* once). Keyboard: **J/K** to move.
 - [ ] **Run the worker** (the *Run the worker now* button, or wait up to 15 minutes for the schedule). The approved email is sent.
-- [ ] **Check the test inbox** (the address in Settings; check spam). The email should carry a *TEST MODE* header saying it was sent to you
-      only and not to the contact, with the contact it would have gone to.
+- [ ] **Check the test inbox** (the address in Settings; check spam). The email should read as a formal letter (*Dear …*, *Kind regards,*) with a
+      professional subject line, and a small *Test delivery* notice **under** it saying it was sent to you only and not to the contact, with
+      the contact it would have gone to.
 - [ ] **The Why page now shows the decision** ("Approved as written" or "with edits (about N% changed)", with the time).
 
 ## 4. The guardrails (about 5 minutes)

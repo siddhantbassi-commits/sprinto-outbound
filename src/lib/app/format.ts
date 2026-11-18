@@ -58,3 +58,11 @@ export const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n ==
 
 /** Short, honest wording for a token count. */
 export const tokens = (n: number | null | undefined) => (n === null || n === undefined ? "" : n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n));
+
+/** How a run began, in words. A run from Discover was chosen from companies the system found; the others were given a list. */
+export const RUN_SOURCE: Record<string, { label: string; how: string }> = {
+  discover: { label: "Discovered", how: "chosen from a Discover search" },
+  paste: { label: "Pasted", how: "from a pasted list" },
+  csv: { label: "CSV", how: "from a CSV" },
+};
+export const runSource = (source: string) => RUN_SOURCE[source] ?? { label: source, how: `from ${source}` };

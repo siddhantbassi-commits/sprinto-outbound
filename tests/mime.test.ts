@@ -179,7 +179,7 @@ describe("the inbox header (test mode's defence)", () => {
 
   it("states that it was not sent to the contact, and who it would have gone to", () => {
     const text = buildInboxHeader(H);
-    expect(text.split("\n")[0]).toMatch(/TEST MODE.*NOT sent to the contact/);
+    expect(text.split("\n")[0]).toMatch(/TEST DELIVERY.*not sent to the contact/);
     expect(text).toContain("Would have gone to: Priya Rao, CTO at Acme <priya@acme.com> (email valid, confidence 94)");
   });
 
@@ -213,16 +213,18 @@ describe("the inbox header (test mode's defence)", () => {
     expect(Math.max(...text.split("\n").map((l) => l.length))).toBeLessThan(600);
   });
 
-  it("puts the email below a rule, untouched, so what was linted is what a real send would carry", () => {
-    const body = "Hi Priya,\n\nBody text.\n\nSid";
-    const composed = composeTestBody(buildInboxHeader(H), body);
-    expect(composed).toContain(`\n${RULE}\n\n`);
-    expect(composed.endsWith(body)).toBe(true);
-    expect(composed.split(`${RULE}\n\n`)[1]).toBe(body);
+  it("puts the email first and the notice below a rule, so the email reads as the real one and what was linted is what a real send would carry", () => {
+    const body = "Dear Priya,\n\nBody text.\n\nKind regards,\nSid";
+    const notice = buildInboxHeader(H);
+    const composed = composeTestBody(notice, body);
+    expect(composed.startsWith(body)).toBe(true);
+    expect(composed).toContain(`\n\n${RULE}\n`);
+    expect(composed.endsWith(notice)).toBe(true);
+    expect(composed.split(`\n\n${RULE}\n`)[0]).toBe(body);
   });
 
   it("is not part of the draft the lint sees", () => {
-    const body = ["Hi Priya,", "", "I saw that Acme added an Enterprise plan with SSO this quarter. Teams at that stage often find security questionnaires slow down deals and audit preparation pulls engineers off product work.", "", "Sprinto automates evidence collection for SOC 2 and ISO 27001. Worth 15 minutes next week to see how teams in your spot get to audit-ready?", "", "Sid", "Growth, Sprinto", "", 'If this isn\'t relevant, reply "no" and I won\'t write again. 1 Example Street, Pune 411001'].join("\n");
+    const body = ["Dear Priya,", "", "I saw that Acme added an Enterprise plan with SSO this quarter. Teams at that stage often find security questionnaires slow down deals and audit preparation pulls engineers off product work.", "", "Sprinto automates evidence collection for SOC 2 and ISO 27001. Worth 15 minutes next week to see how teams in your spot get to audit-ready?", "", "Kind regards,", "Sid", "Growth, Sprinto", "", 'If this is not relevant, please reply "no" and I will not write again. 1 Example Street, Pune 411001'].join("\n");
     const input = { subject: "SSO and audits at Acme", body, firstName: "Priya", company: "Acme", hookQuote: "The Enterprise plan includes SSO", evidenceQuotes: ["The Enterprise plan includes SSO"], allowedNumbers: ["15", "2", "27001"], postalAddress: "1 Example Street, Pune 411001" };
     const before = lintEmail(input);
     expect(before.checks.find((c) => c.id === "L1")?.pass).toBe(true);

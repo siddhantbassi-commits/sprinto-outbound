@@ -4,8 +4,10 @@ import { notFound } from "next/navigation";
 import { RunControls } from "./controls";
 import { Icon } from "@/components/icons";
 import { LiveRun } from "@/components/live";
+import { ProgressPanel } from "@/components/progress-panel";
+import { estimateRun, stepSeconds } from "@/lib/app/progress";
 import { Banner, Empty, Kpi, LanePill, PageHead, Ring, SectionTitle, VerdictPill } from "@/components/ui";
-import { ago, dateTime, plural, STEPS } from "@/lib/app/format";
+import { ago, dateTime, plural, runSource, STEPS } from "@/lib/app/format";
 import { getRun } from "@/lib/app/queries";
 import { getSession } from "@/lib/app/runtime";
 import { activity, duration, filterProspects, parseShow, runHeadline, runProgress, SHOWS, stageCounts, track } from "@/lib/app/runview";
@@ -24,6 +26,7 @@ export default async function RunPage({ params, searchParams }: { params: Promis
   const canRun = s.user.role === "operator" || s.user.role === "admin";
   const prog = runProgress(prospects, run.created_at, now, events[0]?.created_at);
   const stages = stageCounts(prospects);
+  const est = estimateRun(prospects, stepSeconds(events));
   const listed = filterProspects(prospects, show);
   const domainOf = new Map(prospects.map((p) => [p.id, p.domain]));
   const feed = activity(events, decisions, domainOf);
@@ -36,7 +39,7 @@ export default async function RunPage({ params, searchParams }: { params: Promis
   return (
     <div className="stack" style={{ gap: 22 }}>
       <div className="crumbs"><Link href="/">Runs</Link> / {dateTime(run.created_at)}</div>
-      <PageHead eyebrow="Run" title={run.note || `Run of ${plural(run.domain_count, "domain")}`} sub={`Started ${ago(run.created_at, now)}, ${run.source === "csv" ? "from a CSV" : "pasted"}.`}>
+      <PageHead eyebrow="Run" title={run.note || `Run of ${plural(run.domain_count, "domain")}`} sub={`Started ${ago(run.created_at, now)}, ${runSource(run.source).how}.`}>
         {prog.needsPerson > 0 ? <Link className="btn primary" href="/review"><Icon name="bell" />{prog.needsPerson} to review</Link> : null}
         <a className="btn" href={`/runs/${id}/export`}><Icon name="down" />Download CSV</a>
       </PageHead>
@@ -50,10 +53,10 @@ export default async function RunPage({ params, searchParams }: { params: Promis
             <h2 style={{ fontSize: "1.25rem" }}>{runHeadline(prog, paused)}</h2>
             <p className="muted small" style={{ margin: "5px 0 0" }}>
               {prog.active > 0 ? "Running for" : "Took"} {duration(prog.elapsedMs)}.
-              {prog.etaMs !== null && !paused ? ` Roughly ${duration(prog.etaMs)} to go at this pace.` : prog.active > 0 && !paused ? " A time estimate appears once a few companies have finished." : ""}
             </p>
           </div>
         </div>
+        <ProgressPanel est={est} paused={paused} />
         <div className="row" style={{ justifyContent: "space-between", gap: 12 }}>
           {paused ? <span className="small muted">Paused: the worker skips this run.</span> : <LiveRun active={prog.active > 0} />}
           {canRun ? <RunControls runId={id} paused={paused} /> : null}

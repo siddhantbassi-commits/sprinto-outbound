@@ -1,4 +1,6 @@
 import { cookies } from "next/headers";
+import { RunWatcher } from "@/components/run-watcher";
+import { TourButton, WelcomeTour } from "@/components/welcome-tour";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
@@ -62,8 +64,10 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   const role = s.user.role;
   const canRun = role === "operator" || role === "admin";
   const items: NavItem[] = [
+    ...(canRun ? [{ href: "/discover", label: "Discover", icon: "search", group: "Work" } as NavItem] : []),
     { href: "/", label: "Runs", icon: "runs", group: "Work" },
-    ...(canRun ? [{ href: "/runs/new", label: "New run", icon: "plus", group: "Work" } as NavItem] : []),
+    ...(canRun ? [{ href: "/runs/new", label: "Paste a list", icon: "list", group: "Work" } as NavItem] : []),
+    { href: "/leads", label: "Leads", icon: "target", group: "Work" },
     { href: "/review", label: "Review", icon: "bell", group: "Work", badge: attention },
     { href: "/impact", label: "Impact", icon: "chart", group: "Insight" },
     { href: "/scorecard", label: "Scorecard", icon: "flag", group: "Insight" },
@@ -77,6 +81,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   ];
   const palette: PaletteItem[] = [
     ...items.map((i) => ({ id: `nav-${i.href}`, label: i.label, href: i.href, icon: i.icon, group: "Go to" as const })),
+    { id: "act-tour", label: "Take the tour", hint: "A one-minute walkthrough", href: "/", icon: "help" as const, group: "Actions" as const, action: "tour" as const },
     ...companies.map((c) => ({ id: `co-${c.id}`, label: c.domain, hint: LANES[c.lane]?.label ?? c.lane, href: `/prospects/${c.id}`, icon: "globe" as const, group: "Companies" as const })),
   ];
 
@@ -116,6 +121,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           <div className="appbar">
             <SearchButton />
             <span className="grow" />
+            <TourButton />
             <ThemeToggle current={theme} />
           </div>
           <main className="main" id="content">{children}</main>
@@ -123,6 +129,8 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       </div>
       <CommandPalette items={palette} />
       <ToastHost />
+      <RunWatcher />
+      <WelcomeTour canRun={canRun} />
     </>
   );
 }

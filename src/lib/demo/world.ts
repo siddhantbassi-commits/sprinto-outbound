@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import type { HunterClient } from "@/lib/contacts/hunter";
 import { createGmailSender, type GmailSender } from "@/lib/email/gmail";
+import { readMessage } from "@/lib/email/mime";
 import { Db, newDb, type Role } from "@/lib/db/pglite";
 import { pgPort } from "@/lib/db/pg-port";
 import { SPRINTO_FACTS_SEED } from "@/lib/pitch/sprinto-facts";
@@ -10,7 +11,7 @@ import type { PipelineDeps } from "@/lib/worker/pipeline";
 import { Store } from "@/lib/worker/store";
 import { tick } from "@/lib/worker/tick";
 import { demoAi } from "./ai";
-import { DEMO_BY_DOMAIN, DEMO_COMPANIES, UP_NEXT, type DemoCompany } from "./companies";
+import { DEMO_BY_DOMAIN, DEMO_COMPANIES, DEMO_DISCOVERABLE, UP_NEXT, type DemoCompany } from "./companies";
 
 /**
  * Demo mode: the whole product running on sample data, in memory, with no keys and no network. The database is the real
@@ -42,7 +43,7 @@ export function demoSite(c: DemoCompany): Record<string, string> {
 /** The pretend internet: every demo company's pages, served from memory with a public-looking address. */
 export function demoFetchDeps(contact = DEMO_INBOX): FetchDeps {
   const routes = new Map<string, string>();
-  for (const c of DEMO_COMPANIES) for (const [u, html] of Object.entries(demoSite(c))) routes.set(u, html);
+  for (const c of [...DEMO_COMPANIES, ...DEMO_DISCOVERABLE]) for (const [u, html] of Object.entries(demoSite(c))) routes.set(u, html);
   const transport: Transport = async ({ url }) => {
     if (url.pathname === "/robots.txt") return { status: 200, headers: { "content-type": "text/plain" }, body: Buffer.from(""), truncated: false };
     const html = routes.get(url.href);
@@ -61,6 +62,17 @@ export function demoHunter(): HunterClient {
       const candidates = c?.contacts ?? [];
       return { candidates, creditsUsed: candidates.length ? 1 : 0, total: candidates.length };
     },
+    // The stand-in for Hunter Discover: each angle returns the sample companies it would plausibly find, so the merge,
+    // the ranking and the clean-up of the list can all be seen working.
+    discover: async (filters) => {
+      const f = filters as { job_openings?: unknown; keywords?: { include?: string[] } };
+      const all = [...DEMO_DISCOVERABLE, ...DEMO_COMPANIES];
+      const hiring = Boolean(f.job_openings);
+      const regulated = Boolean(f.keywords?.include?.includes("fintech"));
+      const pick = all.filter((c) => (hiring ? c.hiring === "security_role" : regulated ? Boolean(c.s.health || c.s.payments) : true));
+      const companies = pick.map((c) => ({ domain: c.domain, name: c.name, emailsTotal: c.contacts.length * 4 + 3, emailsPersonal: c.contacts.length * 3 }));
+      return { companies, total: companies.length };
+    },
   };
 }
 
@@ -70,15 +82,18 @@ export interface OutboxMessage {
   subject: string;
   runId: string;
   text: string;
+  /** The HTML alternative, when the message has one. */
+  html: string | null;
 }
+
 
 export function demoGmail(outbox: OutboxMessage[]): GmailSender {
   const fetchFn = (async (url: string | URL, init: RequestInit) => {
     if (String(url).includes("oauth2")) return new Response(JSON.stringify({ access_token: "demo", expires_in: 3600 }), { status: 200 });
     const raw = Buffer.from((JSON.parse(String(init.body)) as { raw: string }).raw, "base64url").toString("utf8");
-    const [head = "", ...rest] = raw.split("\r\n\r\n");
+    const { head, text, html } = readMessage(raw);
     const header = (name: string) => new RegExp(`^${name}: (.*)$`, "im").exec(head)?.[1] ?? "";
-    outbox.unshift({ at: new Date().toISOString(), to: header("To"), subject: header("Subject"), runId: header("X-Outbound-Run"), text: Buffer.from(rest.join("").replace(/\r\n/g, ""), "base64").toString("utf8") });
+    outbox.unshift({ at: new Date().toISOString(), to: header("To"), subject: header("Subject"), runId: header("X-Outbound-Run"), text, html });
     const id = createHash("sha1").update(raw).digest("hex").slice(0, 16);
     return new Response(JSON.stringify({ id, threadId: id }), { status: 200 });
   }) as unknown as typeof fetch;

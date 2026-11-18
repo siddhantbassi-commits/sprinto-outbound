@@ -4,7 +4,7 @@ import { lintEmail, type LintInput } from "@/lib/email/lint";
 const ADDRESS = "Sprinto, 100 Example Street, Bengaluru 560001";
 const QUOTE = "Acme launched an Enterprise plan with SSO and audit logs";
 
-const GOOD_BODY = `Hi Priya,
+const GOOD_BODY = `Dear Priya,
 
 I saw Acme launched an Enterprise plan with SSO this quarter, which usually means security questionnaires start landing from larger buyers.
 
@@ -12,10 +12,11 @@ For a team your size that often turns into audit preparation eating engineering 
 
 Worth 15 minutes next week to see how teams in your spot get audit-ready?
 
+Kind regards,
 Asha
 Growth, Sprinto
 
-If this isn't relevant, reply "no" and I won't write again. ${ADDRESS}`;
+If this is not relevant, please reply "no" and I will not write again. ${ADDRESS}`;
 
 const base = (): LintInput => ({
   subject: "Enterprise plan and SOC 2",
@@ -47,7 +48,7 @@ describe("lintEmail", () => {
   });
 
   it("L2 greeting must be the first name exactly", () => {
-    expect(failing({ ...base(), body: GOOD_BODY.replace("Hi Priya,", "Hello there,") })).toContain("L2");
+    expect(failing({ ...base(), body: GOOD_BODY.replace("Dear Priya,", "Hello there,") })).toContain("L2");
     expect(failing({ ...base(), firstName: "Priyanka" })).toContain("L2");
   });
 
@@ -94,7 +95,7 @@ describe("lintEmail", () => {
   });
 
   it("L10 opt-out line and postal address", () => {
-    expect(failing({ ...base(), body: GOOD_BODY.replace('reply "no" and I won\'t write again.', "") })).toContain("L10");
+    expect(failing({ ...base(), body: GOOD_BODY.replace('please reply "no" and I will not write again.', "") })).toContain("L10");
     expect(failing({ ...base(), body: GOOD_BODY.replace(ADDRESS, "") })).toContain("L10");
     expect(failing({ ...base(), postalAddress: "" })).toContain("L10");
   });

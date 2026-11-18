@@ -307,7 +307,7 @@ describe("the Sprinto facts file", () => {
   });
 
   it("builds an opt-out footer with the address", () => {
-    expect(optOutFooter(ready)).toBe('If this isn\'t relevant, reply "no" and I won\'t write again. 1 Example Street, Pune 411001');
+    expect(optOutFooter(ready)).toBe('If this is not relevant, please reply "no" and I will not write again. 1 Example Street, Pune 411001');
   });
 
   it("allows only the figures the email needs", () => {
@@ -406,9 +406,9 @@ describe("draftEmail", () => {
     if (r.status !== "ok") return;
     expect(r.checks).toHaveLength(12);
     expect(r.checks.every((c) => c.pass)).toBe(true);
-    expect(r.body.startsWith("Hi Priya,\n\n")).toBe(true);
-    expect(r.body).toContain("\n\nSiddhant\nGrowth Lead, Sprinto\n\n");
-    expect(r.body.endsWith('reply "no" and I won\'t write again. 1 Example Street, Pune 411001')).toBe(true);
+    expect(r.body.startsWith("Dear Priya,\n\n")).toBe(true);
+    expect(r.body).toContain("\n\nKind regards,\nSiddhant\nGrowth Lead, Sprinto\n\n");
+    expect(r.body.endsWith('reply "no" and I will not write again. 1 Example Street, Pune 411001')).toBe(true);
     expect(r.hook).toMatchObject({ id: "H1", source: "https://acme.com/pricing" });
     expect(r.attempts).toHaveLength(1);
     expect(r.aiCalls).toBe(1);
@@ -460,9 +460,9 @@ describe("draftEmail", () => {
   });
 
   it("drops a greeting the model added anyway, so there is only one", async () => {
-    const r = await draftEmail(base(scriptedAi({ json: [good({ message: `Hi Priya,\n\n${GOOD}` })] })));
+    const r = await draftEmail(base(scriptedAi({ json: [good({ message: `Dear Priya,\n\n${GOOD}` })] })));
     expect(r.status).toBe("ok");
-    if (r.status === "ok") expect(r.body.match(/Hi Priya,/g)).toHaveLength(1);
+    if (r.status === "ok") expect(r.body.match(/Dear Priya,/g)).toHaveLength(1);
   });
 
   it("repairs a failing draft by telling the model exactly what failed, then accepts the fix", async () => {
@@ -563,7 +563,7 @@ describe("draftEmail", () => {
 
 describe("composeBody and first names", () => {
   it("assembles greeting, message, sign-off and footer with the model's line endings normalised", () => {
-    expect(composeBody({ firstName: "Priya", message: "  Line one\r\nLine two  ", sender: { name: "Sid", title: "Growth" }, footer: "Footer." })).toBe("Hi Priya,\n\nLine one\nLine two\n\nSid\nGrowth, Sprinto\n\nFooter.");
+    expect(composeBody({ firstName: "Priya", message: "  Line one\r\nLine two  ", sender: { name: "Sid", title: "Growth" }, footer: "Footer." })).toBe("Dear Priya,\n\nLine one\nLine two\n\nKind regards,\nSid\nGrowth, Sprinto\n\nFooter.");
   });
 
   it.each(["Priya", "Mary Ann", "Jean-Luc", "O'Brien", "Zoë", "李", "J."])("accepts %s", (n) => expect(isUsableFirstName(n)).toBe(true));

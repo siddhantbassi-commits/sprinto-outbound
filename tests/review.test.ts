@@ -30,7 +30,7 @@ describe("a new draft waiting for a person", () => {
     const item = q.find((x) => x.domain === "northwind.io")!;
     expect(item).toBeTruthy();
     expect(item.email.subject.length).toBeGreaterThan(5);
-    expect(item.email.body).toMatch(/^Hi \w+,/);
+    expect(item.email.body).toMatch(/^Dear \w+,/);
     expect(item.email.hook?.quote.length).toBeGreaterThan(10);
     expect(item.email.pains.length).toBe(2);
     expect(item.email.checks.length).toBe(12);

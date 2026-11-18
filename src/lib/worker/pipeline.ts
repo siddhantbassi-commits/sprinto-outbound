@@ -7,6 +7,7 @@ import type { HunterClient } from "@/lib/contacts/hunter";
 import { HunterBudget } from "@/lib/contacts/quota";
 import type { GmailSender } from "@/lib/email/gmail";
 import { buildInboxHeader, composeTestBody } from "@/lib/email/inbox-header";
+import { renderEmailHtml } from "@/lib/email/render";
 import { isExcludedDomain } from "@/lib/icp/blocklist";
 import { use } from "@/lib/icp/score";
 import type { Band } from "@/lib/icp/types";
@@ -351,7 +352,7 @@ export async function sendStep(p: ProspectRow, d: PipelineDeps): Promise<StepRes
     const score = await d.store.latestScore(p.id);
     const pages = await d.store.pages(p.id);
     const name = companyName(p.domain, pages.find((x) => x.kind === "home")?.title ?? null);
-    const header = buildInboxHeader({
+    const notice = {
       contactName: [chosen?.first_name, chosen?.last_name].filter(Boolean).join(" ") || "(name removed)",
       contactTitle: chosen?.position ?? null,
       contactEmail: chosen?.email ?? null,
@@ -367,9 +368,15 @@ export async function sendStep(p: ProspectRow, d: PipelineDeps): Promise<StepRes
       pains: email.picks.map((x) => ({ id: x.id, label: x.label })),
       hookSource: email.hook?.source ?? null,
       traceUrl: d.appUrl ? `${d.appUrl.replace(/\/+$/, "")}/prospects/${p.id}` : null,
-    });
+    };
+    const briefUrl = notice.traceUrl ? `${notice.traceUrl}/brief` : null;
 
-    const out = await d.gmail.sendTest({ subject: text.subject, body: composeTestBody(header, text.body), runId: email.id });
+    const out = await d.gmail.sendTest({
+      subject: text.subject,
+      body: composeTestBody(buildInboxHeader(notice), text.body),
+      html: renderEmailHtml({ subject: text.subject, body: text.body, notice: { ...notice, briefUrl } }),
+      runId: email.id,
+    });
     if (out.status === "sent") await d.store.setEmailStatus(email.id, "sent", { messageId: out.messageId, threadId: out.threadId });
     else if (out.status === "failed") await d.store.setEmailStatus(email.id, "failed", { error: out.reason, retryable: out.retryable });
     else await d.store.setEmailStatus(email.id, "unknown", { error: out.reason });

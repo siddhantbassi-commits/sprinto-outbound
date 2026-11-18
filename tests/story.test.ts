@@ -55,4 +55,10 @@ describe("story", () => {
     expect(story({ ...base, lane: "sent", checks: { pass: 11, total: 12 } }).next.text).toBe("Sent to the test inbox. The contact was not mailed.");
     expect(story({ ...base, checks: { pass: 11, total: 12 } }).sentences.join(" ")).toContain("It passed 11 of 12 checks.");
   });
+
+  it("calls a company the rubric rejected 'not a fit', not 'not assessed' (the stored verdict is not_fit)", () => {
+    const s = story({ ...base, verdict: "not_fit", score: 12 });
+    expect(s.headline).toBe("Not a fit");
+    expect(s.tone).toBe("bad");
+  });
 });

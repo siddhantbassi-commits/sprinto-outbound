@@ -35,8 +35,8 @@ const lower = (s: string) => (s ? s.charAt(0).toLowerCase() + s.slice(1) : s);
 
 export function story(i: StoryInput): Story {
   const verdict = i.verdict ?? "none";
-  const headline = verdict === "qualified" ? "A strong fit" : verdict === "maybe" ? "Worth a second look" : verdict === "not_a_fit" ? "Not a fit" : "Not assessed yet";
-  const tone: StoryTone = verdict === "qualified" ? "good" : verdict === "maybe" ? "warn" : verdict === "not_a_fit" ? "bad" : "info";
+  const headline = verdict === "qualified" ? "A strong fit" : verdict === "maybe" ? "Worth a second look" : verdict === "not_fit" ? "Not a fit" : "Not assessed yet";
+  const tone: StoryTone = verdict === "qualified" ? "good" : verdict === "maybe" ? "warn" : verdict === "not_fit" ? "bad" : "info";
 
   const sentences: string[] = [];
   if (i.score !== null && verdict !== "none") {

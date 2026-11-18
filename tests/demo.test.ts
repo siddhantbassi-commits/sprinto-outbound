@@ -23,14 +23,19 @@ describe("demo world", () => {
     expect(rows).toHaveLength(DEMO_COMPANIES.length);
   }, 60_000);
 
-  it("delivers only to the demo inbox, with the defence written above each email", async () => {
+  it("delivers only to the demo inbox, as a formal email with the test notice written below it", async () => {
     const w = await getDemo();
     expect(w.outbox.length).toBeGreaterThanOrEqual(2);
     for (const m of w.outbox) {
       expect(m.to).toBe(DEMO_INBOX);
-      expect(m.text).toMatch(/^TEST MODE\. This message was sent to you only\. It was NOT sent to the contact\./);
+      expect(m.text).toMatch(/^Dear \w+,\r?\n\r?\n/);
+      expect(m.text).toMatch(/\r?\nKind regards,\r?\n/);
+      expect(m.text).toMatch(/TEST DELIVERY\. This message was sent to you only\. It was not sent to the contact\./);
       expect(m.text).toMatch(/Would have gone to: .+ at .+ <.+@.+> \(email valid, confidence \d+\)/);
-      expect(m.text).toContain("Hi ");
+      // The notice comes after the email, never before it.
+      expect(m.text.indexOf("Kind regards,")).toBeLessThan(m.text.indexOf("TEST DELIVERY"));
+      expect(m.html).toContain("Dear ");
+      expect(m.html).toContain("Test delivery");
     }
   });
 

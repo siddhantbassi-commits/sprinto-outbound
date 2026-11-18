@@ -7,14 +7,14 @@ import { createGeminiClient, modelChain } from "@/lib/ai/gemini";
 import type { AiClient } from "@/lib/ai/types";
 import { demoAskAi } from "@/lib/ask/demo";
 import { goldenOracle } from "@/lib/quality/harness";
-import { createHunterClient } from "@/lib/contacts/hunter";
+import { createHunterClient, type HunterClient } from "@/lib/contacts/hunter";
 import type { DbPort } from "@/lib/db/port";
 import { pgPort } from "@/lib/db/pg-port";
 import { supabasePort, type SupabaseLike } from "@/lib/db/supabase";
-import { demoHunter, getDemo } from "@/lib/demo/world";
+import { demoFetchDeps, demoHunter, getDemo } from "@/lib/demo/world";
 import { createGmailSender } from "@/lib/email/gmail";
 import { readEnv, type AppEnv } from "@/lib/env";
-import { nodeTransport, systemResolver } from "@/lib/scrape/fetch";
+import { nodeTransport, systemResolver, type FetchDeps } from "@/lib/scrape/fetch";
 import { botUserAgent } from "@/lib/scrape/site";
 import type { PipelineDeps } from "@/lib/worker/pipeline";
 import { Store } from "@/lib/worker/store";
@@ -153,4 +153,12 @@ export function askSetup(): { ok: true; ai: AiClient; standIn: boolean } | { ok:
   if (e.mode === "demo") return { ok: true, ai: demoAskAi(), standIn: true };
   if (!e.gemini) return { ok: false, reason: "The Gemini key is not set, so Ask cannot answer." };
   return { ok: true, ai: createGeminiClient({ apiKey: e.gemini.apiKey, models: modelChain({ GEMINI_MODEL: e.gemini.model }) }), standIn: false };
+}
+
+/** What company discovery needs: Hunter (Discover is free) and polite page fetching. In demo mode both are the stand-ins. */
+export function discoverySetup(): { ok: true; hunter: HunterClient; fetchDeps: FetchDeps } | { ok: false; reason: string } {
+  const e = env();
+  if (e.mode === "demo") return { ok: true, hunter: demoHunter(), fetchDeps: demoFetchDeps() };
+  if (!e.hunterKey) return { ok: false, reason: "Hunter is not connected, so there is nothing to search with. Add the Hunter key in the project's environment, or paste a list instead." };
+  return { ok: true, hunter: createHunterClient({ apiKey: e.hunterKey }), fetchDeps: { resolve: systemResolver, transport: nodeTransport, userAgent: botUserAgent(e.contactEmail) } };
 }

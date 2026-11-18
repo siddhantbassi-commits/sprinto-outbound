@@ -46,7 +46,7 @@ export function lintEmail(input: LintInput): { ok: boolean; checks: LintCheck[] 
     `Body must be 60 to 130 words (is ${wc}); subject at most 60 characters, not all capitals, not a fake Re:/Fwd:`);
 
   const firstLine = body.trimStart().split("\n")[0] ?? "";
-  add("L2", firstLine.trim() === `Hi ${input.firstName},`, "Greets the contact by first name", `First line must be exactly "Hi ${input.firstName},"`);
+  add("L2", firstLine.trim() === `Dear ${input.firstName},`, "Greets the contact formally by first name", `First line must be exactly "Dear ${input.firstName},"`);
 
   add("L3", body.toLowerCase().includes(input.company.toLowerCase()), "Names the company", `The body must mention ${input.company}`);
 

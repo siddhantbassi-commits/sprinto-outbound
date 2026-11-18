@@ -72,6 +72,7 @@ export default async function Why({ params }: { params: Promise<{ id: string }> 
       <PageHead eyebrow="Why" title={p.domain} sub="Why the system did what it did, with the evidence for each decision.">
         <LanePill lane={p.lane} />
         <VerdictPill verdict={p.verdict} />
+        <Link className="btn" href={`/prospects/${p.id}/brief`}><Icon name="target" />Discovery brief</Link>
       </PageHead>
 
       <section className="card hero why-hero" aria-label="Summary">

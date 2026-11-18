@@ -9,7 +9,7 @@ import type { Candidate } from "./rank";
 
 const BASE = "https://api.hunter.io/v2";
 
-export type HunterErrorCode = "auth" | "quota" | "rate_limited" | "bad_request" | "timeout" | "api_error" | "bad_response" | "not_configured";
+export type HunterErrorCode = "auth" | "quota" | "rate_limited" | "bad_request" | "timeout" | "api_error" | "bad_response" | "not_configured" | "no_discover";
 
 const MESSAGES: Record<HunterErrorCode, string> = {
   auth: "Hunter refused the API key. Ask an admin to check it.",
@@ -20,6 +20,7 @@ const MESSAGES: Record<HunterErrorCode, string> = {
   api_error: "Something went wrong reaching Hunter.",
   bad_response: "Hunter's answer was not in the shape we expect.",
   not_configured: "No Hunter API key is set.",
+  no_discover: "This Hunter plan does not include Discover, so companies cannot be found automatically. Paste a list of domains instead.",
 };
 
 export class HunterError extends Error {
@@ -53,9 +54,25 @@ export interface DomainSearchResult {
   total: number;
 }
 
+export interface DiscoverCompany {
+  domain: string;
+  name: string;
+  /** How many addresses Hunter holds for the company, which is a fair sign it will be able to name a contact. */
+  emailsTotal: number;
+  emailsPersonal: number;
+}
+
+export interface DiscoverResult {
+  companies: DiscoverCompany[];
+  /** How many companies matched in all, of which only the first page came back. */
+  total: number;
+}
+
 export interface HunterClient {
   account(): Promise<HunterAccount>;
   domainSearch(domain: string, opts?: DomainSearchOptions): Promise<DomainSearchResult>;
+  /** Finds companies by filters. Hunter says this call is free. Absent on stand-ins that cannot discover. */
+  discover?(filters: Record<string, unknown>, limit?: number): Promise<DiscoverResult>;
 }
 
 type Json = Record<string, unknown>;
@@ -110,6 +127,22 @@ export function readDomainSearch(body: unknown, creditsHeader: string | null): D
   return { candidates, creditsUsed: header ?? (candidates.length > 0 ? 1 : 0), total: num(meta?.results) ?? candidates.length };
 }
 
+/** Hunter's companies from Discover: only a clean public domain and a plain name get through. */
+export function readDiscover(body: unknown): DiscoverResult {
+  const data = obj(body)?.data;
+  if (!Array.isArray(data)) throw new HunterError("bad_response");
+  const companies: DiscoverCompany[] = [];
+  for (const raw of data) {
+    const c = obj(raw);
+    if (!c) continue;
+    const domain = typeof c.domain === "string" ? normaliseDomain(c.domain) : null;
+    if (!domain || !domain.ok) continue;
+    const counts = obj(c.emails_count);
+    companies.push({ domain: domain.domain, name: (str(c.organization) ?? domain.domain).slice(0, 120), emailsTotal: Math.max(0, num(counts?.total) ?? 0), emailsPersonal: Math.max(0, num(counts?.personal) ?? 0) });
+  }
+  return { companies, total: num(obj(obj(body)?.meta)?.results) ?? companies.length };
+}
+
 function errorFor(status: number): HunterError {
   if (status === 401) return new HunterError("auth");
   if (status === 429) return new HunterError("quota");
@@ -146,6 +179,29 @@ export function createHunterClient({ apiKey, fetchFn = fetch, timeoutMs = 10_000
   return {
     async account() {
       return readAccount((await get("/account")).body);
+    },
+    async discover(filters, limit = 100) {
+      const size = Math.min(100, Math.max(1, Math.trunc(limit)));
+      let res: Response;
+      try {
+        res = await fetchFn(`${BASE}/discover`, {
+          method: "POST",
+          headers: { "X-API-KEY": key, Accept: "application/json", "Content-Type": "application/json" },
+          body: JSON.stringify({ ...filters, limit: size }),
+          signal: AbortSignal.timeout(Math.max(timeoutMs, 20_000)),
+        });
+      } catch (e) {
+        throw e instanceof Error && (e.name === "TimeoutError" || e.name === "AbortError") ? new HunterError("timeout") : new HunterError("api_error");
+      }
+      if (res.status === 403) {
+        // A plan without Discover says so in its error id. Anything else on a 403 is Hunter limiting the caller.
+        const text = await res.text().catch(() => "");
+        throw new HunterError(/no_discover_access/.test(text) ? "no_discover" : "rate_limited");
+      }
+      if (!res.ok) throw errorFor(res.status);
+      const body: unknown = await res.json().catch(() => null);
+      if (body === null) throw new HunterError("bad_response");
+      return readDiscover(body);
     },
     async domainSearch(domain, opts = {}) {
       // Only a clean public hostname may reach the query string, so a crafted "domain" cannot add parameters.

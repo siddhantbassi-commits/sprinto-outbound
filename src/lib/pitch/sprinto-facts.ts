@@ -60,4 +60,4 @@ export function allowedNumbersFor(file: SprintoFactsFile): string[] {
 
 export const verifiedClaims = (file: SprintoFactsFile): FactsFileItem[] => file.items.filter((i) => i.verifiedBy && i.verifiedBy.trim() !== "" && i.verifiedAt);
 
-export const optOutFooter = (file: SprintoFactsFile) => `If this isn't relevant, reply "no" and I won't write again. ${file.postalAddress.trim()}`;
+export const optOutFooter = (file: SprintoFactsFile) => `If this is not relevant, please reply "no" and I will not write again. ${file.postalAddress.trim()}`;

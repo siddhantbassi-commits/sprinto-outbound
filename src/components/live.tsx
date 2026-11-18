@@ -41,7 +41,7 @@ export function AdvanceButton({ label = "Run the worker now" }: { label?: string
 
 /**
  * While a run has work left, keeps the worker going from this page and refreshes as it goes, so watching a run is enough.
- * It stops when the work is done, when the tab is hidden, or when the person pauses it. The scheduled worker does the same
+ * It stops when the work is done or when the person pauses it, and it carries on in a background tab (a browser may slow a hidden tab's timers). The scheduled worker does the same
  * job without anyone watching; this only makes a watched run feel live.
  */
 export function LiveRun({ active }: { active: boolean }) {
@@ -54,7 +54,7 @@ export function LiveRun({ active }: { active: boolean }) {
     if (!active || !on) return;
     let stopped = false;
     const loop = async () => {
-      if (stopped || busy.current || document.hidden) return;
+      if (stopped || busy.current) return;
       busy.current = true;
       const t = await advance();
       busy.current = false;

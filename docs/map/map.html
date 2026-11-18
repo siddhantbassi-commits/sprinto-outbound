@@ -36,7 +36,7 @@
   <div class="hcell" style="left:30px;width:168px">Actor</div><div class="hcell" style="left:210px;width:207.33333333333334px">Trigger</div><div class="hcell" style="left:417.33333333333337px;width:207.33333333333334px">Input</div><div class="hcell" style="left:624.6666666666667px;width:207.33333333333334px">Context</div><div class="hcell" style="left:832px;width:207.33333333333334px">Processing</div><div class="hcell" style="left:1039.3333333333335px;width:207.33333333333334px">AI</div><div class="hcell" style="left:1246.6666666666667px;width:207.33333333333334px">Output</div>
   <div class="hsep" style="left:203px"></div><div class="hsep" style="left:416.33333333333337px"></div><div class="hsep" style="left:623.6666666666667px"></div><div class="hsep" style="left:831px"></div><div class="hsep" style="left:1038.3333333333335px"></div><div class="hsep" style="left:1245.6666666666667px"></div>
   <div class="band" style="top:124px;height:74px;background:#fdfaf2"></div><div class="actor" style="top:124px;height:74px"><b>Growth Lead</b><span>(Sprinto · human)</span></div>
-<div class="band" style="top:202px;height:74px;background:#fdf5ea"></div><div class="actor" style="top:202px;height:74px"><b>Domain import</b><span>(Paste · CSV · hand-picked contact)</span></div>
+<div class="band" style="top:202px;height:74px;background:#fdf5ea"></div><div class="actor" style="top:202px;height:74px"><b>Company discovery</b><span>(Hunter Discover · paste · CSV)</span></div>
 <div class="band" style="top:280px;height:74px;background:#eff8f1"></div><div class="actor" style="top:280px;height:74px"><b>Outbound app</b><span>(Next.js on Vercel · invite-only)</span></div>
 <div class="band" style="top:358px;height:74px;background:#fcf0f5"></div><div class="actor" style="top:358px;height:74px"><b>Scrape and extract</b><span>(Steps 1 and 2 · code + Gemini)</span></div>
 <div class="band" style="top:436px;height:74px;background:#f2f1fa"></div><div class="actor" style="top:436px;height:74px"><b>ICP gate</b><span>(Step 3 · code, not the AI)</span></div>
@@ -89,10 +89,10 @@
     <path d="M 1028.3333333333333 1021 L 1257.6666666666667 1021" marker-end="url(#arrow)"/>
     <path d="M 1443.0000000000002 943 L 1455.0000000000002 943 L 1455.0000000000002 163 L 1443.0000000000002 163" marker-end="url(#arrow)"/>
   </svg>
-  <div class="box trigger" style="left:221px;top:133px;width:185.33333333333334px;height:60px">A list of domains is ready, or she opens Runs first thing</div>
-<div class="box input" style="left:428.3333333333333px;top:133px;width:185.33333333333334px;height:60px">Pasted or CSV domains; an optional hand-picked contact; her decision on each maybe and each draft</div>
-<div class="box output" style="left:1257.6666666666667px;top:133px;width:185.33333333333334px;height:60px">Live progress for the run, drafts to approve, a plain-English 'why' for every company</div>
-<div class="box context" style="left:635.6666666666667px;top:211px;width:185.33333333333334px;height:60px">Domains found in any pasted text as she types; repeats, bad entries, suppressed and recently mailed domains explained</div>
+  <div class="box trigger" style="left:221px;top:133px;width:185.33333333333334px;height:60px">She opens Discover to find companies, or has a list of domains ready</div>
+<div class="box input" style="left:428.3333333333333px;top:133px;width:185.33333333333334px;height:60px">Her criteria and the companies she picks, or pasted domains; her call on each maybe and draft</div>
+<div class="box output" style="left:1257.6666666666667px;top:133px;width:185.33333333333334px;height:60px">Progress with time left, ranked leads each with a discovery-call brief, drafts to approve, a plain-English 'why' for every company</div>
+<div class="box context" style="left:635.6666666666667px;top:211px;width:185.33333333333334px;height:60px">Three free Hunter searches from the ICP, merged and ranked, each home page checked; or pasted text; suppressed domains explained</div>
 <div class="box processing" style="left:843px;top:211px;width:185.33333333333334px;height:60px">Saved as a run with one job per domain; a domain mailed in the last 30 days is skipped</div>
 <div class="box trigger" style="left:221px;top:289px;width:185.33333333333334px;height:60px">Every 15 minutes a GitHub Actions worker, or a live run open in the browser</div>
 <div class="box context" style="left:635.6666666666667px;top:289px;width:185.33333333333334px;height:60px">Checks the signed-in role, loads the signed-off ICP, the verified Sprinto facts and today's caps</div>
@@ -122,8 +122,8 @@
 <div class="box trigger" style="left:221px;top:913px;width:185.33333333333334px;height:60px">She approved the draft and today's send cap (20 a day) is not reached</div>
 <div class="box input" style="left:428.3333333333333px;top:913px;width:185.33333333333334px;height:60px">The approved text; the owner's own address as the only recipient; the real contact kept as a note</div>
 <div class="box context" style="left:635.6666666666667px;top:913px;width:185.33333333333334px;height:60px">Test mode: the 'to' address is fixed to the owner; one send per domain</div>
-<div class="box processing" style="left:843px;top:913px;width:185.33333333333334px;height:60px">Sent through the Gmail API with send-only permission; message id saved; failures retried</div>
-<div class="box output" style="left:1257.6666666666667px;top:913px;width:185.33333333333334px;height:60px">Email in her inbox headed 'Would have gone to name, title'; still failing after retries is held</div>
+<div class="box processing" style="left:843px;top:913px;width:185.33333333333334px;height:60px">Sent through the Gmail API with send-only permission as a formal HTML and plain-text letter; message id saved; failures retried</div>
+<div class="box output" style="left:1257.6666666666667px;top:913px;width:185.33333333333334px;height:60px">Formal email in her inbox with a notice under it: 'Would have gone to name, title'; still failing after retries is held</div>
 <div class="box trigger" style="left:221px;top:991px;width:185.33333333333334px;height:60px">A run ends, or a week closes</div>
 <div class="box input" style="left:428.3333333333333px;top:991px;width:185.33333333333334px;height:60px">She suppresses a domain, promotes a maybe, hand-picks a contact, edits the ICP with a reason</div>
 <div class="box context" style="left:635.6666666666667px;top:991px;width:185.33333333333334px;height:60px">Hunter and Gemini budgets, suppression list, golden set of known companies, shut-down rules</div>

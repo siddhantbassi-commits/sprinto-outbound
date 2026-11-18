@@ -124,7 +124,75 @@ export const DEMO_COMPANIES: DemoCompany[] = [
   { domain: "vanta.com", name: "Vanta", kind: "competitor", compliance: "soc2_iso", band: "201-500", hiring: "none", s: { product: "Vanta automates compliance for growing companies.", plan: "Enterprise customers get SSO and custom frameworks.", data: "Your evidence is stored in your Vanta account.", cert: "Vanta is SOC 2 Type II and ISO 27001 certified." }, contacts: [] },
 ];
 
+/**
+ * Companies the demo's Discover search can find that no sample run has read yet, so a person can pick some, research them
+ * and watch the whole path. One is a hotel with a booking page, which Discover's look at the site drops.
+ */
+export const DEMO_DISCOVERABLE: DemoCompany[] = [
+  {
+    domain: "meridiancare.io", name: "Meridian Care", kind: "strong", compliance: "in_progress", band: "51-200", hiring: "security_role",
+    s: {
+      product: "Meridian Care is a patient messaging platform for hospital groups.",
+      funding: "Meridian Care raised its Series B in June.",
+      plan: "The Enterprise plan includes SAML single sign-on and audit logs.",
+      data: "Patient messages and care plans are stored in your Meridian workspace.",
+      health: "We process patient health information on behalf of hospital groups.",
+      cert: "We are working toward our SOC 2 Type II report and expect it next year.",
+      friction: "Hospital security teams send us a questionnaire before every pilot.",
+      size: "Meridian Care has about 140 employees in Dublin and Boston.",
+      eu: "Hospital groups across the EU use Meridian Care.",
+      logos: "Trusted by Alder Health and Northgate Clinics.",
+      hiring: "Open roles: GRC Manager and Senior Backend Engineer.",
+    },
+    contacts: [person("Sinead", "Walsh", "Head of Security", "security", "senior", "meridiancare.io", 93), person("Tom", "Reilly", "CTO", "it", "executive", "meridiancare.io", 87)],
+  },
+  {
+    domain: "fathompay.com", name: "Fathom Pay", kind: "strong", compliance: "soc2_type1", band: "201-500", hiring: "none",
+    s: {
+      product: "Fathom Pay is a payments platform that lets software companies take card payments in 40 countries.",
+      plan: "Our Enterprise plan includes SSO, custom limits and dedicated support.",
+      payments: "We process card payments for software companies in 40 countries.",
+      cert: "Fathom Pay completed its SOC 2 Type I audit and is working toward Type II.",
+      size: "Fathom Pay has about 320 employees.",
+      logos: "Trusted by Plover Software and Quill Cloud.",
+      data: "Transaction records are stored in your Fathom account.",
+    },
+    contacts: [person("Lena", "Hoffmann", "CISO", "security", "executive", "fathompay.com", 91)],
+  },
+  {
+    domain: "ledgerlight.io", name: "Ledgerlight", kind: "strong", compliance: "none_visible", band: "11-50", hiring: "none",
+    s: {
+      product: "Ledgerlight is a bookkeeping platform for accountants who serve small software companies.",
+      funding: "Ledgerlight raised a seed round in April.",
+      plan: "The Business plan adds SSO and audit logs for accounting firms.",
+      data: "Client ledgers and invoices are stored in your Ledgerlight workspace.",
+      friction: "Larger firms ask us for a security report before they onboard.",
+      size: "Our team of 28 people works from Toronto and Lisbon.",
+      eu: "Firms across the EU use Ledgerlight.",
+      logos: "Used by Marlowe & Co and Teal Accounting.",
+    },
+    contacts: [person("Jonah", "Kerr", "CEO", "executive", "executive", "ledgerlight.io", 89), generic("ledgerlight.io")],
+  },
+  {
+    domain: "tesseldata.com", name: "Tessel Data", kind: "strong", compliance: "in_progress", band: "51-200", hiring: "security_role",
+    s: {
+      product: "Tessel Data is a data pipeline platform that moves customer records between cloud tools.",
+      funding: "We announced our Series A last autumn.",
+      plan: "The Enterprise plan includes SSO, SCIM and a private region.",
+      data: "Customer records are processed and stored in your Tessel workspace.",
+      cert: "We are preparing for our first SOC 2 audit with an auditor chosen.",
+      friction: "Enterprise buyers ask for our security documentation early in every deal.",
+      size: "Tessel Data has about 75 employees.",
+      eu: "We serve customers across the EU.",
+      logos: "Trusted by Fernwood Retail and Skyline Freight.",
+      hiring: "Open roles: Security Engineer and Solutions Architect.",
+    },
+    contacts: [person("Arjun", "Mehta", "VP Engineering", "engineering", "senior", "tesseldata.com", 90), person("Claire", "Dubois", "Head of Security", "security", "senior", "tesseldata.com", 92)],
+  },
+  { domain: "seaviewhotel.com", name: "Seaview Hotel", kind: "consumer", compliance: null, band: "11-50", hiring: null, s: { product: "Seaview Hotel is a family hotel and resort by the sea with a spa and a golf course.", size: "We are a team of 40 hosts." }, contacts: [] },
+];
+
 /** The company the demo leaves waiting for approval, so the review desk has a real draft the moment it opens. */
 export const UP_NEXT = "cobaltledger.io";
 
-export const DEMO_BY_DOMAIN = new Map(DEMO_COMPANIES.map((c) => [c.domain, c]));
+export const DEMO_BY_DOMAIN = new Map([...DEMO_COMPANIES, ...DEMO_DISCOVERABLE].map((c) => [c.domain, c]));

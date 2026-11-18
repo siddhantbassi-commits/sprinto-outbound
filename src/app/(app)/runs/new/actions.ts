@@ -75,7 +75,8 @@ export async function startRun(_prev: StartResult | null, formData: FormData): P
   } catch {
     return { message: "The list could not be read. Check it again." };
   }
-  const source = formData.get("source") === "csv" ? "csv" : "paste";
+  const wanted = formData.get("source");
+  const source = wanted === "csv" ? "csv" : wanted === "discover" ? "discover" : "paste";
   const note = String(formData.get("note") ?? "").trim().slice(0, 120);
   let id: string;
   try {

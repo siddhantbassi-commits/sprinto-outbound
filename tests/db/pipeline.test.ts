@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { readMessage } from "@/lib/email/mime";
 import { AiError } from "@/lib/ai/errors";
 import { scriptedAi, type JsonStep } from "@/lib/ai/fake";
 import type { JsonRequest } from "@/lib/ai/types";
@@ -157,19 +158,25 @@ describe("a domain, from queued to a sent test email", () => {
     expect(Object.fromEntries(ledger.map((l) => [l.kind, Number(l.units)]))).toEqual({ gemini_tokens: 3600, gmail_send: 1, hunter_credits: 1 });
   });
 
-  it("sends one message, to the test address only, with the defence written above the email", async () => {
+  it("sends one message, to the test address only, as a formal email with the defence written below it", async () => {
     const r = await rig();
     await r.w.startRun(["acme.com"]);
     await r.run();
     expect(r.gmail!.sends).toHaveLength(1);
     const raw = r.gmail!.sends[0]!;
-    const [head, ...rest] = raw.split("\r\n\r\n");
-    expect(head!.match(/^(To|Cc|Bcc): .*$/gim)).toEqual([`To: ${TEST_TO}`]);
+    const { head, text: body, html } = readMessage(raw);
+    expect(head.match(/^(To|Cc|Bcc): .*$/gim)).toEqual([`To: ${TEST_TO}`]);
     expect(head).not.toContain("priya@acme.com");
     const emailId = (await r.w.db.admin<{ id: string }>("select id from public.emails"))[0]!.id;
     expect(head).toContain(`X-Outbound-Run: ${emailId}`);
-    const body = Buffer.from(rest.join("").replace(/\r\n/g, ""), "base64").toString("utf8");
-    expect(body).toMatch(/^TEST MODE\. This message was sent to you only\. It was NOT sent to the contact\./);
+    expect(head).toContain("multipart/alternative");
+    expect(body).toMatch(/^Dear Priya,\r\n/);
+    expect(body).toContain("\r\nKind regards,\r\n");
+    expect(body).toMatch(/TEST DELIVERY\. This message was sent to you only\. It was not sent to the contact\./);
+    // The notice sits below the email, never above it.
+    expect(body.indexOf("Kind regards,")).toBeLessThan(body.indexOf("TEST DELIVERY"));
+    expect(html).toContain("Dear Priya,");
+    expect(html).toContain("Test delivery");
     expect(body).toContain("Would have gone to: Priya Rao, CTO at Acme <priya@acme.com> (email valid, confidence 94)");
     expect(body).toMatch(/Qualified: qualified \d+\/100\./);
     expect(body).toMatch(/Chosen contact scored \d+; over Dan Lee, VP Engineering, \d+\./);
@@ -177,8 +184,8 @@ describe("a domain, from queued to a sent test email", () => {
     expect(body).toMatch(/Hook source: https:\/\/acme\.com\//);
     expect(body).toContain("Full trace: https://outbound.example.app/prospects/");
     expect(body).toContain(`\r\n${"-".repeat(56)}\r\n`);
-    expect(body).toContain("\r\nHi Priya,\r\n");
-    expect(body).toMatch(/reply "no" and I won't write again\. 1 Example Street$/);
+    const [email] = body.split(`\r\n\r\n${"-".repeat(56)}\r\n`);
+    expect(email).toMatch(/please reply "no" and I will not write again\. 1 Example Street$/);
   });
 
   it("never shows the model an address, and never writes a name or address into the trace", async () => {
@@ -505,8 +512,8 @@ describe("the draft", () => {
     await r.w.startRun(["acme.com"]);
     await r.run();
     const [e] = await r.w.db.admin<{ body: string }>("select body from public.emails");
-    expect(e!.body).toContain("\n\nAanya\nHead of Growth, Sprinto\n\n");
-    expect(e!.body.endsWith('I won\'t write again. 9 Test Road, Mumbai 400001')).toBe(true);
+    expect(e!.body).toContain("\n\nKind regards,\nAanya\nHead of Growth, Sprinto\n\n");
+    expect(e!.body.endsWith('I will not write again. 9 Test Road, Mumbai 400001')).toBe(true);
   });
 
   it("keeps the model on the rails when a page tries to instruct it, and flags the page", async () => {
@@ -697,8 +704,8 @@ describe("resuming a parked prospect", () => {
 // ---------------------------------------------------------------- the human boundary
 describe("approval before sending", () => {
   const decode = (raw: string) => {
-    const [head, ...rest] = raw.split("\r\n\r\n");
-    return { head: head!, body: Buffer.from(rest.join("").replace(/\r\n/g, ""), "base64").toString("utf8") };
+    const m = readMessage(raw);
+    return { head: m.head, body: m.text, html: m.html };
   };
   const approve = (w: World, id: string, subject: string, body: string, ratio = 0) =>
     w.s.operator.query("select * from public.approve_email((select id from public.emails where prospect_id = $1 order by attempt desc limit 1), $2, $3, $4, '')", [id, subject, body, ratio]);

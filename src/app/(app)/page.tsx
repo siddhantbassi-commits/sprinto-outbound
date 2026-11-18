@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Icon } from "@/components/icons";
 import { AdvanceButton } from "@/components/live";
 import { Empty, Kpi, LanePill, Meter, PageHead, Pill, Ring, SectionTitle } from "@/components/ui";
-import { ago, dateTime, plural } from "@/lib/app/format";
+import { ago, dateTime, plural, runSource } from "@/lib/app/format";
 import { computeImpact, hours, rangeFor } from "@/lib/app/impact";
 import { currentSettings, impactData, listRuns, needsAttention, settingsPage, workerStatus } from "@/lib/app/queries";
 import { buildReadiness } from "@/lib/app/readiness";
@@ -52,7 +52,8 @@ export default async function Runs() {
     <div className="stack" style={{ gap: 24 }}>
       <PageHead eyebrow="Workspace" title="Runs" sub="What the pipeline has done, and what is waiting on you.">
         {canRun ? <AdvanceButton /> : null}
-        {canRun ? <Link href="/runs/new" className="btn primary"><Icon name="plus" />New run</Link> : null}
+        {canRun ? <Link href="/runs/new" className="btn"><Icon name="list" />Paste a list</Link> : null}
+        {canRun ? <Link href="/discover" className="btn primary"><Icon name="search" />Discover companies</Link> : null}
       </PageHead>
 
       {!readiness.ready ? (
@@ -139,8 +140,8 @@ export default async function Runs() {
         {runs.length === 0 ? (
           <div className="card">
             <Empty title="No runs yet" icon="runs">
-              <p className="small" style={{ margin: 0, maxWidth: "52ch" }}>Paste a list of domains. Each is read, judged against the ICP, matched to one named person and written to.</p>
-              {canRun ? <Link href="/runs/new" className="btn primary" style={{ marginTop: 10 }}><Icon name="plus" />Start a run</Link> : <p className="small muted">An operator can start one.</p>}
+              <p className="small" style={{ margin: 0, maxWidth: "52ch" }}>Find companies that look like Sprinto customers, or paste your own list. Each is read, judged against the ICP, matched to one named person and written up for a discovery call.</p>
+              {canRun ? <span className="row" style={{ marginTop: 10 }}><Link href="/discover" className="btn primary"><Icon name="search" />Discover companies</Link><Link href="/runs/new" className="btn">Paste a list</Link></span> : <p className="small muted">An operator can start one.</p>}
             </Empty>
           </div>
         ) : (
@@ -156,7 +157,7 @@ export default async function Runs() {
                     <tr key={r.id}>
                       <td>
                         <Link href={`/runs/${r.id}`}><strong>{r.note || `Run of ${plural(r.domain_count, "domain")}`}</strong></Link>
-                        <div className="small muted">{dateTime(r.created_at)} · {r.source === "csv" ? "CSV" : "pasted"}{r.paused ? " · paused" : ""}</div>
+                        <div className="small muted">{dateTime(r.created_at)} · {runSource(r.source).label}{r.paused ? " · paused" : ""}</div>
                       </td>
                       <td style={{ minWidth: 180 }}><Meter counts={r.counts} /></td>
                       <td className="num">{r.domain_count}</td>

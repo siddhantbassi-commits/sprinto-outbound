@@ -1,12 +1,12 @@
 # Sprinto Outbound
 
-Cold outreach at scale for Sprinto (SOC 2, ISO 27001 and GDPR automation). Paste a list of domains; for each one the system reads the company's public website, decides whether it fits, finds one named decision-maker, picks the two pains that person most likely has, writes a short personal email with a hook taken from the site, and sends it through Gmail.
+Cold outreach at scale for Sprinto (SOC 2, ISO 27001 and GDPR automation). It starts by **finding companies that look like Sprinto customers** (Hunter Discover, narrowed by the signed-off ICP, each home page checked), or you can paste a list. For each chosen company it reads the public website, decides whether it fits, finds one named decision-maker, picks the two pains that person most likely has, writes a formal email with a hook taken from the site, and, after a person approves it, sends it through Gmail. Every researched company also gets a **discovery-call brief**: why now, talking points with the company's own words as evidence, questions to ask, and likely objections.
 
 **Live:** https://sprinto-outbound-eight.vercel.app (invite-only, test mode: mail goes only to the configured test address). Deployed on Vercel in Mumbai, with Supabase for data and sign-in and a GitHub Actions worker every 15 minutes.
 
 **Gemini reads and writes. Code decides.** Every extracted fact carries a verbatim quote that code checks against the stored page text. Scores, verdicts, the choice of person, the lint on the draft and the send safety are all deterministic and tested. Every step writes an append-only trace, and the "Why" page is that trace made readable.
 
-**Test mode only.** The recipient is a server setting. `sendTest` accepts no recipient, so the real contact is never mailed: the email lands in your own inbox with a header above it saying who it *would* have gone to and why.
+**Test mode only.** The recipient is a server setting. `sendTest` accepts no recipient, so the real contact is never mailed: the email lands in your own inbox as a formal letter (HTML with a plain-text twin), with a small notice under it saying who it *would* have gone to and why.
 
 Built for MESA AI-Native Track, Case 02 (3 November 2026). Scope and reasoning: [`docs/Sprinto-Outbound-Scope.md`](docs/Sprinto-Outbound-Scope.md). Components map: [`docs/Sprinto-Outbound-Components-Map.pdf`](docs/Sprinto-Outbound-Components-Map.pdf). Demo script: [`docs/DEMO.md`](docs/DEMO.md). Practice run and failure drills: [`docs/REHEARSAL.md`](docs/REHEARSAL.md).
 
@@ -19,7 +19,7 @@ npm run dev:demo      # http://localhost:3100
 
 Demo mode runs the whole product on eight invented companies, in memory: a real Postgres engine with the real schema, the real worker, the real quote check, scoring, lint and send safety. Only the outside world is pretend (the websites, the model, Hunter and Gmail). Nothing leaves your computer, and it refuses to start in production or beside a real database. Use the **View as** switch at the top to see what an admin, an operator, a viewer and a not-yet-approved person can each do.
 
-Things worth clicking: a company's **Why** page (every score point with its quote and the page it came from), **Needs attention** (a "maybe", a company with no usable contact), **Test inbox** (what would have landed in your Gmail, with the defence above it), and **Settings** (what must be true before anything can send), **Impact** (the funnel, where the rest went, and time saved with its working), **Scorecard** (the three kill criteria set before the build, and where each stands, with "not enough data" until 8 decisions exist), **Quality** (this week against last week, with "not enough data" shown where a sample is too small, and the golden set), **Ask** (plain-English questions answered from the records, with what it looked at shown), and **ICP and replay** (change a weight and see which stored companies would move, without re-reading a single site).
+Things worth clicking: a company's **Why** page (every score point with its quote and the page it came from), **Needs attention** (a "maybe", a company with no usable contact), **Discover** (find companies, with the reason for each suggestion), **Leads** and a company's **brief** (what to know before the call), **Test inbox** (the formal email as it would land in your Gmail, with the defence under it), and **Settings** (what must be true before anything can send), **Impact** (the funnel, where the rest went, and time saved with its working), **Scorecard** (the three kill criteria set before the build, and where each stands, with "not enough data" until 8 decisions exist), **Quality** (this week against last week, with "not enough data" shown where a sample is too small, and the golden set), **Ask** (plain-English questions answered from the records, with what it looked at shown), and **ICP and replay** (change a weight and see which stored companies would move, without re-reading a single site).
 
 ## What exists today
 
@@ -30,11 +30,13 @@ Everything below is built, tested and deployed. The tests use fakes for the outs
 | Web guard, scraper | `src/lib/scrape/` | SSRF guard, robots.txt, redirect checks, size and time caps, HTML to text, per-site crawler |
 | Gemini client, extraction, agent loop | `src/lib/ai/`, `src/lib/extract/`, `src/lib/agent/` | Model fallback chain, JSON and function calling kept separate, injection handling, token budgets |
 | ICP score, contact ranking | `src/lib/icp/`, `src/lib/contacts/` | Versioned rubric, five gates, explainable ranking, Hunter client with a live credit ledger and cache |
-| Pains, draft, lint | `src/lib/pitch/`, `src/lib/email/lint.ts` | Fixed pain library, 12 lint checks, repair loop, held drafts |
-| Gmail | `src/lib/email/` | Strict MIME builder, send-only OAuth, three outcomes (sent, failed, unknown), inbox header |
+| Discovery | `src/lib/discovery/`, `src/app/(app)/discover/` | Three Hunter Discover angles (hiring, B2B software, regulated markets) built from the ICP, merged and ranked, each home page checked so hotels and dead sites drop out, with the standing of anything already known (researched, suppressed, mailed) |
+| Call brief, Leads | `src/lib/brief/`, `src/lib/app/leads.ts`, `src/app/(app)/leads/` | Built by code from recorded evidence (no extra model call): fit with quotes, who to speak to, why now, talking points, questions, objections, and the only claims about Sprinto that a person has verified |
+| Pains, draft, lint | `src/lib/pitch/`, `src/lib/email/lint.ts` | Fixed pain library, 12 lint checks, repair loop, held drafts; a formal register (`draft-v4`) |
+| Gmail | `src/lib/email/` | Strict MIME builder (multipart: plain text and an escaped, self-contained HTML letter), send-only OAuth, three outcomes (sent, failed, unknown), test notice under the email |
 | Database | `supabase/` | Roles, row-level security, append-only history, queue and send safety as SQL functions ([details](supabase/README.md)) |
 | Worker | `src/lib/worker/` | The seven steps as handlers, the tick loop, the store over a database port |
-| App | `src/app/`, `src/components/` | Sign-in (invite-only magic link), runs, new run (a paste box that finds domains in any text), a live run view, the Why page, settings, people, run CSV export, a command palette |
+| App | `src/app/`, `src/components/` | Sign-in (invite-only magic link), Discover, Leads, runs, paste a list (finds domains in any text), a live run view with a weighted progress bar and time left, a progress card and finish notice that follow you around the app, a first-visit tour, the Why page, settings, people, run CSV export, a command palette |
 | Review desk | `src/app/(app)/review/`, `src/lib/app/review.ts`, `editdiff.ts` | A person approves, edits or rejects every draft before it is sent; edits are measured in words and re-checked; each decision is a permanent row (`email_reviews`) |
 | Demo | `src/lib/demo/` | The sample world described above |
 | Key day | `scripts/`, `src/lib/smoke/` | Hidden-prompt key entry, and the smoke test described below |

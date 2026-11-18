@@ -1,5 +1,7 @@
 "use client";
 import Link from "next/link";
+import { EmailFrame } from "@/components/email-frame";
+import { renderEmailHtml } from "@/lib/email/render";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { Icon } from "@/components/icons";
@@ -157,7 +159,7 @@ export function ReviewDesk({ items, canDecide, sender, testTo }: { items: Approv
               {editing ? (
                 <textarea ref={bodyRef} className="mail-edit" value={body} onChange={(e) => setBody(e.target.value)} aria-label="Email body" maxLength={6000} style={{ width: "100%", minHeight: 320, border: 0, borderRadius: 0, fontFamily: "var(--font)", fontSize: "0.97rem", lineHeight: 1.7, padding: "18px 20px" }} />
               ) : (
-                <div className="mail-body">{body}</div>
+                <EmailFrame html={renderEmailHtml({ subject, body })} />
               )}
               <div className="mail-foot">
                 {testTo ? <span><Icon name="shield" /> Test mode: delivered to {testTo} only</span> : null}

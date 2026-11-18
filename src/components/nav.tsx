@@ -26,7 +26,7 @@ export function NavLinks({ items, className }: { items: NavItem[]; className?: s
           <div key={g} role="group" aria-label={g}>
             <div className="nav-group" aria-hidden>{g}</div>
             {here.map((i) => (
-              <Link key={i.href} href={i.href} aria-current={active(i.href) ? "page" : undefined}>
+              <Link key={i.href} href={i.href} data-tour={`nav${i.href}`} aria-current={active(i.href) ? "page" : undefined}>
                 <Icon name={i.icon} />
                 {i.label}
                 {i.badge ? <span className="count" aria-label={`${i.badge} waiting`}>{i.badge}</span> : null}

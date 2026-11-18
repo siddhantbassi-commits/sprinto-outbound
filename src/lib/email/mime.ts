@@ -69,6 +69,8 @@ export interface MessageInput {
   to: string;
   subject: string;
   body: string;
+  /** An HTML version of the same email. When present the message is multipart/alternative: plain text first, HTML last. */
+  html?: string;
   /** Searchable in Sent, so an unknown send can be found by hand. */
   runId: string;
   date?: Date;
@@ -83,6 +85,8 @@ export function buildMessage(input: MessageInput): string {
 
   const text = input.body.replace(/\r\n|\r|\n/g, "\n").replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, "").replace(/\n/g, "\r\n");
   const host = from.split("@")[1]!;
+  const html = input.html === undefined ? null : input.html.replace(/\r\n|\r|\n/g, "\n").replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, "").replace(/\n/g, "\r\n");
+  const boundary = `=_${randomBytes(12).toString("hex")}`;
   const headers = [
     `From: ${input.fromName ? `${displayName(input.fromName)} <${from}>` : from}`,
     `To: ${to}`,
@@ -91,11 +95,26 @@ export function buildMessage(input: MessageInput): string {
     `Message-ID: <${input.runId}.${randomBytes(8).toString("hex")}@${host}>`,
     `X-Outbound-Run: ${input.runId}`,
     "MIME-Version: 1.0",
-    "Content-Type: text/plain; charset=UTF-8",
-    "Content-Transfer-Encoding: base64",
+    ...(html === null ? ["Content-Type: text/plain; charset=UTF-8", "Content-Transfer-Encoding: base64"] : [`Content-Type: multipart/alternative; boundary="${boundary}"`]),
   ];
-  return `${headers.join("\r\n")}\r\n\r\n${wrap76(Buffer.from(text, "utf8").toString("base64"))}\r\n`;
+  if (html === null) return `${headers.join("\r\n")}\r\n\r\n${wrap76(Buffer.from(text, "utf8").toString("base64"))}\r\n`;
+  const part = (type: string, content: string) => `--${boundary}\r\nContent-Type: ${type}; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n${wrap76(Buffer.from(content, "utf8").toString("base64"))}\r\n`;
+  return `${headers.join("\r\n")}\r\n\r\n${part("text/plain", text)}${part("text/html", html)}--${boundary}--\r\n`;
 }
 
 /** The form the Gmail API wants in its `raw` field. */
 export const toRaw = (message: string): string => Buffer.from(message, "utf8").toString("base64url");
+
+/** Reads one part of a built message back: the headers, the plain text and the HTML, exactly as a mail client would. */
+export function readMessage(raw: string): { head: string; text: string; html: string | null } {
+  const [head = "", ...rest] = raw.split("\r\n\r\n");
+  const decode = (b: string) => Buffer.from(b.replace(/\r\n/g, ""), "base64").toString("utf8");
+  const boundary = /boundary="([^"]+)"/i.exec(head)?.[1];
+  if (!boundary) return { head, text: decode(rest.join("")), html: null };
+  const parts = rest.join("\r\n\r\n").split(`--${boundary}`).filter((p) => /Content-Type:/i.test(p));
+  const body = (p: string) => decode(p.split("\r\n\r\n").slice(1).join(""));
+  const pick = (type: string) => parts.find((p) => new RegExp(`Content-Type: ${type}`, "i").test(p));
+  const text = pick("text/plain");
+  const html = pick("text/html");
+  return { head, text: text ? body(text) : "", html: html ? body(html) : null };
+}
