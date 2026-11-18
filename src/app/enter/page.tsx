@@ -7,7 +7,9 @@ export const metadata = { title: "Welcome to Sprinto Outbound" };
 
 export default async function Enter({ searchParams }: { searchParams: Promise<{ to?: string }> }) {
   const to = safeDestination((await searchParams).to);
-  // Only the demo has a welcome; anywhere else the way in is the sign-in page, or the app itself.
-  if (readEnv().mode !== "demo") redirect(to);
-  return <Intro to={to} />;
+  // Only the demo and the guest pass have a welcome; anywhere else the way in is the sign-in page, or the app itself.
+  const env = readEnv();
+  const kind = env.mode === "demo" ? "demo" : env.guest ? "guest" : null;
+  if (!kind) redirect(to);
+  return <Intro to={to} kind={kind} />;
 }

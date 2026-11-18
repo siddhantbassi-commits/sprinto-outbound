@@ -33,6 +33,8 @@ export interface AppSession {
   user: { id: string; email: string; role: Role };
   db: DbPort;
   env: AppEnv;
+  /** A visitor with the guest pass: not signed in, acting through the guest admin account, with the rails in guest.ts. */
+  guest?: boolean;
 }
 
 export const env = (): AppEnv => readEnv();
@@ -67,7 +69,12 @@ export async function getSession(): Promise<AppSession | null> {
     },
   });
   const { data } = await supabase.auth.getUser();
-  if (!data.user) return null;
+  if (!data.user) {
+    // No sign-in. With the guest pass switched on, this visitor is a guest; otherwise there is nobody.
+    if (!e.guest) return null;
+    const guest = await guestAccount(e);
+    return { mode: "supabase", guest: true, user: { id: guest.id, email: "Guest", role: "admin" }, db: guest.port, env: e };
+  }
   const db = supabasePort(asLike(supabase));
   const [profile] = await db.select("profiles", { id: data.user.id });
   return { mode: "supabase", user: { id: data.user.id, email: data.user.email ?? "", role: ((profile?.role as Role | undefined) ?? "pending") }, db, env: e };
@@ -88,6 +95,20 @@ async function workerPort(e: AppEnv): Promise<DbPort> {
   if (error) throw new Error("The worker could not sign in. Check WORKER_EMAIL and WORKER_PASSWORD.");
   cachedWorker = { port: supabasePort(asLike(client)), expires: Date.now() + 30 * 60_000 };
   return cachedWorker.port;
+}
+
+// ---------------------------------------------------------------- the guest account
+let cachedGuest: { id: string; port: DbPort; expires: number } | null = null;
+
+/** The dedicated guest account, signed in on the server and kept for a while. Its password never leaves the server. */
+async function guestAccount(e: AppEnv): Promise<{ id: string; port: DbPort }> {
+  if (cachedGuest && cachedGuest.expires > Date.now()) return cachedGuest;
+  if (!e.supabase || !e.guest) throw new Error("The guest pass is not configured.");
+  const client = createClient(e.supabase.url, e.supabase.anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
+  const { data, error } = await client.auth.signInWithPassword({ email: e.guest.email, password: e.guest.password });
+  if (error || !data.user) throw new Error("The guest account could not sign in. Check GUEST_EMAIL and GUEST_PASSWORD.");
+  cachedGuest = { id: data.user.id, port: supabasePort(asLike(client)), expires: Date.now() + 30 * 60_000 };
+  return cachedGuest;
 }
 
 const unconfiguredAi: AiClient = {

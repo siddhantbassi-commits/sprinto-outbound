@@ -9,7 +9,8 @@ export const metadata = { title: "People" };
 
 export default async function People() {
   const s = (await getSession())!;
-  if (s.user.role !== "admin") redirect("/");
+  // A guest is an admin for everything else, but cannot manage people: they could lock the owner out.
+  if (s.user.role !== "admin" || s.guest) redirect("/");
   const list = await people(s.db);
   const changes = await s.db.select("role_changes", {}, { order: "id", ascending: false, limit: 10 });
   return (

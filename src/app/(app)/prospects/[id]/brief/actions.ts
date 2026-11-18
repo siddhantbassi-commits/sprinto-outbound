@@ -1,6 +1,7 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { currentSettings } from "@/lib/app/queries";
+import { guestPayVerdict } from "@/lib/app/guest-load";
 import { discoverySetup, getSession, hunterBalance } from "@/lib/app/runtime";
 import { HunterError } from "@/lib/contacts/hunter";
 
@@ -16,6 +17,8 @@ export interface VerifyResult {
 export async function verifyContact(prospectId: string): Promise<VerifyResult> {
   const s = await getSession();
   if (!s || (s.user.role !== "operator" && s.user.role !== "admin")) return { ok: false, message: "Only an operator or admin can verify an address." };
+  const may = await guestPayVerdict(s);
+  if (!may.ok) return { ok: false, message: may.message };
   const setup = discoverySetup();
   if (!setup.ok || !setup.hunter.verify) return { ok: false, message: "Hunter is not connected, so the address cannot be checked." };
   const [contact] = await s.db.select("contacts", { prospect_id: prospectId, chosen: true }, { limit: 1 });

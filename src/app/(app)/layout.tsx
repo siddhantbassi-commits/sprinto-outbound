@@ -43,6 +43,14 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     </div>
   ) : null;
 
+  const guestBar = s.guest ? (
+    <div className="demo-bar">
+      <strong>Guest access</strong>
+      <span>You can do what an admin does here: search for companies, run research, change the ICP and the rules, and review drafts. Email goes only to the owner&apos;s test inbox.</span>
+      <Link className="btn small" href="/login">Owner sign-in</Link>
+    </div>
+  ) : null;
+
   if (s.user.role === "pending") {
     return (
       <>
@@ -81,7 +89,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     { href: "/icp", label: "ICP and replay", icon: "target", group: "Control" },
     { href: "/settings", label: "Settings", icon: "sliders", group: "Control" },
     { href: "/golive", label: "Go-live readiness", icon: "shield", group: "Control" },
-    ...(role === "admin" ? [{ href: "/people", label: "People", icon: "people", group: "Control" } as NavItem] : []),
+    ...(role === "admin" && !s.guest ? [{ href: "/people", label: "People", icon: "people", group: "Control" } as NavItem] : []),
     ...(demo ? [{ href: "/outbox", label: "Test inbox", icon: "mail", group: "Control" } as NavItem] : []),
   ];
   const palette: PaletteItem[] = [
@@ -98,6 +106,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     <>
       <a className="skip" href="#content">Skip to content</a>
       {demoBar}
+      {guestBar}
       <div className="shell">
         <aside className="side">
           <Link href="/" className="brand" aria-label="Sprinto Outbound home">
@@ -112,8 +121,8 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
             </div>
             <div className="me">
               <span className="avatar" aria-hidden>{initials(s.user.email)}</span>
-              <span className="me-text"><b title={s.user.email}>{s.user.email}</b><span>{ROLE_LABEL[role]}</span></span>
-              {demo ? null : (
+              <span className="me-text"><b title={s.user.email}>{s.user.email}</b><span>{s.guest ? "Guest (admin access)" : ROLE_LABEL[role]}</span></span>
+              {demo || s.guest ? null : (
                 <form action="/auth/signout" method="post">
                   <button className="icon-btn" type="submit" title="Sign out" aria-label="Sign out"><Icon name="logout" /></button>
                 </form>

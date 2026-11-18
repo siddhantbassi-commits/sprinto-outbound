@@ -18,6 +18,12 @@ export interface AppEnv {
    */
   live: { dailyTokens: number; dailyHunter: number } | null;
   hunterKey: string | null;
+  /**
+   * The guest pass: a way in for someone who only needs to look, with no sign-in. It is one dedicated operator account held on the
+   * server (never sent to the browser), used only through an allow-list, so a guest can search and start capped runs, and can
+   * read everything, but cannot send, approve or change anything. Null means the app is invite-only.
+   */
+  guest: { email: string; password: string; dailyTokens: number; dailyHunter: number; dailyCompanies: number; keepCredits: number } | null;
   gmail: { clientId: string; clientSecret: string; refreshToken: string; from: string; fromName: string | undefined } | null;
   /** The only address test mode may mail. */
   testTo: string | null;
@@ -37,7 +43,7 @@ const some = (v: string | undefined) => (clean(v) === "" ? null : clean(v));
  * it must be a deployment that holds nothing real, so there is nothing for a visitor to reach even if every page is open.
  */
 export function realCredentials(raw: Raw): string[] {
-  const names = ["NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY", "SUPABASE_ANON_KEY", "SUPABASE_SERVICE_ROLE_KEY", "WORKER_EMAIL", "WORKER_PASSWORD", "CRON_SECRET", "GEMINI_API_KEY", "HUNTER_API_KEY", "GMAIL_CLIENT_ID", "GMAIL_CLIENT_SECRET", "GMAIL_REFRESH_TOKEN", "GMAIL_FROM", "OUTBOUND_TEST_TO"];
+  const names = ["NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY", "SUPABASE_ANON_KEY", "SUPABASE_SERVICE_ROLE_KEY", "WORKER_EMAIL", "WORKER_PASSWORD", "CRON_SECRET", "GEMINI_API_KEY", "HUNTER_API_KEY", "GMAIL_CLIENT_ID", "GMAIL_CLIENT_SECRET", "GMAIL_REFRESH_TOKEN", "GMAIL_FROM", "OUTBOUND_TEST_TO", "GUEST_EMAIL", "GUEST_PASSWORD"];
   return names.filter((n) => clean(raw[n]) !== "");
 }
 
@@ -86,6 +92,28 @@ export function readEnv(raw: Raw = process.env): AppEnv {
   if (mode === "supabase" && !gemini) problems.push("GEMINI_API_KEY is not set, so companies cannot be read.");
 
   const hunterKey = mode === "demo" && !live ? null : some(raw.HUNTER_API_KEY);
+
+  // The guest pass is only for the real app, and only when it was asked for and fully set up.
+  let guest: AppEnv["guest"] = null;
+  if (raw.GUEST_PASS === "1") {
+    const email = text(raw.GUEST_EMAIL);
+    const password = raw.GUEST_PASSWORD ?? "";
+    const n = (v: string | undefined, min: number, fallback: number) => {
+      const x = Number(v);
+      return Number.isFinite(x) && x >= min ? Math.floor(x) : fallback;
+    };
+    if (mode !== "supabase") problems.push("GUEST_PASS only applies to the real app, so it was ignored.");
+    else if (!email || !password) problems.push("GUEST_PASS is set but GUEST_EMAIL and GUEST_PASSWORD are not, so guests cannot get in.");
+    else
+      guest = {
+        email,
+        password,
+        dailyTokens: n(raw.GUEST_DAILY_TOKENS, 50_000, 400_000),
+        dailyHunter: n(raw.GUEST_DAILY_HUNTER, 0, 6),
+        dailyCompanies: n(raw.GUEST_DAILY_COMPANIES, 1, 25),
+        keepCredits: n(raw.GUEST_KEEP_CREDITS, 0, 15),
+      };
+  }
   if (mode === "supabase" && !hunterKey) problems.push("HUNTER_API_KEY is not set. Only hand-picked contacts will work.");
 
   const g = { clientId: some(raw.GMAIL_CLIENT_ID), clientSecret: some(raw.GMAIL_CLIENT_SECRET), refreshToken: some(raw.GMAIL_REFRESH_TOKEN), from: some(raw.GMAIL_FROM) };
@@ -96,7 +124,7 @@ export function readEnv(raw: Raw = process.env): AppEnv {
   if (mode === "supabase" && !testTo) problems.push("OUTBOUND_TEST_TO is not set, so test mode has no address.");
 
   const appUrl = some(raw.APP_URL) ?? (raw.VERCEL_URL ? `https://${clean(raw.VERCEL_URL)}` : null);
-  return { mode, supabase, worker, cronSecret, gemini, live, hunterKey, gmail, testTo, appUrl, contactEmail: some(raw.OUTBOUND_CONTACT_EMAIL) ?? testTo ?? "outbound@example.com", problems };
+  return { mode, supabase, worker, cronSecret, gemini, live, hunterKey, guest, gmail, testTo, appUrl, contactEmail: some(raw.OUTBOUND_CONTACT_EMAIL) ?? testTo ?? "outbound@example.com", problems };
 }
 
 /** Compares two secrets without leaking, through timing, how much of the first one matched. */

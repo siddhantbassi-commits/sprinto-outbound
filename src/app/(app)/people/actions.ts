@@ -6,7 +6,7 @@ export interface ActionResult { ok: boolean; message: string }
 
 export async function changeRole(_p: ActionResult | null, f: FormData): Promise<ActionResult> {
   const s = await getSession();
-  if (!s || s.user.role !== "admin") return { ok: false, message: "Only an admin can change roles." };
+  if (!s || s.user.role !== "admin" || s.guest) return { ok: false, message: "Only the owner can change roles." };
   const user = String(f.get("user") ?? "");
   const role = String(f.get("role") ?? "");
   if (!["pending", "viewer", "operator", "admin", "worker"].includes(role)) return { ok: false, message: "That is not a role." };

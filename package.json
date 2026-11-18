@@ -19,7 +19,8 @@
     "smoke": "tsx scripts/smoke.ts",
     "golden": "tsx scripts/golden.ts",
     "keys": "tsx scripts/keys.ts",
-    "gmail-token": "tsx scripts/gmail-token.ts"
+    "gmail-token": "tsx scripts/gmail-token.ts",
+    "guest": "tsx scripts/guest-setup.ts"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",

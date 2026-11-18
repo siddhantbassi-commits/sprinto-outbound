@@ -18,7 +18,7 @@ const BOUNDARY = [
   "The platform researches, scores and drafts, and sends only what a person has approved. In test mode every email goes to the Growth Lead's own inbox, so no prospect is ever mailed. Gemini only reads page text and writes drafts: it never picks a recipient, changes a score or sends anything. Every score comes from code, on facts that carry a quote from the page.",
   "Which companies to pursue, whether each draft goes out, whether to ever go live, and what to say when someone replies stays with the Growth Lead. Going live is a deliberate admin change after review, not a button anyone can press. The Scorecard says when to stop: over half the drafts rewritten, the wrong person more than 4 times in 10, or more time spent than saved.",
 ];
-const FOOTER = "Public demo, no sign-in: sprinto-outbound-demo.vercel.app  ·  Real app, invite-only, test mode: sprinto-outbound-eight.vercel.app  ·  MESA AI-Native Track Case 02";
+const FOOTER = "Open, no sign-in (guest access): sprinto-outbound-eight.vercel.app  ·  Owner sign-in at /login  ·  Test mode: mail only to the owner  ·  MESA AI-Native Track Case 02";
 
 const COLS = ["Actor", "Trigger", "Input", "Context", "Processing", "AI", "Output"];
 const KIND = ["", "trigger", "input", "context", "processing", "ai", "output"];
@@ -41,10 +41,10 @@ const ROWS = [
     },
   },
   {
-    name: "Outbound app", sub: "(Next.js on Vercel · invite-only)", tint: "#eff8f1",
+    name: "Outbound app", sub: "(Next.js on Vercel · guest or owner)", tint: "#eff8f1",
     boxes: {
       1: "A GitHub Actions worker every 15 minutes and a digest job on Mondays, or a live run open in the browser",
-      3: "Checks the role, loads the signed-off ICP, verified facts and caps. The public demo has no sign-in and shows no real person",
+      3: "Owner by sign-in, guest by link with spend caps. Loads the signed-off ICP, verified facts and daily caps",
       4: "Claims the next step of the next job; each step is saved before the next begins; failures retried with back-off",
     },
   },
@@ -76,7 +76,7 @@ const ROWS = [
   {
     name: "Database", sub: "(Supabase · Postgres)", tint: "#fdf6ec",
     boxes: {
-      3: "Runs, evidence, contacts, drafts, reviews, outcomes, digests, ICP versions, suppressions; invite-only sign-in; row level security",
+      3: "Runs, evidence, contacts, drafts, reviews, outcomes, digests, ICP versions, suppressions; owner sign-in, guest account; row level security",
       4: "Append-only: no edits or deletes; time and name stamped by the database",
     },
   },

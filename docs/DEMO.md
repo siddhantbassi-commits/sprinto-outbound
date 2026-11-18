@@ -1,8 +1,8 @@
 # Demo script (3 minutes) and the questions to expect
 
-Start with the public demo at https://sprinto-outbound-demo.vercel.app (sample data, no sign-in; a short welcome animation opens on Today), `npm run dev:demo` (the same thing locally), or the real deployment (real data, test mode, invited sign-in). The public demo's state sits in server memory and may reset after a quiet period, so refresh it before a run-through rather than relying on a company having stayed where you left it.
+Start with the live app at https://sprinto-outbound-eight.vercel.app (no sign-in: you arrive as a guest after a short welcome, with admin-like access and capped spending), or `npm run dev:demo` (invented companies, no keys, nothing real).
 
-**With the live demo (the real flow):** open Discover → *Find companies* (real companies from Hunter), choose two or three, and start. Each is read from its real site by the real model; Hunter finds a contact (shown as an initial and a masked address); the email lands in the pretend test inbox and nothing is sent. Limits are shown on the page, and the sample companies below are always available if the daily allowance is used up.
+**The real flow, as a guest:** open Discover → *Find companies* (real companies from Hunter's free Discover), choose two or three, and start. Each is read from its real site by Gemini and scored with a quote for every point; Hunter finds the contact (name, title, address); Gemini picks two pains and writes the email; the company's card shows the score, why it fits and what to ask on a discovery call. Approving a draft sends it only to the owner's test inbox. If a daily guest allowance is used up the page says so, and everything already researched stays open to read.
 
 **One minute before the three minutes:** open **Today** ("what needs me now"), then **Leads** and drag a card across the board. Say that the board is built from recorded facts, and that each lead can record what came of it.
 

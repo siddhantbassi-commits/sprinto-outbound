@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { MAX_INPUT_CHARS, parseList, type ParsedList } from "@/lib/app/list";
 import { activeSuppressions, currentSettings } from "@/lib/app/queries";
+import { guestStartVerdict } from "@/lib/app/guest-load";
 import { getSession, hunterBalance } from "@/lib/app/runtime";
 import { liveShared } from "@/lib/demo/live";
 import { planHunterBudget, type BudgetPlan } from "@/lib/contacts/quota";
@@ -85,6 +86,9 @@ export async function startRun(_prev: StartResult | null, formData: FormData): P
     const verdict = liveShared(s.env.live).gate.check(visitor, domains);
     if (!verdict.ok) return { message: verdict.message };
   }
+  // A guest may start runs like an admin, within the daily caps; a signed-in person is never limited here.
+  const allowed = await guestStartVerdict(s, new Set(domains.map((d) => d.toLowerCase().trim())).size);
+  if (!allowed.ok) return { message: allowed.message };
   const wanted = formData.get("source");
   const source = wanted === "csv" ? "csv" : wanted === "discover" ? "discover" : "paste";
   const note = String(formData.get("note") ?? "").trim().slice(0, 120);

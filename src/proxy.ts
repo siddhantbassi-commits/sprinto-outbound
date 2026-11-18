@@ -9,7 +9,7 @@ import { readEnv } from "@/lib/env";
  * The pages check the session again themselves; this is the early, cheap check, not the only one.
  */
 
-const PUBLIC = [/^\/login(\/|$)/, /^\/auth\//, /^\/api\/worker\//, /^\/enter(\/|$)/];
+const PUBLIC = [/^\/login(\/|$)/, /^\/auth\//, /^\/api\/worker\//, /^\/api\/guest\//, /^\/enter(\/|$)/];
 
 export async function proxy(request: NextRequest) {
   const env = readEnv();
@@ -55,10 +55,20 @@ export async function proxy(request: NextRequest) {
     });
     const { data } = await supabase.auth.getUser();
     if (!data.user) {
-      const to = request.nextUrl.clone();
-      to.pathname = "/login";
-      to.search = "";
-      return NextResponse.redirect(to);
+      if (env.guest) {
+        // The guest pass: no sign-in. A first visit gets the short welcome, then the page they asked for, as a guest.
+        if (wantsIntro({ mode: "guest", method: request.method, hasCookie: request.cookies.has(INTRO_COOKIE), accept: request.headers.get("accept") ?? "", path: request.nextUrl.pathname })) {
+          const to = request.nextUrl.clone();
+          to.search = `?to=${encodeURIComponent(request.nextUrl.pathname + request.nextUrl.search)}`;
+          to.pathname = "/enter";
+          return NextResponse.redirect(to);
+        }
+      } else {
+        const to = request.nextUrl.clone();
+        to.pathname = "/login";
+        to.search = "";
+        return NextResponse.redirect(to);
+      }
     }
   }
 
