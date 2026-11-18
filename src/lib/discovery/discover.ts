@@ -40,6 +40,16 @@ export interface Outcome {
   problems: string[];
   /** Dropped after a look at the site, so the person knows the list was cleaned and by how much. */
   hidden: { notSoftware: number; unreachable: number };
+  /** Who was dropped and why, so the clean-up can be checked and a mistake noticed. Capped. */
+  dropped: Dropped[];
+}
+
+export interface Dropped {
+  domain: string;
+  name: string;
+  why: "not_software" | "unreachable";
+  /** The reason in words: what the site said, or why it could not be opened. */
+  detail: string;
 }
 
 export interface DiscoverDeps {
@@ -57,6 +67,7 @@ export interface DiscoverDeps {
 export const SHOWN_MAX = 30;
 export const PEEK_LIMIT = 24;
 const CONCURRENCY = 6;
+export const DROPPED_MAX = 60;
 const VERIFIED_BONUS = 3;
 /** Companies that are not new are shown last, for information only, up to this many. */
 const NOT_NEW_SHOWN = 6;
@@ -121,11 +132,13 @@ export async function discover(c: Criteria, deps: DiscoverDeps): Promise<Outcome
   const looks = await pool(toLook, CONCURRENCY, (s) => withTimeout(peek(s.x.domain), timeout, unreadable));
 
   const hidden = { notSoftware: 0, unreachable: 0 };
+  const dropped: Dropped[] = [];
   const kept: Found[] = [];
   toLook.forEach((s, i) => {
     const p = looks[i] as Peek;
     if (!p.reachable) {
       hidden.unreachable += 1;
+      if (dropped.length < DROPPED_MAX) dropped.push({ domain: s.x.domain, name: s.x.name, why: "unreachable", detail: p.reason ?? "The site could not be opened." });
       return;
     }
     if (p.reason) {
@@ -135,6 +148,7 @@ export async function discover(c: Criteria, deps: DiscoverDeps): Promise<Outcome
     }
     if (!p.looksLikeSoftware) {
       hidden.notSoftware += 1;
+      if (dropped.length < DROPPED_MAX) dropped.push({ domain: s.x.domain, name: s.x.name, why: "not_software", detail: p.about ? `Its home page reads: “${p.about}”` : "Its home page does not read like a software company." });
       return;
     }
     kept.push({ ...s.x, standing: s.standing, about: p.about, title: p.title, verified: true, note: null, rank: s.x.rank + VERIFIED_BONUS });
@@ -142,5 +156,5 @@ export async function discover(c: Criteria, deps: DiscoverDeps): Promise<Outcome
   kept.sort((a, b) => b.rank - a.rank || b.emailsTotal - a.emailsTotal || a.name.localeCompare(b.name));
 
   const informational: Found[] = notNew.slice(0, NOT_NEW_SHOWN).map((s) => ({ ...s.x, standing: s.standing, about: "", title: "", verified: false, note: null }));
-  return { found: [...kept.slice(0, SHOWN_MAX), ...informational], considered: merged.length, byAngle, problems, hidden };
+  return { found: [...kept.slice(0, SHOWN_MAX), ...informational], considered: merged.length, byAngle, problems, hidden, dropped };
 }

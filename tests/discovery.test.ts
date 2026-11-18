@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createHunterClient, HunterError, readDiscover, type DiscoverCompany, type DiscoverResult, type HunterClient } from "@/lib/contacts/hunter";
 import { ANGLES, angleRequest, canResearch, defaultCriteria, estimateCost, HUNTER_EXCLUDE_LIMIT, MAX_WANT, mergeAngles, normaliseCriteria, standingOf, type AngleId, type Criteria } from "@/lib/discovery/criteria";
-import { discover, type Known } from "@/lib/discovery/discover";
+import { discover, DROPPED_MAX, type Known } from "@/lib/discovery/discover";
 import { aboutFrom, readPeek, type Peek } from "@/lib/discovery/peek";
 import { ICP_V1 } from "@/lib/icp/config";
 
@@ -345,6 +345,21 @@ describe("a whole search", () => {
       d === "hotel.com" ? { ...soft(), looksLikeSoftware: false } : d === "dead.io" ? { reachable: false, reason: "no", title: "", about: "", looksLikeSoftware: false, signals: [] } : soft());
     expect(o.found.map((f) => f.domain)).toEqual(["good.io"]);
     expect(o.hidden).toEqual({ notSoftware: 1, unreachable: 1 });
+    expect(o.dropped.map((d) => [d.domain, d.why]).sort()).toEqual([["dead.io", "unreachable"], ["hotel.com", "not_software"]]);
+    expect(o.dropped.find((d) => d.domain === "dead.io")!.detail).toBe("no");
+  });
+
+  it("says who was dropped and why, with the page's own words for a site that is not software, and caps the list", async () => {
+    const notSoft = (about: string): Peek => ({ reachable: true, reason: null, title: "T", about, looksLikeSoftware: false, signals: [] });
+    const o = await run(hunter({ hiring: [co("spa.com", 9), co("shut.io", 8)], software: [], regulated: [] }), async (d) => (d === "spa.com" ? notSoft("A family spa by the sea.") : { reachable: false, reason: "robots.txt asks to be left alone", title: "", about: "", looksLikeSoftware: false, signals: [] }));
+    expect(o.dropped).toEqual([
+      { domain: "spa.com", name: "spa.com", why: "not_software", detail: "Its home page reads: “A family spa by the sea.”" },
+      { domain: "shut.io", name: "shut.io", why: "unreachable", detail: "robots.txt asks to be left alone" },
+    ]);
+    const many = Array.from({ length: 70 }, (_, i) => co(`gone${i}.io`, 100 - i));
+    const big = await run(hunter({ hiring: many, software: [], regulated: [] }), async () => notSoft(""), known(), crit, { peekLimit: 70 });
+    expect(big.dropped).toHaveLength(DROPPED_MAX);
+    expect(big.hidden.notSoftware).toBe(70);
   });
 
   it("keeps a site with too little text, marked as not checked, rather than throwing it away", async () => {

@@ -27,3 +27,17 @@ export async function logOutcome(_prev: OutcomeResult | null, formData: FormData
   for (const p of ["/leads", `/prospects/${id}/brief`, "/impact", "/"]) revalidatePath(p);
   return { ok: true, message: dnc ? "Recorded, and they will not be contacted again." : "Recorded." };
 }
+
+/** Moves a lead to another stage on the board: records that outcome, with no note and no date (open the card for those). */
+export async function moveLead(id: string, status: string): Promise<OutcomeResult> {
+  const s = await getSession();
+  if (!s || (s.user.role !== "operator" && s.user.role !== "admin")) return { ok: false, message: "Only an operator or admin can move a lead." };
+  if (!isOutcome(status)) return { ok: false, message: "That is not a stage a lead can be moved to." };
+  try {
+    await s.db.rpc("log_outcome", { p_prospect: id, p_status: status, p_note: "", p_follow_up: null, p_do_not_contact: false });
+  } catch (e) {
+    return { ok: false, message: e instanceof Error ? e.message : "That could not be recorded." };
+  }
+  for (const p of ["/leads", `/prospects/${id}/brief`, "/impact", "/"]) revalidatePath(p);
+  return { ok: true, message: `Moved to ${OUTCOME_BY_ID[status].label.toLowerCase()}.` };
+}

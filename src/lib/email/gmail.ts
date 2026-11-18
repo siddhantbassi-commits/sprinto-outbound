@@ -116,7 +116,7 @@ export function createGmailSender(cfg: GmailConfig): GmailSender {
       let raw: string;
       try {
         // Only these four fields are read from the draft. Anything else on the object, a `to` included, is ignored.
-        raw = toRaw(buildMessage({ from, fromName: cfg.fromName, to: testTo, subject: draft.subject, body: draft.body, html: draft.html, runId: draft.runId, date: new Date(now()) }));
+        raw = toRaw(buildMessage({ from, fromName: cfg.fromName, to: testTo, subject: draft.subject, body: draft.body, html: draft.html, runId: draft.runId, unsubscribe: from, date: new Date(now()) }));
       } catch (e) {
         return { status: "failed", code: "invalid_message", retryable: false, reason: e instanceof MimeError ? e.message : "The message could not be built." };
       }

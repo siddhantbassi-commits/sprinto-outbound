@@ -3,7 +3,7 @@ import { world } from "./world";
 
 const ALL_TABLES = [
   "profiles", "settings_versions", "icp_versions", "icp_signoffs", "sprinto_facts_versions", "runs", "prospects", "step_events", "pages", "facts",
-  "scores", "contacts", "manual_contacts", "hunter_cache", "emails", "suppressions", "decisions", "usage_ledger", "worker_ticks", "role_changes", "golden_runs", "email_reviews", "lead_outcomes", "digest_searches", "digests", "prospect_hints",
+  "scores", "contacts", "manual_contacts", "hunter_cache", "emails", "suppressions", "decisions", "usage_ledger", "worker_ticks", "role_changes", "golden_runs", "email_reviews", "lead_outcomes", "digest_searches", "digests", "prospect_hints", "contact_verifications",
 ];
 
 describe("every table is locked down", () => {

@@ -914,3 +914,90 @@ fieldset.crit legend { padding: 0; margin-bottom: 8px; font-size: 0.72rem; font-
 
 /* ---- The weekly digest -------------------------------------------------------------------------------------------- */
 .digestsave { margin-top: 6px; padding-top: 14px; border-top: 1px solid var(--line); }
+
+/* ---- The Today screen ---------------------------------------------------------------------------------------------- */
+.today-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.today-card { display: grid; gap: 12px; align-content: start; padding: 18px 20px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow-1); transition: border-color 0.16s, box-shadow 0.16s, transform 0.16s; }
+.today-card:hover { border-color: var(--line-strong); box-shadow: var(--shadow-2); transform: translateY(-1px); }
+.today-card.warn { border-color: color-mix(in srgb, var(--orange) 55%, var(--line)); background: linear-gradient(180deg, color-mix(in srgb, var(--warn-soft) 55%, var(--surface)), var(--surface) 60%); }
+.today-head { display: flex; gap: 14px; align-items: center; }
+.today-ico { width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; background: var(--accent-soft); color: var(--brand); flex: none; }
+.today-ico .icon { width: 21px; height: 21px; }
+.today-n { font-size: 2rem; font-weight: 700; letter-spacing: -0.03em; line-height: 1; font-variant-numeric: tabular-nums; }
+.today-t { font-size: 0.82rem; font-weight: 600; color: var(--muted); margin-top: 3px; }
+.today-body { min-height: 3.2em; }
+.today-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.today-list li { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+.today-list li.col { display: grid; gap: 4px; }
+.today-list .overdue { color: var(--bad); font-weight: 600; }
+.pursuit { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 0; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; background: var(--surface); }
+.pursuit li { border-right: 1px solid var(--line); }
+.pursuit li:last-child { border-right: 0; }
+.pursuit a { display: grid; gap: 2px; padding: 14px 16px; text-decoration: none; color: var(--muted); transition: background 0.16s; }
+.pursuit a:hover { background: var(--surface-2); text-decoration: none; }
+.pursuit b { font-size: 1.5rem; letter-spacing: -0.02em; color: var(--faint); font-variant-numeric: tabular-nums; }
+.pursuit li.has b { color: var(--brand); }
+.pursuit span { font-size: 0.78rem; font-weight: 600; }
+
+/* ---- Leads: filters and the board ------------------------------------------------------------------------------------ */
+.lfilters select, .lfilters input[type="text"] { width: auto; min-width: 0; }
+.lsearch { position: relative; flex: 1 1 240px; display: block; }
+.lsearch .icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--muted); pointer-events: none; }
+.lfilters .lsearch input { width: 100%; padding-left: 36px; }
+.vchip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 4px 3px 12px; border-radius: 999px; background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--brand) 25%, var(--line)); font-size: 0.82rem; font-weight: 600; }
+.vchip a { color: var(--brand); text-decoration: none; }
+.vchip button { appearance: none; border: 0; background: none; cursor: pointer; color: var(--muted); display: grid; place-items: center; padding: 2px; border-radius: 50%; }
+.vchip button:hover { color: var(--bad); }
+.vchip .icon { width: 12px; height: 12px; }
+.board { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(240px, 1fr); gap: 12px; overflow-x: auto; padding-bottom: 10px; scroll-snap-type: x proximity; }
+.bcol { display: grid; align-content: start; gap: 10px; padding: 12px; border-radius: var(--radius); background: var(--surface-2); border: 1px solid var(--line); min-height: 220px; scroll-snap-align: start; transition: border-color 0.16s, background 0.16s; }
+.bcol.over { border-color: var(--brand); background: var(--accent-soft); }
+.bcol.closed { background: color-mix(in srgb, var(--surface-2) 70%, var(--surface-3)); }
+.bcol header { display: flex; align-items: center; justify-content: space-between; font-size: 0.86rem; }
+.bcol header .count { min-width: 22px; text-align: center; padding: 1px 7px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); font-size: 0.76rem; font-weight: 700; color: var(--muted); }
+.bcol ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.bempty { padding: 18px 8px; text-align: center; color: var(--faint); font-size: 0.82rem; border: 1.5px dashed var(--line-strong); border-radius: 12px; }
+.bcard { display: grid; gap: 6px; padding: 11px 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow-1); cursor: grab; animation: rise 0.3s both; transition: box-shadow 0.16s, transform 0.16s; }
+.bcard:hover { box-shadow: var(--shadow-2); transform: translateY(-1px); }
+.bcard:active { cursor: grabbing; }
+.bscore { flex: none; min-width: 30px; text-align: center; padding: 1px 7px; border-radius: 8px; background: var(--accent-soft); color: var(--brand); font-weight: 700; font-size: 0.8rem; font-variant-numeric: tabular-nums; }
+.bmove select { width: 100%; font-size: 0.8rem; padding: 4px 8px; }
+.brief .member { display: grid; gap: 6px; padding: 12px 0; border-top: 1px solid var(--line); }
+.brief .member:first-of-type { border-top: 0; padding-top: 0; }
+
+/* ---- The call sheet: the brief, printed ------------------------------------------------------------------------------ */
+.print-only { display: none; }
+@media print {
+  .print-only { display: block; }
+  .brief { gap: 10px; font-size: 10.5pt; }
+  .brief .crumbs, .brief .btn, .brief .row .btn, .brief .outform, .brief .outdetails, .runcard, .tour, .toasts, .palette-backdrop, .dock { display: none !important; }
+  .brief .split { grid-template-columns: 1fr; }
+  .brief .card, .brief .card.hero { box-shadow: none; border: 1px solid #bbb; background: #fff; padding: 10px 14px; break-inside: avoid; }
+  .brief .card.hero::after { display: none; }
+  .brief .why-hero { grid-template-columns: auto minmax(0, 1fr); }
+  .brief .quote cite a::after { content: " (" attr(href) ")"; font-size: 8pt; color: #555; }
+  .brief h1, .brief h2 { break-after: avoid; }
+  .callsheet-head { padding-bottom: 8px; border-bottom: 2px solid #650a41; font-size: 12pt; }
+  a { color: inherit; text-decoration: none; }
+}
+
+/* ---- Go-live readiness -------------------------------------------------------------------------------------------------- */
+.checks .tick.warn { background: var(--warn-soft); color: var(--warn); }
+.checks .tick.pass { background: var(--good-soft); color: var(--good); }
+.checks .tick.fail { background: var(--bad-soft); color: var(--bad); }
+.checks .ok .tick:not(.pass):not(.warn):not(.fail) { background: var(--good-soft); color: var(--good); }
+.gofix { display: block; margin-top: 3px; font-size: 0.86rem; color: var(--ink-2); }
+.pursuit .pstat { display: grid; gap: 2px; padding: 14px 16px; color: var(--muted); }
+.insight b { font-size: 1.02rem; }
+.dropped { padding: 10px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2); }
+.dropped summary { cursor: pointer; font-weight: 600; font-size: 0.9rem; }
+.dropped ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+
+/* ---- The notification bell ------------------------------------------------------------------------------------------- */
+.bellwrap { position: relative; }
+.bell { position: relative; }
+.bell-dot { position: absolute; top: -3px; right: -3px; min-width: 17px; height: 17px; padding: 0 4px; border-radius: 999px; background: var(--brand); color: #fff; font-size: 0.66rem; font-weight: 700; display: grid; place-items: center; animation: pop 0.25s both; }
+.bellpanel { position: absolute; right: 0; top: calc(100% + 8px); z-index: 60; width: min(360px, calc(100vw - 32px)); max-height: 70vh; overflow: auto; padding: 14px 16px; background: var(--surface); border: 1px solid var(--line-strong); border-radius: 16px; box-shadow: var(--shadow-3); animation: toast-in 0.25s both; }
+.bellpanel ul { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 0; }
+.bellpanel li { display: grid; gap: 2px; padding: 10px 0; border-top: 1px solid var(--line); }
+.bellpanel li:first-child { border-top: 0; }

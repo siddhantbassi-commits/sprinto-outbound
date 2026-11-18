@@ -8,6 +8,8 @@
 import { aboutFrom } from "@/lib/discovery/peek";
 import { companyName } from "@/lib/pitch/company";
 import type { PainId } from "@/lib/pitch/pains";
+import type { Facts } from "@/lib/icp/types";
+import { buildGroup, type GroupCandidate, type GroupMember } from "./group";
 import { FRAMING, OBJECTIONS, QUESTIONS, SIGNAL_LABEL, UNIVERSAL_QUESTIONS } from "./library";
 
 export interface BriefInput {
@@ -20,7 +22,13 @@ export interface BriefInput {
   parts: { id: string; group: string; label: string; points: number; max: number; quotes: string[] }[];
   missing: string[];
   facts: Record<string, { value: unknown; confidence: string; quotes: string[]; source?: string }> | null;
-  contact: { name: string; title: string | null; email: string | null; verification: string | null; confidence: number | null; source: string; rankScore: number | null } | null;
+  contact: { id?: string; name: string; title: string | null; email: string | null; verification: string | null; confidence: number | null; source: string; rankScore: number | null } | null;
+  /** The newest paid check of the chosen address, if a person made one. It outranks what Hunter said when it found the address. */
+  verified?: { status: string; score: number | null; at: string } | null;
+  /** The other candidates, for the buying group. */
+  others?: GroupCandidate[];
+  /** The facts as stored, for matching each other person to the pain their role feels. */
+  rawFacts?: Facts | null;
   candidates: number;
   picks: { id: string; label: string; plain: string; reason: string; evidence: { id: string; text: string; quotes: string[]; kind: string }[] }[];
   email: { subject: string; body: string; status: string; hookQuote: string | null; hookSource: string | null } | null;
@@ -37,8 +45,9 @@ export interface Cited {
 
 export interface Brief {
   company: { name: string; domain: string; about: string; size: string | null; sizeFromHunter: boolean; certification: string | null; product: string | null };
-  fit: { verdict: string; label: string; score: number | null; summary: string; strengths: (Cited & { points: number; max: number })[]; gaps: string[] };
-  contact: { name: string; title: string | null; email: string | null; trust: string; why: string } | null;
+  fit: { verdict: string; label: string; score: number | null; summary: string; strengths: (Cited & { points: number; max: number })[]; gaps: string[]; usesCompetitor: Cited | null };
+  contact: { id: string | null; name: string; title: string | null; email: string | null; trust: string; why: string; checked: { status: string; score: number | null; at: string } | null; shouldVerify: boolean } | null;
+  group: GroupMember[];
   whyNow: Cited[];
   talkingPoints: { id: string; label: string; framing: string; because: string; evidence: Cited[] }[];
   questions: { pain: string | null; text: string }[];
@@ -78,9 +87,12 @@ export function buildBrief(i: BriefInput): Brief {
     : verdict === "not_fit" ? `Scored ${i.score} out of 100. ${i.scoreReason ?? "It does not meet the ICP."}`.trim()
     : `Scored ${i.score} out of 100, but key facts are still unknown. ${i.scoreReason ?? ""}`.trim();
 
-  const trust = !i.contact ? "" : i.contact.source === "manual" ? "Hand-picked by a person" : i.contact.verification === "valid" ? `Hunter verified the address${i.contact.confidence ? ` (${i.contact.confidence}% sure)` : ""}` : i.contact.verification ? `Hunter could not fully verify the address (${i.contact.verification})` : "Address not verified";
+  const v = i.verified ?? null;
+  const trust = !i.contact ? "" : v ? (v.status === "valid" ? `Checked with Hunter's verifier: the address is valid${v.score !== null ? ` (${v.score}% sure)` : ""}` : v.status === "invalid" ? "Checked with Hunter's verifier: the address is invalid. Do not use it." : `Checked with Hunter's verifier: ${v.status.replace("_", " ")}, so it still cannot be vouched for`) : i.contact.source === "manual" ? "Hand-picked by a person" : i.contact.verification === "valid" ? `Hunter verified the address${i.contact.confidence ? ` (${i.contact.confidence}% sure)` : ""}` : i.contact.verification ? `Hunter could not fully verify the address (${i.contact.verification})` : "Address not verified";
+  // Worth paying a credit to check: nobody has checked it properly, and Hunter's own status leaves doubt.
+  const shouldVerify = Boolean(i.contact?.email) && !v && i.contact?.verification !== "valid";
   const contact = i.contact
-    ? { name: i.contact.name, title: i.contact.title, email: i.contact.email, trust, why: `${i.candidates > 1 ? `Chosen from ${i.candidates} candidates` : "The only suitable candidate"}${i.contact.rankScore !== null ? `, ranked ${i.contact.rankScore}` : ""} on title for this company's size, seniority and how sure the address is.` }
+    ? { id: i.contact.id ?? null, name: i.contact.name, title: i.contact.title, email: i.contact.email, trust, checked: v, shouldVerify, why: `${i.candidates > 1 ? `Chosen from ${i.candidates} candidates` : "The only suitable candidate"}${i.contact.rankScore !== null ? `, ranked ${i.contact.rankScore}` : ""} on title for this company's size, seniority and how sure the address is.` }
     : null;
 
   const whyNow: Cited[] = [
@@ -115,8 +127,9 @@ export function buildBrief(i: BriefInput): Brief {
 
   return {
     company: { name, domain: i.domain, about: home ? aboutFrom(home.text, home.title ?? "") : "", size: size ? String(size) : null, sizeFromHunter: Boolean(size) && i.facts?.headcount?.source === "hunter_discover", certification: cert ? (SIGNAL_LABEL[String(cert)] ?? String(cert)) : null, product: product ? String(product) : null },
-    fit: { verdict, label: FIT_LABEL[verdict] ?? "Not assessed", score: i.score, summary: fitSummary, strengths, gaps },
+    fit: { verdict, label: FIT_LABEL[verdict] ?? "Not assessed", score: i.score, summary: fitSummary, strengths, gaps, usesCompetitor: ((p) => (p ? cited(p.label, p.quotes[0]) : null))(i.parts.find((x) => /competitor/i.test(x.label) && x.points < 0)) },
     contact,
+    group: buildGroup({ candidates: i.others ?? [], facts: i.rawFacts ?? null, avoid: i.picks.map((p) => p.id) }),
     whyNow,
     talkingPoints,
     questions,
@@ -134,11 +147,16 @@ export function briefToText(b: Brief): string {
   out.push(`DISCOVERY CALL BRIEF: ${b.company.name} (${b.company.domain})`);
   if (b.company.about) out.push(`They say: "${b.company.about}"`);
   out.push(`Fit: ${b.fit.label}${b.fit.score !== null ? ` (${b.fit.score}/100)` : ""}. ${b.fit.summary}`);
+  if (b.fit.usesCompetitor) out.push(`Caution: they already seem to use a competitor${b.fit.usesCompetitor.quote ? ` ("${b.fit.usesCompetitor.quote}")` : ""}.`);
   const facts = [b.company.size ? `${b.company.size} people${b.company.sizeFromHunter ? " (per Hunter)" : ""}` : null, b.company.certification].filter(Boolean);
   if (facts.length) out.push(facts.join(" · "));
   if (b.contact) {
     h("Who to speak to");
     out.push(`${b.contact.name}${b.contact.title ? `, ${b.contact.title}` : ""}${b.contact.email ? ` <${b.contact.email}>` : ""}`, b.contact.trust, b.contact.why);
+  }
+  if (b.group.length) {
+    h("Also worth speaking to");
+    for (const m of b.group) out.push(`- ${m.name}${m.title ? `, ${m.title}` : ""}${m.email ? ` <${m.email}>` : ""}`, ...(m.angle ? [`  Lead with: ${m.angle.label}. ${m.angle.framing}`] : []), `  ${m.why}`);
   }
   if (b.whyNow.length) {
     h("Why now");

@@ -38,7 +38,7 @@ export default async function RunPage({ params, searchParams }: { params: Promis
 
   return (
     <div className="stack" style={{ gap: 22 }}>
-      <div className="crumbs"><Link href="/">Runs</Link> / {dateTime(run.created_at)}</div>
+      <div className="crumbs"><Link href="/runs">Runs</Link> / {dateTime(run.created_at)}</div>
       <PageHead eyebrow="Run" title={run.note || `Run of ${plural(run.domain_count, "domain")}`} sub={`Started ${ago(run.created_at, now)}, ${runSource(run.source).how}.`}>
         {prog.needsPerson > 0 ? <Link className="btn primary" href="/review"><Icon name="bell" />{prog.needsPerson} to review</Link> : null}
         <a className="btn" href={`/runs/${id}/export`}><Icon name="down" />Download CSV</a>

@@ -30,6 +30,9 @@ export async function briefFor(db: DbPort, id: string, canSeeContacts: boolean):
   const email = emails.filter((e) => e.status !== "held").at(-1) ?? emails.at(-1);
   const chosen = contacts.find((c) => c.chosen);
   const hook = email?.hook as { quote: string; source: string | null } | null | undefined;
+  const checks = (await db.select("contact_verifications", { prospect_id: id }, { order: "seq", ascending: false, limit: 20 })) as unknown as { contact_id: string; status: string; score: number | null; created_at: string }[];
+  const check = chosen ? checks.find((c) => c.contact_id === String(chosen.id)) : undefined;
+  const nameOf = (c: (typeof contacts)[number]) => (canSeeContacts ? [c.first_name, c.last_name].filter(Boolean).join(" ") || "A shared mailbox" : String(c.first_initial ?? "A contact"));
   const { claims, unverified } = await claimsFile(db);
   const input: BriefInput = {
     domain: p.domain,
@@ -43,6 +46,7 @@ export async function briefFor(db: DbPort, id: string, canSeeContacts: boolean):
     facts: (facts.at(-1)?.facts as BriefInput["facts"]) ?? null,
     contact: chosen
       ? {
+          id: String(chosen.id),
           name: canSeeContacts ? [chosen.first_name, chosen.last_name].filter(Boolean).join(" ") || "A shared mailbox" : String(chosen.first_initial ?? "A contact"),
           title: (chosen.position as string | null) || null,
           email: canSeeContacts ? ((chosen.email as string | null) ?? null) : null,
@@ -53,6 +57,11 @@ export async function briefFor(db: DbPort, id: string, canSeeContacts: boolean):
         }
       : null,
     candidates: contacts.filter((c) => !c.excluded).length,
+    verified: check ? { status: check.status, score: check.score, at: String(check.created_at) } : null,
+    rawFacts: (facts.at(-1)?.facts as BriefInput["rawFacts"]) ?? null,
+    others: contacts
+      .filter((c) => !c.chosen && !c.excluded)
+      .map((c) => ({ name: nameOf(c), title: (c.position as string | null) || null, email: canSeeContacts ? ((c.email as string | null) ?? null) : null, rankScore: c.rank_score === null || c.rank_score === undefined ? null : Number(c.rank_score), source: String(c.source ?? ""), verification: (c.verification as string | null) ?? null })),
     picks: arr<BriefInput["picks"][number]>(painsEvent?.output.picks),
     email: email ? { subject: String(email.subject), body: String(email.body), status: String(email.status), hookQuote: hook?.quote ?? null, hookSource: hook?.source ?? null } : null,
     claims,

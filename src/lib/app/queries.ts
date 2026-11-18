@@ -250,3 +250,18 @@ export interface ReviewHistoryRow {
 export async function reviewHistory(db: DbPort): Promise<ReviewHistoryRow[]> {
   return (await selectAll(db, "email_reviews", {}, { order: "created_at", columns: "prospect_id,action,edit_ratio,contact_ok,reason,created_at" }, 20_000)) as unknown as ReviewHistoryRow[];
 }
+
+/** What the learning view reads: every company's score and rubric parts, and every outcome recorded (the whole history, not just the latest). */
+export async function learningData(db: DbPort): Promise<{ prospects: import("@/lib/app/learning").LearnProspect[]; outcomes: import("@/lib/app/outcomes").OutcomeRow[] }> {
+  const [prospects, scores, outcomes] = await Promise.all([
+    selectAll(db, "prospects", {}, { order: "created_at", columns: "id,score" }, 20_000),
+    selectAll(db, "scores", { replay: false }, { order: "created_at", ascending: false, columns: "prospect_id,parts" }, 20_000),
+    selectAll(db, "lead_outcomes", {}, { order: "seq", columns: "prospect_id,seq,status,note,follow_up_on,created_at" }, 20_000),
+  ]);
+  const parts = new Map<string, { id: string; label: string; points: number }[]>();
+  for (const sc of scores) if (!parts.has(String(sc.prospect_id))) parts.set(String(sc.prospect_id), Array.isArray(sc.parts) ? (sc.parts as { id: string; label: string; points: number }[]) : []);
+  return {
+    prospects: prospects.map((p) => ({ id: String(p.id), score: p.score === null || p.score === undefined ? null : Number(p.score), parts: parts.get(String(p.id)) ?? [] })),
+    outcomes: outcomes as unknown as import("@/lib/app/outcomes").OutcomeRow[],
+  };
+}

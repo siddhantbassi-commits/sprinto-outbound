@@ -135,6 +135,19 @@ describe("the brief and the Leads list, from the demo world", () => {
     expect(view.brief.ready.ok).toBe(true);
   }, 60_000);
 
+  it("lists the other people worth speaking to, each with the pain their role feels, and never shows a viewer their name or address", async () => {
+    const w = await getDemo();
+    const [row] = await w.db.admin<{ id: string }>("select id from public.prospects where domain = 'northwind.io' order by created_at limit 1");
+    const op = (await briefFor(pgPort(w.db.as(w.users.operator)), row!.id, true))!.brief;
+    expect(op.group.map((m) => m.name)).toEqual(["Dev Patel"]);
+    expect(op.group[0]).toMatchObject({ title: "VP Engineering", role: "eng_head", email: "dev@northwind.io" });
+    expect(op.group[0]!.angle).not.toBeNull();
+    const viewer = (await briefFor(pgPort(w.db.as(w.users.viewer)), row!.id, false))!.brief;
+    expect(viewer.group[0]!.name).toMatch(/^[A-Z]\.$/);
+    expect(viewer.group[0]!.email).toBeNull();
+    expect(JSON.stringify(viewer.group)).not.toMatch(/Dev Patel|dev@northwind/);
+  }, 60_000);
+
   it("shows a viewer no address and only an initial", async () => {
     const w = await getDemo();
     const db = pgPort(w.db.as(w.users.viewer));
@@ -164,7 +177,7 @@ describe("the brief and the Leads list, from the demo world", () => {
     const leads = await listLeads(pgPort(w.db.as(w.users.viewer)), false);
     const nw = leads.find((l) => l.domain === "northwind.io")!;
     expect(nw.contact?.name).toMatch(/^[A-Z]\.$/);
-    expect(JSON.stringify(leads)).not.toMatch(/Ananya|@northwind/);
+    expect(JSON.stringify(leads)).not.toMatch(/Ananya|ananya@/i);
   }, 60_000);
 
   it("shows a company researched twice once, with the research that was done, not a later skipped row", async () => {

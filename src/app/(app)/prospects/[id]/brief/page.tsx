@@ -9,6 +9,7 @@ import { briefToText, type Cited } from "@/lib/brief/build";
 import { dayOf, followUpOf, followUpText, OUTCOME_BY_ID, standings, type OutcomeRow } from "@/lib/app/outcomes";
 import { dateTime } from "@/lib/app/format";
 import { OutcomeForm } from "../../../leads/outcome-form";
+import { VerifyButton } from "./verify-button";
 
 export const metadata = { title: "Discovery brief" };
 
@@ -40,11 +41,12 @@ export default async function Brief({ params }: { params: Promise<{ id: string }
 
   return (
     <div className="stack brief" style={{ gap: 22 }}>
+      <div className="print-only callsheet-head"><b>Call sheet: {b.company.name}</b> ({b.company.domain}) · printed {new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</div>
       <div className="crumbs"><Link href="/leads">Leads</Link> / {b.company.name}</div>
       <PageHead eyebrow="Discovery call brief" title={b.company.name} sub={<>Everything to know before the call, from what the company says about itself. <a href={`https://${b.company.domain}`} target="_blank" rel="noreferrer noopener">{b.company.domain}</a></>}>
         <LanePill lane={view.lane} />
         <Link className="btn" href={`/prospects/${view.prospectId}`}><Icon name="book" />Why the system decided this</Link>
-        <ReportActions text={briefToText(b)} label="Copy the brief" />
+        <ReportActions text={briefToText(b)} label="Copy the brief" printLabel="Print call sheet" />
       </PageHead>
 
       <section className="card hero why-hero" aria-label="Fit">
@@ -60,6 +62,12 @@ export default async function Brief({ params }: { params: Promise<{ id: string }
           </div>
         </div>
       </section>
+
+      {b.fit.usesCompetitor ? (
+        <Banner tone="warn" title="They already seem to use a competitor">
+          {b.fit.usesCompetitor.quote ? `Their site says: “${b.fit.usesCompetitor.quote}”. ` : ""}Find out in the first minutes what they use and what they wish it did, and expect a switching conversation, not a first-compliance one.
+        </Banner>
+      ) : null}
 
       <section className="card stack" aria-label="Ready for the call">
         <SectionTitle icon="check" title={b.ready.ok ? "Ready for a discovery call" : "Nearly ready"} sub="What the brief rests on. Anything missing is said plainly, never filled in." />
@@ -137,9 +145,31 @@ export default async function Brief({ params }: { params: Promise<{ id: string }
                 {b.contact.email ? <div className="mono small">{b.contact.email}</div> : <p className="small muted">As a viewer you do not see the address.</p>}
                 <p className="small" style={{ margin: 0 }}>{b.contact.trust}.</p>
                 <p className="small muted" style={{ margin: 0 }}>{b.contact.why}</p>
+                {b.contact.shouldVerify && canRun ? <VerifyButton prospectId={view.prospectId} /> : null}
               </>
             ) : <p className="muted">No suitable named person was found.</p>}
           </section>
+
+          {b.group.length ? (
+            <section className="card stack" aria-label="Also worth speaking to">
+              <SectionTitle icon="people" title="Also worth speaking to" sub="Other people who matter here, and what to lead with for each. For the call: the product emails one person per company." />
+              {b.group.map((m) => (
+                <div key={m.name + (m.title ?? "")} className="member">
+                  <div><b>{m.name}</b><div className="muted small">{m.title ?? "Title not listed"}{m.roleLabel ? ` · ${m.roleLabel}` : ""}</div></div>
+                  {m.email ? <div className="mono small">{m.email}</div> : null}
+                  <p className="small muted" style={{ margin: 0 }}>{m.trust}.</p>
+                  {m.angle ? (
+                    <div className="stack tight">
+                      <div className="small"><span className="tag">{m.angle.id}</span> <b>{m.angle.label}</b></div>
+                      <p className="small" style={{ margin: 0 }}>{m.angle.framing}</p>
+                      {m.angle.evidence.slice(0, 1).map((e, i) => <div key={i} className="small muted">{e.text}{e.quote ? ` — “${e.quote}”` : ""}</div>)}
+                    </div>
+                  ) : null}
+                  <p className="small muted" style={{ margin: 0 }}>{m.why}</p>
+                </div>
+              ))}
+            </section>
+          ) : null}
 
           <section className="card stack" aria-label="The email">
             <SectionTitle icon="mail" title="The outreach email" />

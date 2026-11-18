@@ -73,6 +73,8 @@ export interface MessageInput {
   html?: string;
   /** Searchable in Sent, so an unknown send can be found by hand. */
   runId: string;
+  /** Where an Unsubscribe click or reply is sent (a plain address). Adds a List-Unsubscribe header, so mail clients can offer one. */
+  unsubscribe?: string;
   date?: Date;
 }
 
@@ -94,6 +96,7 @@ export function buildMessage(input: MessageInput): string {
     `Date: ${date.toUTCString().replace("GMT", "+0000")}`,
     `Message-ID: <${input.runId}.${randomBytes(8).toString("hex")}@${host}>`,
     `X-Outbound-Run: ${input.runId}`,
+    ...(input.unsubscribe ? [`List-Unsubscribe: <mailto:${assertAddress("Unsubscribe", input.unsubscribe)}?subject=unsubscribe>`] : []),
     "MIME-Version: 1.0",
     ...(html === null ? ["Content-Type: text/plain; charset=UTF-8", "Content-Transfer-Encoding: base64"] : [`Content-Type: multipart/alternative; boundary="${boundary}"`]),
   ];

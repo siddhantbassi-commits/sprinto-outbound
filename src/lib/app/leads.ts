@@ -1,24 +1,9 @@
 import { selectAll } from "@/lib/db/all";
 import type { DbPort, Row } from "@/lib/db/port";
 import { companyName } from "@/lib/pitch/company";
-import { standings, type Standing } from "./outcomes";
+import type { Lead } from "./lead-types";
+import { standings } from "./outcomes";
 
-export interface Lead {
-  id: string;
-  runId: string;
-  domain: string;
-  name: string;
-  verdict: string | null;
-  score: number | null;
-  lane: string;
-  updatedAt: string;
-  reasons: string[];
-  contact: { name: string; title: string | null } | null;
-  pains: string[];
-  emailStatus: string | null;
-  /** Where it stands after outreach, from the newest recorded outcome. Null when nothing has been recorded. */
-  outcome: Standing | null;
-}
 
 const arr = <T,>(v: unknown): T[] => (Array.isArray(v) ? (v as T[]) : []);
 
@@ -41,7 +26,7 @@ export async function listLeads(db: DbPort, canSeeContacts: boolean, limit = 300
   const scores = await selectAll(db, "scores", { replay: false }, { order: "created_at", ascending: false, columns: "prospect_id,parts" }, 3000);
   const contacts = canSeeContacts
     ? await selectAll(db, "contacts", { chosen: true }, { order: "created_at", ascending: false, columns: "prospect_id,first_name,last_name,position,email" }, 3000)
-    : await selectAll(db, "contacts_masked", { chosen: true }, { order: "created_at", ascending: false, columns: "prospect_id,first_initial,position" }, 3000);
+    : await selectAll(db, "contacts_masked", { chosen: true }, { order: "created_at", ascending: false, columns: "prospect_id,first_initial,position,email_masked" }, 3000);
   const pains = await selectAll(db, "step_events", { step: "pains", status: "ok" }, { order: "id", ascending: false, columns: "prospect_id,output" }, 3000);
   const outcomes = standings((await selectAll(db, "lead_outcomes", {}, { order: "seq", columns: "prospect_id,seq,status,note,follow_up_on,created_at" }, 5000)) as never);
   const emails = await selectAll(db, "emails", {}, { order: "created_at", ascending: false, columns: "prospect_id,status" }, 3000);
@@ -59,7 +44,8 @@ export async function listLeads(db: DbPort, canSeeContacts: boolean, limit = 300
 
   return prospects.map((p) => {
     const id = String(p.id);
-    const parts = arr<{ label: string; points: number }>(scoreBy.get(id)?.parts).filter((x) => x.points > 0).sort((a, b) => b.points - a.points);
+    const allParts = arr<{ label: string; points: number }>(scoreBy.get(id)?.parts);
+    const parts = allParts.filter((x) => x.points > 0).sort((a, b) => b.points - a.points);
     const c = contactBy.get(id);
     const picks = arr<{ label: string }>((painBy.get(id)?.output as { picks?: unknown } | undefined)?.picks);
     return {
@@ -72,15 +58,23 @@ export async function listLeads(db: DbPort, canSeeContacts: boolean, limit = 300
       lane: String(p.lane),
       updatedAt: String(p.updated_at),
       reasons: parts.slice(0, 3).map((x) => x.label),
-      contact: c ? { name: canSeeContacts ? [c.first_name, c.last_name].filter(Boolean).join(" ") || "A shared mailbox" : String(c.first_initial ?? "A contact"), title: (c.position as string | null) || null } : null,
+      contact: c
+        ? {
+            name: canSeeContacts ? [c.first_name, c.last_name].filter(Boolean).join(" ") || "A shared mailbox" : String(c.first_initial ?? "A contact"),
+            first: canSeeContacts ? ((c.first_name as string | null) ?? null) : null,
+            last: canSeeContacts ? ((c.last_name as string | null) ?? null) : null,
+            title: (c.position as string | null) || null,
+            // A viewer gets the masked form (a***@acme.com), never the address.
+            email: canSeeContacts ? ((c.email as string | null) ?? null) : ((c.email_masked as string | null) ?? null),
+          }
+        : null,
       pains: picks.map((x) => x.label),
       emailStatus: emailBy.has(id) ? String(emailBy.get(id)!.status) : null,
       outcome: outcomes.get(id) ?? null,
+      usesCompetitor: allParts.some((x) => /competitor/i.test(x.label) && x.points < 0),
     };
   });
 }
 
-export type LeadFilter = "ready" | "all";
-
-/** Leads worth calling: scored a strong or possible fit, and not already a clear no. Everything else stays under "All researched". */
-export const isCallable = (l: Lead) => (l.verdict === "qualified" || l.verdict === "maybe") && l.outcome?.status !== "not_interested";
+export { isCallable } from "./lead-types";
+export type { Lead } from "./lead-types";

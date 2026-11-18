@@ -69,7 +69,7 @@ export default async function Why({ params }: { params: Promise<{ id: string }> 
 
   return (
     <div className="stack">
-      <div className="crumbs"><Link href="/">Runs</Link> / <Link href={`/runs/${p.run_id}`}>Run</Link> / {p.domain}</div>
+      <div className="crumbs"><Link href="/runs">Runs</Link> / <Link href={`/runs/${p.run_id}`}>Run</Link> / {p.domain}</div>
       <PageHead eyebrow="Why" title={p.domain} sub="Why the system did what it did, with the evidence for each decision.">
         <LanePill lane={p.lane} />
         <VerdictPill verdict={p.verdict} />

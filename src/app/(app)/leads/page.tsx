@@ -1,25 +1,30 @@
 import Link from "next/link";
+import { LeadBoard } from "./lead-board";
+import { LeadFilters } from "./lead-filters";
+import { OutcomeForm } from "./outcome-form";
 import { Icon } from "@/components/icons";
 import { Empty, LanePill, PageHead, Pill, Ring, VerdictPill } from "@/components/ui";
-import { ago, plural } from "@/lib/app/format";
-import { isCallable, listLeads } from "@/lib/app/leads";
+import { ago } from "@/lib/app/format";
+import { applyLeadQuery, describeQuery, isFiltered, parseLeadQuery, toSearch, type LeadView } from "@/lib/app/lead-query";
+import { listLeads } from "@/lib/app/leads";
 import { dayOf, followUpOf, followUpText, OUTCOME_BY_ID } from "@/lib/app/outcomes";
-import { OutcomeForm } from "./outcome-form";
 import { getSession } from "@/lib/app/runtime";
 
 export const metadata = { title: "Leads" };
 
-export default async function Leads({ searchParams }: { searchParams: Promise<{ show?: string }> }) {
-  const { show } = await searchParams;
+const TABS: [LeadView, string][] = [["worth", "Worth a call"], ["board", "Board"], ["follow", "Follow up"], ["all", "All researched"]];
+
+export default async function Leads({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const query = parseLeadQuery(await searchParams);
   const s = (await getSession())!;
   const canRun = s.user.role === "operator" || s.user.role === "admin";
   const all = await listLeads(s.db, s.user.role !== "viewer");
-  const mode = show === "all" ? "all" : show === "follow" ? "follow" : "ready";
   const now = Date.now();
   const today = dayOf(now);
-  const callable = all.filter(isCallable).sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
-  const due = all.filter((l) => followUpOf(l.outcome, today) !== null).sort((a, b) => (followUpOf(a.outcome, today)!.on < followUpOf(b.outcome, today)!.on ? -1 : 1));
-  const rows = mode === "all" ? [...all].sort((a, b) => (b.score ?? -1) - (a.score ?? -1)) : mode === "follow" ? due : callable;
+  const rows = applyLeadQuery(all, query, now);
+  // How many each tab would show with the current filters, so the tabs say what is behind them.
+  const count = (v: LeadView) => applyLeadQuery(all, { ...query, view: v }, now).length;
+  const filtered = isFiltered(query);
 
   return (
     <div className="stack" style={{ gap: 22 }}>
@@ -28,21 +33,29 @@ export default async function Leads({ searchParams }: { searchParams: Promise<{ 
       </PageHead>
 
       <div className="row between">
-        <div className="segmented" role="group" aria-label="Show">
-          <Link href="/leads" aria-pressed={mode === "ready"} aria-current={mode === "ready" ? "true" : undefined}>Worth a call ({callable.length})</Link>
-          <Link href="/leads?show=follow" aria-pressed={mode === "follow"} aria-current={mode === "follow" ? "true" : undefined}>Follow up ({due.length})</Link>
-          <Link href="/leads?show=all" aria-pressed={mode === "all"} aria-current={mode === "all" ? "true" : undefined}>All researched ({all.length})</Link>
-        </div>
-        <span className="small muted">{plural(rows.length, "company", "companies")} shown</span>
+        <nav className="segmented" aria-label="View">
+          {TABS.map(([v, label]) => (
+            <Link key={v} href={`/leads${toSearch({ ...query, view: v })}`} aria-current={query.view === v ? "true" : undefined}>{label} ({count(v)})</Link>
+          ))}
+        </nav>
       </div>
+
+      <LeadFilters query={query} shown={rows.length} total={applyLeadQuery(all, { ...query, q: "", verdict: "any", outcome: "any", skipCompetitor: false }, now).length} />
 
       {rows.length === 0 ? (
         <div className="card">
-          <Empty title={all.length === 0 ? "No companies researched yet" : mode === "follow" ? "No follow-ups set" : "Nothing worth a call yet"} icon="target">
-            <p className="small" style={{ margin: 0, maxWidth: "52ch" }}>{all.length === 0 ? "Discover companies that look like Sprinto customers and research a few. They appear here with a brief for each." : mode === "follow" ? "When you record an outcome you can set a date to come back to a lead. Those with a date appear here, soonest first." : "Researched companies that score as a strong or possible fit appear here. See everything under All researched."}</p>
-            {canRun ? <Link href="/discover" className="btn primary" style={{ marginTop: 10 }}><Icon name="search" />Discover companies</Link> : null}
+          <Empty title={all.length === 0 ? "No companies researched yet" : filtered ? "No leads match" : query.view === "follow" ? "No follow-ups set" : "Nothing here yet"} icon="target">
+            <p className="small" style={{ margin: 0, maxWidth: "52ch" }}>
+              {all.length === 0 ? "Discover companies that look like Sprinto customers and research a few. They appear here with a brief for each."
+                : filtered ? `Nothing matches ${describeQuery(query)}. Try clearing a filter.`
+                : query.view === "follow" ? "When you record an outcome you can set a date to come back to a lead. Those with a date appear here, soonest first."
+                : "Researched companies that score as a strong or possible fit appear here. See everything under All researched."}
+            </p>
+            {canRun && all.length === 0 ? <Link href="/discover" className="btn primary" style={{ marginTop: 10 }}><Icon name="search" />Discover companies</Link> : null}
           </Empty>
         </div>
+      ) : query.view === "board" ? (
+        <LeadBoard leads={rows} canMove={canRun} />
       ) : (
         <ul className="leadcards">
           {rows.map((l, i) => (
@@ -56,6 +69,7 @@ export default async function Leads({ searchParams }: { searchParams: Promise<{ 
                   <LanePill lane={l.lane} />
                   {l.outcome ? <Pill tone={OUTCOME_BY_ID[l.outcome.status].tone}>{OUTCOME_BY_ID[l.outcome.status].label}</Pill> : null}
                   {(() => { const f = followUpOf(l.outcome, today); return f ? <Pill tone={f.state === "overdue" ? "bad" : f.state === "today" ? "warn" : "info"}>{followUpText(f)}</Pill> : null; })()}
+                  {l.usesCompetitor ? <Pill tone="warn" title="The rubric found a competitor's trust centre on their site.">Uses a competitor</Pill> : null}
                 </div>
                 <p className="small" style={{ margin: 0 }}>
                   {l.contact ? <>Speak to <b>{l.contact.name}</b>{l.contact.title ? `, ${l.contact.title}` : ""}.</> : <span className="muted">No named person yet.</span>}

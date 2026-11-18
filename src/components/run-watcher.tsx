@@ -3,6 +3,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Icon } from "./icons";
+import { pushNotice } from "./notice-bell";
 import { toast } from "./toast";
 import { useCreep } from "./use-creep";
 import { roughTime } from "@/lib/app/progress";
@@ -80,6 +81,8 @@ export function RunWatcher() {
   const announce = useCallback((r: RunStatus, away: boolean) => {
     const text = `${r.title} is ready: ${r.qualified} ${r.qualified === 1 ? "company is" : "companies are"} worth a call.`;
     setDone((d) => (d.some((x) => x.id === r.id) ? d : [...d, r]));
+    // Kept in the notification history too, so it is still there if the toast and the card were missed.
+    pushNotice({ id: `run-${r.id}`, text: away ? `${r.title} finished while you were away: ${r.qualified} worth a call.` : text, href: "/leads" });
     toast(away ? `${r.title} finished while you were away.` : text, true);
     try {
       if (typeof Notification !== "undefined" && Notification.permission === "granted" && document.hidden) {

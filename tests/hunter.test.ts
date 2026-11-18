@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { findCandidates, memoryCache, CACHE_TTL_MS, type FindDeps } from "@/lib/contacts/find";
-import { createHunterClient, HunterError, readAccount, readDomainSearch, toCandidate, type HunterClient } from "@/lib/contacts/hunter";
+import { createHunterClient, HunterError, readAccount, readDomainSearch, readVerify, toCandidate, type HunterClient } from "@/lib/contacts/hunter";
 import { ACCOUNT_TTL_MS, HunterBudget, planHunterBudget } from "@/lib/contacts/quota";
 import { chooseContact, type Candidate } from "@/lib/contacts/rank";
 
@@ -361,5 +361,45 @@ describe("findCandidates (manual, cache, Hunter, nothing)", () => {
     const h = harness();
     h.deps.hunter.account = async () => { throw new HunterError("auth"); };
     expect(await findCandidates("acme.com", [], h.deps)).toMatchObject({ source: "none", reason: "hunter_error" });
+  });
+});
+
+describe("the verifier", () => {
+  it("reads Hunter's status and score, keeping only the six statuses it documents", () => {
+    expect(readVerify({ data: { status: "valid", score: 96 } })).toEqual({ status: "valid", score: 96 });
+    expect(readVerify({ data: { status: "accept_all", score: 55.4 } })).toEqual({ status: "accept_all", score: 55 });
+    expect(readVerify({ data: { status: "mystery", score: 300 } })).toEqual({ status: "unknown", score: 100 });
+    expect(readVerify({ data: { status: "invalid" } })).toEqual({ status: "invalid", score: null });
+    for (const bad of [null, {}, { data: {} }, { data: { score: 5 } }]) expect(() => readVerify(bad)).toThrow(HunterError);
+  });
+
+  it("asks for one address with the key in a header, never in the address", async () => {
+    const seen: { url: string; headers: Record<string, string> }[] = [];
+    const fn = (async (url: URL | string, init: RequestInit) => {
+      seen.push({ url: String(url), headers: init.headers as Record<string, string> });
+      return new Response(JSON.stringify({ data: { status: "valid", score: 90 } }), { status: 200 });
+    }) as unknown as typeof fetch;
+    const r = await createHunterClient({ apiKey: " secret-key-123\n", fetchFn: fn }).verify!("priya@acme.com");
+    expect(r).toEqual({ status: "valid", score: 90 });
+    expect(seen[0]!.url).toBe("https://api.hunter.io/v2/email-verifier?email=priya%40acme.com");
+    expect(seen[0]!.url).not.toContain("secret");
+    expect(seen[0]!.headers["X-API-KEY"]).toBe("secret-key-123");
+  });
+
+  it("refuses anything that is not one plain address, so nothing can be added to the request", async () => {
+    let calls = 0;
+    const fn = (async () => { calls += 1; return new Response("{}"); }) as unknown as typeof fetch;
+    const c = createHunterClient({ apiKey: "k", fetchFn: fn });
+    for (const bad of ["", "no-at-sign", "a@b", "a b@c.com", "a@b.com&limit=9", "a@b.com, c@d.com", "<a@b.com>", `${"x".repeat(250)}@b.com`]) await expect(c.verify!(bad), bad).rejects.toMatchObject({ code: "bad_request" });
+    expect(calls).toBe(0);
+  });
+
+  it("maps Hunter's failures without leaking its text or the key", async () => {
+    for (const [status, code] of [[401, "auth"], [429, "quota"], [500, "api_error"]] as const) {
+      const fn = (async () => new Response("secret-key-123", { status })) as unknown as typeof fetch;
+      const e = await createHunterClient({ apiKey: "secret-key-123", fetchFn: fn }).verify!("a@b.com").catch((x) => x);
+      expect(e).toMatchObject({ code });
+      expect(String(e.message)).not.toContain("secret");
+    }
   });
 });

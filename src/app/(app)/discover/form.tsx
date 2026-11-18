@@ -165,6 +165,13 @@ export function DiscoverForm({ initial, facts }: { initial: Criteria; facts: { a
             {out.hidden.notSoftware ? <span className="chip" title="Their home page does not read like a software company.">{out.hidden.notSoftware} not software, left out</span> : null}
             {out.hidden.unreachable ? <span className="chip" title="The site did not answer, or robots.txt asks to be left alone.">{out.hidden.unreachable} could not be opened, left out</span> : null}
           </div>
+          {out.dropped.length ? (
+            <details className="dropped">
+              <summary>See who was left out, and why ({out.dropped.length})</summary>
+              <p className="small muted" style={{ margin: "8px 0" }}>Left out after a look at each home page. If one of these should have stayed, paste it into <Link href="/runs/new">Paste a list</Link>.</p>
+              <ul>{out.dropped.map((d) => <li key={d.domain}><b>{d.name}</b> <a className="mono small" href={`https://${d.domain}`} target="_blank" rel="noreferrer noopener">{d.domain}</a><span className="small muted"> · {d.why === "unreachable" ? "Could not be opened" : "Not software"}. {d.detail}</span></li>)}</ul>
+            </details>
+          ) : null}
           {out.problems.length ? <Banner tone="warn" title="Part of the search failed">{out.problems.join(" ")} The results below are from the searches that worked.</Banner> : null}
 
           {out.found.length === 0 ? (

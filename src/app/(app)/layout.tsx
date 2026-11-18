@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { NoticeBell } from "@/components/notice-bell";
 import { RunWatcher } from "@/components/run-watcher";
 import { TourButton, WelcomeTour } from "@/components/welcome-tour";
 import Link from "next/link";
@@ -64,19 +65,22 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   const role = s.user.role;
   const canRun = role === "operator" || role === "admin";
   const items: NavItem[] = [
+    { href: "/", label: "Today", icon: "pulse", group: "Work" },
     ...(canRun ? [{ href: "/discover", label: "Discover", icon: "search", group: "Work" } as NavItem] : []),
-    { href: "/", label: "Runs", icon: "runs", group: "Work" },
+    { href: "/runs", label: "Runs", icon: "runs", group: "Work" },
     ...(canRun ? [{ href: "/runs/new", label: "Paste a list", icon: "list", group: "Work" } as NavItem] : []),
     { href: "/leads", label: "Leads", icon: "target", group: "Work" },
     { href: "/digest", label: "Weekly digest", icon: "mail", group: "Work" },
     { href: "/review", label: "Review", icon: "bell", group: "Work", badge: attention },
     { href: "/impact", label: "Impact", icon: "chart", group: "Insight" },
     { href: "/scorecard", label: "Scorecard", icon: "flag", group: "Insight" },
+    { href: "/learning", label: "What is working", icon: "spark", group: "Insight" },
     { href: "/quality", label: "Quality", icon: "pulse", group: "Insight" },
     { href: "/ask", label: "Ask", icon: "chat", group: "Insight" },
     { href: "/rulebook", label: "Rulebook", icon: "book", group: "Control" },
     { href: "/icp", label: "ICP and replay", icon: "target", group: "Control" },
     { href: "/settings", label: "Settings", icon: "sliders", group: "Control" },
+    { href: "/golive", label: "Go-live readiness", icon: "shield", group: "Control" },
     ...(role === "admin" ? [{ href: "/people", label: "People", icon: "people", group: "Control" } as NavItem] : []),
     ...(demo ? [{ href: "/outbox", label: "Test inbox", icon: "mail", group: "Control" } as NavItem] : []),
   ];
@@ -122,6 +126,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           <div className="appbar">
             <SearchButton />
             <span className="grow" />
+            <NoticeBell />
             <TourButton />
             <ThemeToggle current={theme} />
           </div>

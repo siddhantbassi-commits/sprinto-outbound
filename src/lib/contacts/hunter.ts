@@ -70,8 +70,18 @@ export interface DiscoverResult {
   total: number;
 }
 
+export type VerifyStatus = "valid" | "invalid" | "accept_all" | "webmail" | "disposable" | "unknown";
+
+export interface VerifyResult {
+  status: VerifyStatus;
+  /** Hunter's own 0 to 100 confidence that the address will accept mail. */
+  score: number | null;
+}
+
 export interface HunterClient {
   account(): Promise<HunterAccount>;
+  /** Checks one address with Hunter's verifier. This one costs credit, so it is only ever called on purpose. Absent on stand-ins that cannot verify. */
+  verify?(email: string): Promise<VerifyResult>;
   domainSearch(domain: string, opts?: DomainSearchOptions): Promise<DomainSearchResult>;
   /** Finds companies by filters. Hunter says this call is free. Absent on stand-ins that cannot discover. */
   discover?(filters: Record<string, unknown>, limit?: number): Promise<DiscoverResult>;
@@ -145,6 +155,15 @@ export function readDiscover(body: unknown): DiscoverResult {
   return { companies, total: num(obj(obj(body)?.meta)?.results) ?? companies.length };
 }
 
+/** Hunter's verifier answer, kept to the six statuses it documents; anything else is "unknown", not trusted. */
+export function readVerify(body: unknown): VerifyResult {
+  const data = obj(obj(body)?.data);
+  const status = str(data?.status);
+  if (!data || status === null) throw new HunterError("bad_response");
+  const score = num(data.score);
+  return { status: (VERIFICATION.has(status) ? status : "unknown") as VerifyStatus, score: score === null ? null : Math.min(100, Math.max(0, Math.round(score))) };
+}
+
 function errorFor(status: number): HunterError {
   if (status === 401) return new HunterError("auth");
   if (status === 429) return new HunterError("quota");
@@ -204,6 +223,12 @@ export function createHunterClient({ apiKey, fetchFn = fetch, timeoutMs = 10_000
       const body: unknown = await res.json().catch(() => null);
       if (body === null) throw new HunterError("bad_response");
       return readDiscover(body);
+    },
+    async verify(email) {
+      // An address goes into the query string only if it is one plain address, so nothing can be added to the request.
+      const clean = email.trim();
+      if (clean.length > 254 || !/^[^\s@<>,;"()]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(clean)) throw new HunterError("bad_request");
+      return readVerify((await get("/email-verifier", { email: clean })).body);
     },
     async domainSearch(domain, opts = {}) {
       // Only a clean public hostname may reach the query string, so a crafted "domain" cannot add parameters.

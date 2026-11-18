@@ -57,6 +57,8 @@ export function demoFetchDeps(contact = DEMO_INBOX): FetchDeps {
 export function demoHunter(): HunterClient {
   return {
     account: async () => ({ remaining: 38, used: 12, available: 50, unit: "credits", resetDate: null }),
+    // The stand-in verifier: a shared mailbox cannot be vouched for; any other address is called valid.
+    verify: async (email) => (/^(sales|info|hello|support)@/.test(email) ? { status: "accept_all" as const, score: 55 } : { status: "valid" as const, score: 96 }),
     domainSearch: async (domain) => {
       const c = DEMO_BY_DOMAIN.get(domain);
       const candidates = c?.contacts ?? [];

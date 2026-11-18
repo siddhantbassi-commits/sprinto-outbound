@@ -16,7 +16,13 @@ const GROUPS: NavItem["group"][] = ["Work", "Insight", "Control"];
 
 export function NavLinks({ items, className }: { items: NavItem[]; className?: string }): ReactNode {
   const path = usePathname();
-  const active = (href: string) => (href === "/" ? path === "/" || (path.startsWith("/runs/") && path !== "/runs/new") || path.startsWith("/prospects/") : path === href || path.startsWith(`${href}/`));
+  const active = (href: string) => {
+    if (href === "/") return path === "/";
+    // A company's brief belongs to Leads; its Why page and its run belong to Runs.
+    if (href === "/leads") return path === "/leads" || path.startsWith("/leads/") || /^\/prospects\/[^/]+\/brief/.test(path);
+    if (href === "/runs") return path === "/runs" || (path.startsWith("/runs/") && path !== "/runs/new") || (path.startsWith("/prospects/") && !/\/brief/.test(path));
+    return path === href || path.startsWith(`${href}/`);
+  };
   return (
     <nav className={className} aria-label="Main">
       {GROUPS.map((g) => {
