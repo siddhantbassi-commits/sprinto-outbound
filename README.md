@@ -8,7 +8,7 @@ Cold outreach at scale for Sprinto (SOC 2, ISO 27001 and GDPR automation). Paste
 
 **Test mode only.** The recipient is a server setting. `sendTest` accepts no recipient, so the real contact is never mailed: the email lands in your own inbox with a header above it saying who it *would* have gone to and why.
 
-Built for MESA AI-Native Track, Case 02 (3 November 2026). Scope and reasoning: [`docs/Sprinto-Outbound-Scope.md`](docs/Sprinto-Outbound-Scope.md). Components map: [`docs/Sprinto-Outbound-Components-Map.pdf`](docs/Sprinto-Outbound-Components-Map.pdf).
+Built for MESA AI-Native Track, Case 02 (3 November 2026). Scope and reasoning: [`docs/Sprinto-Outbound-Scope.md`](docs/Sprinto-Outbound-Scope.md). Components map: [`docs/Sprinto-Outbound-Components-Map.pdf`](docs/Sprinto-Outbound-Components-Map.pdf). Demo script: [`docs/DEMO.md`](docs/DEMO.md). Practice run and failure drills: [`docs/REHEARSAL.md`](docs/REHEARSAL.md).
 
 ## Try it now, with no keys
 
