@@ -1,0 +1,13 @@
+# Keep the upload to source only. Vercel installs and builds on its own, and gets its settings from the project.
+node_modules
+.next
+.next-demo
+.git
+.claude
+.vercel
+.env*
+test-results
+playwright-report
+tests
+*.tsbuildinfo
+.DS_Store
