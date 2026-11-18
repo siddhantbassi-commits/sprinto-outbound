@@ -147,9 +147,15 @@ export function mergeAngles(found: Partial<Record<AngleId, DiscoverCompany[]>>):
 /** Where a suggested company already stands, so it is shown with a reason instead of silently missing. */
 export type Standing = "new" | "researched" | "suppressed" | "mailed_recently";
 
+/**
+ * Which suggestions can be chosen for research. A company already researched can be read again on purpose (its size may now
+ * be known, or its site may have changed), but one on the do-not-contact list, or mailed inside the cooldown, never can.
+ */
+export const canResearch = (s: Standing): boolean => s === "new" || s === "researched";
+
 export const STANDING_NOTE: Record<Standing, string> = {
   new: "",
-  researched: "Already researched",
+  researched: "Researched before: choosing it reads it again",
   suppressed: "On the do-not-contact list",
   mailed_recently: "Mailed in the last 30 days",
 };

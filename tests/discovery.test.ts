@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createHunterClient, HunterError, readDiscover, type DiscoverCompany, type DiscoverResult, type HunterClient } from "@/lib/contacts/hunter";
-import { ANGLES, angleRequest, defaultCriteria, estimateCost, HUNTER_EXCLUDE_LIMIT, MAX_WANT, mergeAngles, normaliseCriteria, standingOf, type AngleId, type Criteria } from "@/lib/discovery/criteria";
+import { ANGLES, angleRequest, canResearch, defaultCriteria, estimateCost, HUNTER_EXCLUDE_LIMIT, MAX_WANT, mergeAngles, normaliseCriteria, standingOf, type AngleId, type Criteria } from "@/lib/discovery/criteria";
 import { discover, type Known } from "@/lib/discovery/discover";
 import { aboutFrom, readPeek, type Peek } from "@/lib/discovery/peek";
 import { ICP_V1 } from "@/lib/icp/config";
@@ -121,6 +121,15 @@ describe("where a company already stands", () => {
     expect(standingOf("b.com", known)).toBe("mailed_recently");
     expect(standingOf("c.com", known)).toBe("researched");
     expect(standingOf("z.com", known)).toBe("new");
+  });
+});
+
+describe("which suggestions can be chosen", () => {
+  it("allows a new company, and one researched before on purpose, and never one that is suppressed or recently mailed", () => {
+    expect(canResearch("new")).toBe(true);
+    expect(canResearch("researched")).toBe(true);
+    expect(canResearch("suppressed")).toBe(false);
+    expect(canResearch("mailed_recently")).toBe(false);
   });
 });
 

@@ -8,7 +8,7 @@ import { startRun, type StartResult } from "../runs/new/actions";
 import { CountUp } from "@/components/count-up";
 import { Icon } from "@/components/icons";
 import { Banner, SectionTitle } from "@/components/ui";
-import { ANGLES, estimateCost, MAX_WANT, REGIONS, SIZES, STANDING_NOTE, type AngleId, type Criteria, type RegionId, type SizeId } from "@/lib/discovery/criteria";
+import { ANGLES, canResearch, estimateCost, MAX_WANT, REGIONS, SIZES, STANDING_NOTE, type AngleId, type Criteria, type RegionId, type SizeId } from "@/lib/discovery/criteria";
 
 const toggle = <T,>(list: T[], v: T): T[] => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
 
@@ -177,7 +177,7 @@ export function DiscoverForm({ initial, facts }: { initial: Criteria; facts: { a
               </div>
               <ul className="leads" data-tour="leads">
                 {out.found.map((f, idx) => {
-                  const can = f.standing === "new";
+                  const can = canResearch(f.standing);
                   const on = picked.includes(f.domain);
                   return (
                     <li key={f.domain} className={`lead${on ? " on" : ""}${can ? "" : " off"}`} style={{ animationDelay: `${Math.min(idx, 12) * 35}ms` }}>
@@ -189,7 +189,7 @@ export function DiscoverForm({ initial, facts }: { initial: Criteria; facts: { a
                         <div className="row" style={{ gap: 8 }}>
                           <b>{f.name}</b>
                           <a className="mono small" href={`https://${f.domain}`} target="_blank" rel="noreferrer noopener">{f.domain}<Icon name="external" /></a>
-                          {!can ? <span className="chip warn">{STANDING_NOTE[f.standing]}</span> : null}
+                          {f.standing !== "new" ? <span className="chip warn">{STANDING_NOTE[f.standing]}</span> : null}
                           {can && !f.verified ? <span className="chip" title={f.note ?? ""}>Site not checked</span> : null}
                         </div>
                         {f.about ? <p className="small about">&ldquo;{f.about}&rdquo;</p> : f.note ? <p className="small muted">{f.note}</p> : null}
@@ -209,7 +209,7 @@ export function DiscoverForm({ initial, facts }: { initial: Criteria; facts: { a
               <form action={startAction} className="dock card" data-tour="dock">
                 <input type="hidden" name="domains" value={JSON.stringify(picked)} />
                 <input type="hidden" name="source" value="discover" />
-                <input type="hidden" name="hints" value={JSON.stringify(Object.fromEntries(fresh.filter((f) => picked.includes(f.domain) && f.band).map((f) => [f.domain, f.band])))} />
+                <input type="hidden" name="hints" value={JSON.stringify(Object.fromEntries(out.found.filter((f) => picked.includes(f.domain) && f.band).map((f) => [f.domain, f.band])))} />
                 <div className="dockinfo">
                   <b><CountUp to={picked.length} ms={300} /> selected</b>
                   <span className="small muted">
