@@ -37,6 +37,7 @@ export default async function Settings() {
   const readiness = buildReadiness({
     mode: env.mode,
     testTo: set?.test_to ?? null,
+    postalAddress: set?.postal_address ?? null,
     icpSignedVersion: latestSigned?.version ?? null,
     factsProblems: fileProblems,
     geminiSet: !!env.gemini,

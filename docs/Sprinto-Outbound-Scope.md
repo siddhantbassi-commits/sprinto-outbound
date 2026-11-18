@@ -12,7 +12,7 @@ Working name: **Sprinto Outbound**. Companion file: [Sprinto-Outbound-Components
 
 This document began as the plan. It has been corrected to match what exists; where the build departs from the plan, the section says so.
 
-**What exists.** A Next.js app on Vercel (Mumbai) at https://sprinto-outbound-eight.vercel.app, invite-only, in test mode. Supabase holds the data and sign-in (16 migrations, row level security, append-only history). A GitHub Actions worker runs every 15 minutes, and a weekly job runs the discovery digest. Gemini, Hunter and Gmail are all live. 1,651 automated tests in 78 files pass and the typecheck is clean. The logic that decides things (score, ranking, lint, edit measure, scorecard, run view) was also checked by deliberately breaking it and confirming a test fails; survivors were either harmless or became new tests.
+**What exists.** A Next.js app on Vercel (Mumbai) at https://sprinto-outbound-eight.vercel.app, invite-only, in test mode. Supabase holds the data and sign-in (16 migrations, row level security, append-only history). A GitHub Actions worker runs every 15 minutes, and a weekly job runs the discovery digest. Gemini, Hunter and Gmail are all live. 1,654 automated tests in 78 files pass and the typecheck is clean. The logic that decides things (score, ranking, lint, edit measure, scorecard, run view) was also checked by deliberately breaking it and confirming a test fails; survivors were either harmless or became new tests.
 
 **Pages:** Today, Discover, Runs, Paste a list, Run detail, Weekly digest, Leads (board, search, saved views, exports), Call brief, Why, Review, Impact, Scorecard, What is working, Quality, Ask, Rulebook, ICP and replay, Settings, Go-live readiness, People (and a Test inbox in demo mode only).
 
@@ -533,7 +533,7 @@ Every page has a loading skeleton, an empty state that says what to do, and an e
 
 | Page | What it is for |
 |---|---|
-| **Today** (home) | What needs her now: drafts to approve, follow-ups due, new companies from the digest, what is running, and a readiness checklist until everything required is in place |
+| **Today** (home) | What needs her now: drafts to approve, follow-ups due, new companies from the digest, what is running, and a readiness checklist until everything required is in place (including a full postal address, since it ends every email) |
 | **Runs** | The list of runs, the last 7 days against the 7 before, and where every company has ended up |
 | **Weekly digest** | The saved search that runs every Monday (or on demand), keeps only companies that are new, emails the owner a short note and records it. Free: no Hunter credit, no model, no company contacted |
 | **What is working** | Recorded outcomes compared with the ICP score and the signals behind it, shown only once ten companies have been reached, never as a guess |
@@ -679,7 +679,7 @@ There is no Supabase service-role key anywhere: the worker signs in as its own l
 | **Live smoke** | `npm run smoke` checks every service; `-- --pipeline domain` runs one real company through the real site and the real model, with nothing sent. This is what found the thinking-token budgets |
 | **Approvals, scorecard and run view** | The approval gate (approve, edit, reject, switched off, rate-limited retry), the edit measure, the kill-criteria rules at every boundary, and the run page's progress, estimate and filters, each with deliberate-break checks |
 | **Every control does something** | `tests/controls.test.ts` reads the syntax tree of every component and page and fails on a button with no type or handler, a link to nowhere, a form with no action, an empty handler, or a permanently disabled button; each rule was proven by planting a dead control in a real page |
-| **Totals** | 1,651 tests in 78 files, offline and repeatable |
+| **Totals** | 1,654 tests in 78 files, offline and repeatable |
 
 ---
 

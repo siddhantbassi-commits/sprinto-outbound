@@ -46,7 +46,8 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   const guestBar = s.guest ? (
     <div className="demo-bar">
       <strong>Guest access</strong>
-      <span>You can do what an admin does here: search for companies, run research, change the ICP and the rules, and review drafts. Email goes only to the owner&apos;s test inbox.</span>
+      <span className="only-wide">You can do what an admin does here: search for companies, run research, change the ICP and the rules, and review drafts. Email goes only to the owner&apos;s test inbox.</span>
+      <span className="only-narrow">Admin-level access. Email goes only to the owner&apos;s test inbox.</span>
       <Link className="btn small" href="/login">Owner sign-in</Link>
     </div>
   ) : null;

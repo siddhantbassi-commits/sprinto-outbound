@@ -164,7 +164,8 @@ export function RunWatcher() {
     return () => { stopped = true; clearInterval(id); };
   }, [working, onRunPage]);
 
-  const running = (data?.runs ?? []).filter((r) => !r.finished && !r.paused);
+  // A run's own page already shows its progress in full, so the floating card steps aside there (it still announces a finish).
+  const running = onRunPage ? [] : (data?.runs ?? []).filter((r) => !r.finished && !r.paused);
   if (running.length === 0 && done.length === 0) return null;
   const main = running[0];
 

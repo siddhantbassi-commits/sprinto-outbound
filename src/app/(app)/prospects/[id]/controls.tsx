@@ -20,13 +20,25 @@ function Form({ action, children, title, help }: { action: Act; children: ReactN
   );
 }
 
-export function ProspectActions({ id, lane, domain }: { id: string; lane: string; domain?: string }) {
+export function ProspectActions({ id, lane, domain, verdict }: { id: string; lane: string; domain?: string; verdict?: string | null }) {
+  // A "maybe" waits for a person before any Hunter credit is spent. Promoting it is the step that carries it on, so it gets its own plain card.
+  const promotable = lane === "review" && verdict === "maybe";
   const resumable = ["review", "held", "needs_more", "failed", "no_contact"].includes(lane);
   const finished = lane === "sent" || lane === "not_fit" || lane === "skipped";
   const body = (
     <>
       <div className="grid">
-        {resumable ? (
+        {promotable ? (
+          <Form action={resume} title="Promote this company" help="It scored as a maybe, so nothing has been spent on it yet. Promoting it looks up the contact with Hunter (one credit) and writes the email. Your reason is recorded.">
+            <input type="hidden" name="id" value={id} />
+            <input type="hidden" name="kind" value="promote" />
+            <div className="row">
+              <input type="text" name="reason" required minLength={3} maxLength={300} defaultValue="Strong enough signals to justify a discovery call" aria-label="Reason for promoting" />
+              <button className="btn primary small" type="submit">Promote: find the contact</button>
+            </div>
+          </Form>
+        ) : null}
+        {resumable && !promotable ? (
           <Form action={resume} title="Try again" help="Put it back in the queue. It carries on from the step where it stopped; the decision is recorded with your reason.">
             <input type="hidden" name="id" value={id} />
             <div className="row">

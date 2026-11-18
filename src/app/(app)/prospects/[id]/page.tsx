@@ -102,7 +102,7 @@ export default async function Why({ params }: { params: Promise<{ id: string }> 
         })}
       </ol>
 
-      {canAct && p.lane !== "active" ? <ProspectActions id={p.id} lane={p.lane} domain={p.domain} /> : null}
+      {canAct && p.lane !== "active" ? <ProspectActions id={p.id} lane={p.lane} domain={p.domain} verdict={p.verdict} /> : null}
 
       {/* ---------------- 1. the company ---------------- */}
       <section id="company" className="card stack">

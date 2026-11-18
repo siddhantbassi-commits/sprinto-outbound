@@ -53,6 +53,7 @@ export async function loadToday(s: AppSession, now = Date.now()): Promise<TodayD
   const readiness = buildReadiness({
     mode: s.mode,
     testTo: settings?.test_to ?? null,
+    postalAddress: settings?.postal_address ?? null,
     icpSignedVersion: icp?.version ?? null,
     factsProblems: file && settings ? factsFileProblems(withSettings(file, settings)) : ["There is no facts file."],
     geminiSet: !!s.env.gemini,

@@ -4,9 +4,13 @@
  * Settings can never disagree.
  */
 
+import { looksLikeFullAddress } from "@/lib/golive/checks";
+
 export interface ReadinessInput {
   mode: "demo" | "supabase";
   testTo: string | null;
+  /** The postal address in the opt-out line, which a recipient must be able to find. */
+  postalAddress?: string | null;
   icpSignedVersion: number | null;
   factsProblems: string[];
   geminiSet: boolean;
@@ -20,7 +24,7 @@ export interface ReadinessInput {
 }
 
 export interface ReadyItem {
-  id: "test" | "icp" | "facts" | "gemini" | "gmail" | "hunter" | "worker";
+  id: "test" | "address" | "icp" | "facts" | "gemini" | "gmail" | "hunter" | "worker";
   label: string;
   ok: boolean;
   /** Not needed to send. A missing optional item is shown quietly. */
@@ -44,6 +48,14 @@ export function buildReadiness(i: ReadinessInput): Readiness {
   const demo = i.mode === "demo";
   const items: ReadyItem[] = [
     { id: "test", label: "Test address", ok: !!i.testTo, detail: i.testTo ? `Mail goes only to ${i.testTo}` : "Not set: every send is refused", href: "/settings", action: "Set it" },
+    {
+      id: "address",
+      label: "Postal address",
+      ok: looksLikeFullAddress(i.postalAddress ?? null),
+      detail: looksLikeFullAddress(i.postalAddress ?? null) ? "A full address is in every opt-out line" : i.postalAddress ? `"${i.postalAddress.trim().slice(0, 40)}" is not a full address, and it ends every email` : "Not set: it ends every email",
+      href: "/settings",
+      action: "Set it",
+    },
     { id: "icp", label: "ICP signed off", ok: i.icpSignedVersion !== null, detail: i.icpSignedVersion !== null ? `Version ${i.icpSignedVersion} is in use` : "Nothing is signed off, so no run can start", href: "/icp", action: "Review and sign off" },
     { id: "facts", label: "Sprinto claims verified", ok: i.factsProblems.length === 0, detail: i.factsProblems.length ? i.factsProblems[0]! : "Verified by a person, sender and address set", href: "/settings", action: "Verify" },
     { id: "gemini", label: "Gemini", ok: demo || i.geminiSet, detail: demo ? "Scripted model (demo)" : i.geminiSet ? "Key set" : "No key: nothing can be read or written", href: "/settings", action: "See how" },

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { buildReadiness, type ReadinessInput } from "@/lib/app/readiness";
 
 const NOW = Date.parse("2026-11-17T12:00:00Z");
-const READY: ReadinessInput = { mode: "supabase", testTo: "me@example.com", icpSignedVersion: 1, factsProblems: [], geminiSet: true, gmailSet: true, hunter: { remaining: 20 }, lastTick: new Date(NOW - 60_000).toISOString(), now: NOW, waiting: 0, reserve: 3 };
+const READY: ReadinessInput = { mode: "supabase", testTo: "me@example.com", postalAddress: "12 Marine Drive, Mumbai 400020, India", icpSignedVersion: 1, factsProblems: [], geminiSet: true, gmailSet: true, hunter: { remaining: 20 }, lastTick: new Date(NOW - 60_000).toISOString(), now: NOW, waiting: 0, reserve: 3 };
 const item = (i: ReadinessInput, id: string) => buildReadiness(i).items.find((x) => x.id === id)!;
 
 describe("buildReadiness", () => {
@@ -12,6 +12,7 @@ describe("buildReadiness", () => {
   });
   it.each([
     ["test", { testTo: null }],
+    ["address", { postalAddress: "600020" }],
     ["icp", { icpSignedVersion: null }],
     ["facts", { factsProblems: ["No claim about Sprinto has been verified by a person yet."] }],
     ["gemini", { geminiSet: false }],
@@ -21,6 +22,12 @@ describe("buildReadiness", () => {
     expect(r.ready).toBe(false);
     expect(item({ ...READY, ...over }, id)).toMatchObject({ ok: false, href: expect.stringMatching(/^\//), action: expect.any(String) });
     expect(r.done).toBe(r.total - 1);
+  });
+  it("says why an incomplete postal address is not enough, and treats a missing one the same way", () => {
+    expect(item({ ...READY, postalAddress: "600020" }, "address").detail).toMatch(/"600020" is not a full address, and it ends every email/);
+    expect(item({ ...READY, postalAddress: "" }, "address")).toMatchObject({ ok: false, detail: "Not set: it ends every email" });
+    expect(item({ ...READY, postalAddress: null }, "address").ok).toBe(false);
+    expect(item(READY, "address")).toMatchObject({ ok: true, href: "/settings" });
   });
   it("reports the first facts problem, not all of them", () => expect(item({ ...READY, factsProblems: ["First.", "Second."] }, "facts").detail).toBe("First."));
   it("treats Hunter as optional: missing or failing does not block", () => {
@@ -38,8 +45,8 @@ describe("buildReadiness", () => {
     expect(item({ ...READY, lastTick: null, waiting: 2 }, "worker").detail).toMatch(/never run/);
   });
   it("counts the worker only when it is required", () => {
-    expect(buildReadiness({ ...READY, waiting: 0 }).total).toBe(5);
-    expect(buildReadiness({ ...READY, waiting: 3 }).total).toBe(6);
+    expect(buildReadiness({ ...READY, waiting: 0 }).total).toBe(6);
+    expect(buildReadiness({ ...READY, waiting: 3 }).total).toBe(7);
   });
   it("an hour is the line: just inside is running, just outside is not", () => {
     expect(item({ ...READY, waiting: 1, lastTick: new Date(NOW - 3_599_000).toISOString() }, "worker").ok).toBe(true);
