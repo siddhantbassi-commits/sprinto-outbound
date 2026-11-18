@@ -27,8 +27,7 @@ export function ProspectActions({ id, lane, domain, verdict }: { id: string; lan
   const finished = lane === "sent" || lane === "not_fit" || lane === "skipped";
   const body = (
     <>
-      <div className="grid">
-        {promotable ? (
+      {promotable ? (
           <Form action={resume} title="Promote this company" help="It scored as a maybe, so nothing has been spent on it yet. Promoting it looks up the contact with Hunter (one credit) and writes the email. Your reason is recorded.">
             <input type="hidden" name="id" value={id} />
             <input type="hidden" name="kind" value="promote" />
@@ -37,7 +36,8 @@ export function ProspectActions({ id, lane, domain, verdict }: { id: string; lan
               <button className="btn primary small" type="submit">Promote: find the contact</button>
             </div>
           </Form>
-        ) : null}
+      ) : null}
+      <div className="grid" style={{ alignItems: "start" }}>
         {resumable && !promotable ? (
           <Form action={resume} title="Try again" help="Put it back in the queue. It carries on from the step where it stopped; the decision is recorded with your reason.">
             <input type="hidden" name="id" value={id} />
