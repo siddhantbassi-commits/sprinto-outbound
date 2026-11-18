@@ -17,13 +17,13 @@ npm install
 npm run dev:demo      # http://localhost:3100
 ```
 
-Demo mode runs the whole product on seven invented companies, in memory: a real Postgres engine with the real schema, the real worker, the real quote check, scoring, lint and send safety. Only the outside world is pretend (the websites, the model, Hunter and Gmail). Nothing leaves your computer, and it refuses to start in production or beside a real database. Use the **View as** switch at the top to see what an admin, an operator, a viewer and a not-yet-approved person can each do.
+Demo mode runs the whole product on eight invented companies, in memory: a real Postgres engine with the real schema, the real worker, the real quote check, scoring, lint and send safety. Only the outside world is pretend (the websites, the model, Hunter and Gmail). Nothing leaves your computer, and it refuses to start in production or beside a real database. Use the **View as** switch at the top to see what an admin, an operator, a viewer and a not-yet-approved person can each do.
 
 Things worth clicking: a company's **Why** page (every score point with its quote and the page it came from), **Needs attention** (a "maybe", a company with no usable contact), **Test inbox** (what would have landed in your Gmail, with the defence above it), and **Settings** (what must be true before anything can send), **Impact** (the funnel, where the rest went, and time saved with its working), **Scorecard** (the three kill criteria set before the build, and where each stands, with "not enough data" until 8 decisions exist), **Quality** (this week against last week, with "not enough data" shown where a sample is too small, and the golden set), **Ask** (plain-English questions answered from the records, with what it looked at shown), and **ICP and replay** (change a weight and see which stored companies would move, without re-reading a single site).
 
 ## What exists today
 
-Everything below is built and tested, and the app runs. **No real service has been called yet**: Gemini, Hunter and Gmail are exercised only through fakes.
+Everything below is built, tested and deployed. The tests use fakes for the outside world; the live app uses the real Gemini, Hunter, Gmail and Supabase, and a first real run (two companies, one promoted, one email approved and sent to the test inbox) has been done. The Status section of [`docs/Sprinto-Outbound-Scope.md`](docs/Sprinto-Outbound-Scope.md) says what that run showed, including the faults only real use found.
 
 | Layer | Where | Notes |
 |---|---|---|
@@ -34,14 +34,15 @@ Everything below is built and tested, and the app runs. **No real service has be
 | Gmail | `src/lib/email/` | Strict MIME builder, send-only OAuth, three outcomes (sent, failed, unknown), inbox header |
 | Database | `supabase/` | Roles, row-level security, append-only history, queue and send safety as SQL functions ([details](supabase/README.md)) |
 | Worker | `src/lib/worker/` | The seven steps as handlers, the tick loop, the store over a database port |
-| App | `src/app/`, `src/components/` | Sign-in (invite-only magic link), runs, new run, run detail, the Why page, needs attention, settings, people, CSV export |
+| App | `src/app/`, `src/components/` | Sign-in (invite-only magic link), runs, new run (a paste box that finds domains in any text), a live run view, the Why page, settings, people, run CSV export, a command palette |
+| Review desk | `src/app/(app)/review/`, `src/lib/app/review.ts`, `editdiff.ts` | A person approves, edits or rejects every draft before it is sent; edits are measured in words and re-checked; each decision is a permanent row (`email_reviews`) |
 | Demo | `src/lib/demo/` | The sample world described above |
 | Key day | `scripts/`, `src/lib/smoke/` | Hidden-prompt key entry, and the smoke test described below |
 | Ask | `src/lib/ask/` | Seven read-only lookups, the loop, the answer check, the rate limit, and the demo stand-in |
 | Scorecard | `src/lib/app/scorecard.ts` | The class's kill criteria (rewrites over 50%, contact accuracy under 60%, time costing more than it saves) checked against recorded review decisions, with a minimum sample and the working shown |
 | Quality watch | `src/lib/quality/` | Live readings with minimum-sample rules, the golden set of known companies, and its history |
 
-Everything in the scope is built. The smoke script is built and tested against fakes; it has not yet been run against your real accounts.
+Everything in the scope is built, deployed and has been exercised on real data. The smoke script has been run against the real accounts, and `npm run smoke -- --pipeline domain` is a real end-to-end dry run on one company.
 
 ## Key day: entering keys and checking they work
 
@@ -75,12 +76,13 @@ npm run smoke -- --only gemini,gmail          # just those sections
 
 The dry run reads a real company's real site and asks the real model, in a throwaway in-memory database, and shows what the system made of it (the pages, the facts and how many quotes checked out, the score, and the email it would have written) without involving Supabase, Gmail or any account of yours.
 
-## Deploying (when you have the accounts)
+## Deploying
 
 1. **Supabase:** follow [`supabase/README.md`](supabase/README.md) (create the project, turn off sign-ups, apply the migrations, promote yourself, create the worker account).
-2. **Vercel:** import the repository, region `bom1`, and set the environment variables listed in [`.env.local.example`](.env.local.example) through the dashboard.
+2. **Vercel:** link the repository (region `bom1`, set in `vercel.json`) and set the environment variables listed in [`.env.local.example`](.env.local.example), either in the dashboard or with `npx vercel env add`. A `.vercelignore` keeps uploads to source only (without it the CLI also tries to upload build caches). Deploy with `npx vercel deploy --prod`. Add the live address to Supabase's Site URL and redirect list.
 3. **GitHub:** add the repository secrets `APP_URL` and `CRON_SECRET` (the same value as in Vercel). The Worker workflow then calls the app every 15 minutes. Opening a run in the browser also drives the worker, because GitHub's scheduler can run late.
-4. **In the app, as admin:** set the test address, sender and postal address; sign off the ICP; verify at least one claim about Sprinto against its source. Until all three are done, nothing can send.
+4. **In the app, as admin:** set the test address, sender and a full postal address; sign off the ICP; verify at least one claim about Sprinto against its source. Until all three are done, nothing can send. Every draft then waits for a person's approval (a setting an admin can change, with a reason).
+5. **Gmail:** `npm run gmail-token` makes the send-only sign-in. While the Google app is in Testing mode it expires after about 7 days, so renew it (and the copy on Vercel) before any demo. `docs/REHEARSAL.md` has the steps.
 
 ## Running the checks
 

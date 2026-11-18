@@ -8,9 +8,38 @@ Working name: **Sprinto Outbound**. Companion file: [Sprinto-Outbound-Components
 
 ---
 
+## Status (18 November 2026): built, deployed and rehearsed on real data
+
+This document began as the plan. It has been corrected to match what exists; where the build departs from the plan, the section says so.
+
+**What exists.** A Next.js app on Vercel (Mumbai) at https://sprinto-outbound-eight.vercel.app, invite-only, in test mode. Supabase holds the data and sign-in (11 migrations, row level security, append-only history). A GitHub Actions worker runs every 15 minutes. Gemini, Hunter and Gmail are all live. 1,302 automated tests in 53 files pass and the typecheck is clean. The logic that decides things (score, ranking, lint, edit measure, scorecard, run view) was also checked by deliberately breaking it and confirming a test fails; survivors were either harmless or became new tests.
+
+**Pages:** Runs, New run, Run detail, Why, Review, Impact, Scorecard, Quality, Ask, Rulebook, ICP and replay, Settings, People (and a Test inbox in demo mode only).
+
+**The first real run.** Two real companies (`documenso.com`, `trigger.dev`) were read, scored and judged in 55 seconds. Both scored "maybe" (58 and 52) because headcount was not on their sites, so company size scored 0 and nothing was guessed. No Hunter credit was spent until a person promoted one. Documenso was promoted for its own compliance page ("SOC 2: Planned (2026)", 25 points). Hunter found a Co-Founder (confidence 85); the system chose two pains, wrote the email (about 14,500 model tokens for the whole company), passed all 12 checks, held it for approval, and after a person approved it as written, sent it to the test inbox. The trace and the Why page show every step.
+
+**What only real use found.** The fakes were good, but these faults needed real data and a real model:
+1. **Thinking tokens eat the answer.** The Gemini 3.x models spend output tokens thinking before they answer or call a tool. At 300 or 512 tokens a round could end with no tool call, which the loop reads as "nothing more to fetch", and a real six-page site overran the 4,096-token extraction budget. Budgets were measured against the real models and raised (loop 1,024, extraction 12,288).
+2. **Promoting a "maybe" failed.** It sent the company back through the whole qualify step, which then collided with its own saved facts. A promoted "maybe" now carries on without being read again, and a re-run adds a second pass of facts. The test that had written the broken behaviour down as expected was corrected.
+3. **The hook was not the strongest signal.** The first draft opened on an Enterprise License line while the strongest evidence (SOC 2 planned for 2026) ranked low. Hook options are now ordered by the company's highest-scoring quotes first.
+4. **A smoke test that passed for the wrong reason, and a grant that was too wide.** With a wrong Supabase key the anonymous check passed vacuously (a check that the key is accepted was added), and a catalog check of the live database found a helper function callable by the public (closed by a migration).
+
+**Added beyond the plan.** A **human approval gate**: every draft waits on the Review desk, where a person approves, edits (measured in words, and re-checked against the same 12 rules) or rejects with a reason; each decision is a permanent row. A **Scorecard** that checks the class's own kill criteria against those decisions (stop if over 50% of emails are rewritten, if the right person is chosen under 60% of the time, or if the system costs more time than it saves), and says "too early to say" below 8 decisions. **Impact** (the funnel and time saved with its working), a **Rulebook** page (the evidence map and rules in words), a live run view, a paste box that finds domains in any text, a readiness checklist, and a design in Sprinto's own colours.
+
+**Different from the plan**
+- Contacts: Hunter plus a **hand-picked contact form** in Settings, not a CSV import of Apollo results.
+- No Help page, no weekly-report page (the report text is on Impact) and no "eight CSV downloads" (one export: a run's results).
+- Replies and bounces are not tracked, so conversion cannot be measured in test mode and the Scorecard says so.
+- Gmail is a personal account with the OAuth app in **Testing**; Google would not let it be published without a domain we own, so the sign-in lasts about 7 days and is renewed with `npm run gmail-token`.
+- The browser sweep and Playwright tests in the original plan were not built; pages were checked by hand in a browser pane, on desktop and phone width.
+
+**Still open.** The postal address in Settings was a bare postcode and needs a full address before real use. One verified claim about Sprinto exists (F1, checked against the case brief), and the figures a claim may contain are still fixed at 2, 27001 and 15. A static test that fails on a button with no action is not written. The second "maybe" (trigger.dev) is waiting for a person's decision.
+
+---
+
 ## 0. Read this first
 
-**What we are building.** A pipeline you run on a list of domains. For each domain it reads the company's public website, works out whether the company fits Sprinto, finds one named decision-maker, picks the two pains that person most likely has, writes a short personal email with a hook taken from the site, and sends it through Gmail. Around the pipeline sits a small platform: sign-in, a run page, a "why" page for every company, a versioned ICP, budgets, a suppression list, quality checks and downloads.
+**What we are building.** A pipeline you run on a list of domains. For each domain it reads the company's public website, works out whether the company fits Sprinto, finds one named decision-maker, picks the two pains that person most likely has, writes a short personal email with a hook taken from the site, and sends it through Gmail. Around the pipeline sits a small platform: sign-in, a run page, a "why" page for every company, a Review desk where a person approves each draft, a versioned ICP, budgets, a suppression list, quality checks, a Scorecard and a run download.
 
 **The one idea the whole design rests on.** The case's second "done" line is *you can defend every decision the system made: why this company, why this person, why this email*. So the design is built backwards from that sentence:
 
@@ -18,7 +47,7 @@ Working name: **Sprinto Outbound**. Companion file: [Sprinto-Outbound-Components
 - **Every fact carries a quote** copied from the page. Code checks the quote really appears in the stored page text. A fact whose quote cannot be found is thrown away.
 - **Every step writes a trace** (inputs, output, prompt version, model, tokens, time). The "why" page is just that trace made readable.
 
-**The safety line (the human boundary).** In test mode, which is the only mode we build, every email goes to *your own inbox*, as the case instructs [Case]. The real contact is recorded and shown at the top of the email ("Would have gone to Priya Rao, CTO"), never mailed. There is no live-send button, because a dead or dangerous button is exactly what we have avoided in every past build.
+**The safety line (the human boundary).** In test mode, which is the only mode we build, every email goes to *your own inbox*, as the case instructs [Case]. The real contact is recorded and shown at the top of the email ("Would have gone to Priya Rao, CTO"), never mailed. There is no live-send button, because a dead or dangerous button is exactly what we have avoided in every past build. Nothing is sent until a person has approved it on the Review desk (decision D8).
 
 **What this reuses.** A large part of the platform already exists in Freshroots Ops: sign-in and roles, the app shell and light/dark theme, the Gemini client and loop, rate limiter, security headers and CSP, CSV neutralisation, migration runner, database contract tests, CI and the scheduled GitHub Action. We copy and adapt them (section 14). That is what makes this achievable in the time.
 
@@ -26,13 +55,15 @@ Working name: **Sprinto Outbound**. Companion file: [Sprinto-Outbound-Components
 
 | # | Decision | Why |
 |---|---|---|
-| D1 | Hunter is the primary contact finder; Apollo is a manual-CSV fallback that is always available | The case wants "run it on a list of domains, end to end". Only Hunter has an API. The fallback means a Hunter quota or outage never stops a run |
+| D1 | Hunter is the primary contact finder; a hand-picked contact (looked up in Apollo or anywhere, entered in Settings) is always available and outranks Hunter | The case wants "run it on a list of domains, end to end". Only Hunter has an API. The fallback means a Hunter quota or outage never stops a run |
 | D2 | Gmail API with a send-only OAuth scope, not SMTP | Least privilege, no password stored. Needs a one-time token (section 8.4) |
 | D3 | Platform, not a script: invite-only sign-in, Supabase, GitHub Actions worker | Matches Freshroots and Clearway quality; the ask says "platform" |
 | D4 | Test mode only. `to` is fixed to your address in code | The case says hardcode it [Case]. Also safe |
 | D5 | Qualify at 65 of 100; 45 to 64 is "maybe" and waits for a person; under 45 is "not a fit" | The case wants no decisions mid-run, so only clear fits proceed. A person can promote a "maybe" with one click |
 | D6 | One Hunter search per domain, cached 30 days, with a hard reserve | Quota is tiny (section 8.3) |
 | D7 | Gemini does extraction, page-choosing, pain-picking and drafting. It never scores, never picks a recipient, never sends | Defensibility |
+| D8 | A person approves every email before it is sent (on by default; an admin can switch it off, with a reason, and the page then says so) | The class's own plan has the Growth Lead reviewing before any send, and the rewrite rate is the number that says whether the system saves time |
+| D9 | The class's kill criteria are checked from recorded decisions, and a small sample is shown as "too early", never as good news | Deciding in advance when to shut it down, then actually checking |
 
 **Questions for you are collected in section 20.** None blocks reading this.
 
@@ -275,7 +306,7 @@ queued ─► scraped ─► qualified ─► contact_found ─► pains_chosen 
    └─► skipped (suppressed, or mailed in the last 30 days)                failed (after 3 retries, with the error)
 ```
 
-*Built differently from the first sketch:* extraction and qualification are one step, because the agent loop re-extracts each time it fetches a page, so a separate "extracted" state would never be resting. A 'maybe' (45 to 64) is parked in **review** for a person to promote; "needs more" and "no contact" are lanes, not errors.
+*Built differently from the first sketch:* extraction and qualification are one step, because the agent loop re-extracts each time it fetches a page, so a separate "extracted" state would never be resting. A 'maybe' (45 to 64) is parked in **review** for a person to promote; "needs more" and "no contact" are lanes, not errors. *Found by the first real run:* promoting a 'maybe' must carry on to the contact step without reading the company again (the person has already judged it), and a deliberate re-run saves a second pass of facts.
 
 ### 7.1 Step 1: Scrape
 
@@ -328,15 +359,16 @@ Section 5.
 
 ### 7.6 Step 6: Draft
 
-Gemini gets: the contact's first name and title, the company card, the two pains and their evidence, the facts file, and the lint rules in plain words. It returns `subject`, `body`, `hook_evidence_id`. Code lints (6.4). Up to 2 repairs, then hold.
+Gemini gets: the contact's first name and title, the company card, the two pains and their evidence, the facts file, and the lint rules in plain words. It returns `subject`, `body`, `hook_evidence_id`. The hook options it may choose from are verified quotes from the company's own pages, listed with the company's highest-scoring signals first, then the evidence for the two pains. Code lints (6.4). Up to 2 repairs, then hold, and a person approves the result before it is sent.
 
 ### 7.7 Step 7: Send
 
 - Build the message with strict header handling; encode the subject; plain text.
 - `sendTest(draft)` **takes no recipient**. The `To` address comes only from the server setting `OUTBOUND_TEST_TO`. There is no code path where a contact's address becomes a recipient.
 - Gmail API `users.messages.send` using a refresh token with the send-only scope.
+- **The text that is sent is the person-approved text** (as written or as edited) when approval is required, which is the default. A rejected draft is never sent, even if something puts the company back in the queue.
 - **No double sends.** Before calling Gmail the system inserts a `sending` row guarded by a unique index. If Gmail confirms, the message ID is saved. If the call times out in a way that could have sent, the row becomes **unknown** and is *not* retried: it goes to Needs attention with the header to search for in Sent (`X-Outbound-Run`). A clear failure (bad token, 4xx) is retried up to 3 times with backoff, then held.
-- Caps: 20 sends a day and one per domain by default (settings). The cap is enforced by a database function, so a bug cannot exceed it.
+- Caps: 20 sends a day and one per domain per 30 days by default (settings). The cap is enforced by a database function, so a bug cannot exceed it.
 
 ---
 
@@ -353,11 +385,11 @@ Growth Lead ──► paste / CSV (checked in the browser) ──► Supabase: r
                                            Vercel: /api/worker/tick  or  /api/runs/[id]/advance
                                                               │  claims ONE step of ONE prospect
                                                               ▼
-              scrape ─► extract(Gemini) ─► agent loop(Gemini) ─► score(code) ─► Hunter ─► pains ─► draft(Gemini) ─► lint ─► Gmail
+              scrape ─► extract(Gemini) ─► agent loop(Gemini) ─► score(code) ─► Hunter ─► pains ─► draft(Gemini) ─► lint ─► REVIEW (a person) ─► Gmail
                                                               │
                                   every step appended to the trace (Supabase, append-only)
                                                               ▼
-                       Why page · Run funnel · Needs attention · Quality watch · CSV downloads · Ask Outbound
+                       Why page · Review desk · Run view · Impact · Scorecard · Quality · Ask Outbound · run CSV
 ```
 
 ### 8.2 What each service is for
@@ -365,7 +397,7 @@ Growth Lead ──► paste / CSV (checked in the browser) ──► Supabase: r
 | Service | Role | Notes |
 |---|---|---|
 | **GitHub** | Source, CI, scheduled worker | CI runs typecheck, lint, tests, build, browser smoke tests. A cron workflow calls the worker every 15 minutes and loops until the queue is empty or about four minutes pass [Freshroots experience: GitHub's scheduled runs can start late or not at all, so the Runs page warns if there has been no tick for an hour, and opening a live run also ticks] |
-| **Vercel** | The Next.js app and the worker endpoints | Region `bom1`. Every endpoint does **one step** and finishes in well under 60 seconds, so the plan's function time limit never matters. All third-party secrets live only here |
+| **Vercel** | The Next.js app and the worker endpoints | Region `bom1`. The worker endpoints take a few steps per call within a 20-second budget and are allowed 60 seconds; a single extraction call on a real site can take about 25 seconds, so a call can legitimately run long, and the schedule or the live page simply calls again. All third-party secrets live only here |
 | **Supabase** | Postgres, Auth, row level security | Invite-only. No service-role key in the app; the worker signs in as its own account (the pattern Freshroots uses for its scheduler) |
 | **Gemini** | Extraction, page-choosing, pain-choosing, drafting, Ask Outbound | Key held only on the server. A model fallback chain of its own, pinnable with `GEMINI_MODEL`; names checked against Google's model page, behaviour confirmed with the key |
 | **Hunter** | Contact search | One call per domain, cached, budget read from Hunter's own account endpoint |
@@ -373,15 +405,16 @@ Growth Lead ──► paste / CSV (checked in the browser) ──► Supabase: r
 
 ### 8.3 Budgets (they decide what the system may do)
 
-- **Hunter.** [Hunter's published OpenAPI spec, checked 4 Nov 2026] `GET /v2/account` returns `data.requests.credits.{used, available, remaining}` when the team has a single credit pool (otherwise `searches`), a domain search costs 1 credit and only when it returns at least one result, and every search response carries an `X-Credits-Used` header. The API key can go in an `X-API-KEY` header, so it is never in a URL. The case says 25 searches a month [Case]. Hunter's pricing page now lists 50 credits a month for free accounts, and a search costs credits per email found [Research; they disagree]. We therefore **ask Hunter how many credits remain** (its account endpoint, cached for 10 minutes) and keep a reserve of 3. A run is refused or trimmed with a message when it would breach the budget, and the New run page shows the estimate before you press Run.
-- **Gemini.** 60,000 tokens per domain, 400,000 per run (editable). A domain over budget stops as "needs more" with the reason.
+- **Hunter.** [Hunter's published OpenAPI spec, checked 4 Nov 2026] `GET /v2/account` returns `data.requests.credits.{used, available, remaining}` when the team has a single credit pool (otherwise `searches`), a domain search costs 1 credit and only when it returns at least one result, and every search response carries an `X-Credits-Used` header. The API key can go in an `X-API-KEY` header, so it is never in a URL. The case says 25 searches a month [Case]. Hunter's pricing page lists 50 credits a month for free accounts [Research], and the real account confirmed 50 credits (resetting monthly). We therefore **ask Hunter how many credits remain** (its account endpoint, cached for 10 minutes) and keep a reserve of 3. A run is refused or trimmed with a message when it would breach the budget, and the New run page shows the estimate before you press Run.
+- **Gemini.** 60,000 tokens per domain, 400,000 per run (editable). A domain over budget stops as "needs more" with the reason. A real company used about 14,500 tokens from read to drafted.
 - **Gmail.** 20 a day.
 
 ### 8.4 Gmail set-up, and the trap
 
-You do this once before the session (about 10 minutes): create a Google Cloud project, enable the Gmail API, configure the consent screen, create an OAuth client, run our one-off `npm run gmail:token` helper to get the refresh token, then put it in Vercel.
+Done once, with a personal Gmail account: a Google Cloud project, the Gmail API enabled, an External consent screen with only the `gmail.send` scope, a **Desktop app** OAuth client, and the one-off `npm run gmail-token` helper to get the refresh token. The helper signs in through a loopback address on the machine, uses PKCE, ignores any callback that does not carry its own state, refuses a token that carries more than permission to send, and writes the token to `.env.local` without printing it. The values are then copied to Vercel as hidden secrets.
 
-- [Research] If the consent screen is "External" and in *Testing*, **refresh tokens expire after 7 days**. If your `pg27.mesaschool.co` account is a Google Workspace account, choose **Internal** and the limit does not apply. If it is not, re-run the helper before each demo.
+- **The trap, confirmed in practice.** The consent screen is External and in *Testing*, so the refresh token **expires after 7 days** [Research, then observed]. The "Publish app" button stayed disabled without a domain we own to list as authorised, so the app stays in Testing, the sending account must be added as a test user, and the token is renewed with `npm run gmail-token` before any demo. A Google Workspace account with an *Internal* app would avoid this.
+- **Scope.** Google also offers `gmail.send.self` ("send to yourself"). It would be the narrowest, but the test address here is a different inbox from the sending account, so the full send scope is used.
 - Fallback if OAuth blocks us on the day: Gmail SMTP with an app password (only if the account allows it). The send function sits behind one interface, so swapping is a half-hour change.
 
 ### 8.5 The queue
@@ -423,6 +456,8 @@ Row level security on every table; no anonymous privileges. "Append-only" means 
 - **Replay** (`/icp`) re-scores every stored company from its latest facts under a draft ICP and shows who moves, saving nothing; it does not write the `scores.replay` rows the data model reserved. The qualify step now records how much text and how many pages it read, so the reading-enough gate can be replayed faithfully. Replay first scores the current version and reports how many recorded verdicts it reproduces, and how many of the rest were scored under an older version.
 - **Time saved** is baseline minus review time. `settings_versions.minutes_saved_per_email` is the manual baseline per company researched, and `review_minutes_per_email` and `review_minutes_per_decision` (migration 000800) are the person time subtracted. All three are assumptions shown beside the answer; machine time is reported separately and never counted.
 - The sender name, title and postal address live in `settings_versions` (versioned, admin-only), not in the Sprinto claims file, so there is one source for each.
+- Added since: **`email_reviews`** (one append-only decision per draft: approve or reject, the final subject and body, the share of words changed, whether the contact was the right one, a reason) written only by the `approve_email` and `reject_email` functions; `settings_versions.require_approval`; **`golden_runs`** (the quality check's history); **`role_changes`** (who changed whose role); and a migration that closed a function the public could call, found by checking the live database.
+- `facts` pass numbers continue where they left off, so a re-run adds pass 2 rather than overwriting pass 1.
 - `settings_versions.test_to` is the recorded test address. The server also has its own `OUTBOUND_TEST_TO`; a send is refused unless the two agree, so changing the address needs both an admin and a deploy.
 
 **Guarantees in the database (not only in the app)**
@@ -457,7 +492,8 @@ JSON-schema output and function calling are **kept in separate requests**. [Rese
 - The model cannot affect the recipient, a score, a verdict or any database write. Its outputs are validated by code before use.
 - Rate limit and "one in flight per user" gate (reused from Freshroots); per-domain and per-run token budgets; a time budget that stops with a plain message.
 - Every response is logged with tokens, latency and model, so cost is visible on Quality watch.
-- Tests use a **scripted fake Gemini client**, as in Freshroots, so the suite is offline and repeatable.
+- Tests use a **scripted fake Gemini client**, as in Freshroots, so the suite is offline and repeatable. The real models were then measured separately (`npm run smoke`, including a real dry run on one company), which is how the thinking-token budgets were found.
+- Each call has room for the answer **and** the model's thinking: loop rounds 1,024 tokens, Ask 1,536, pains and draft 2,048, extraction 12,288.
 
 ---
 
@@ -465,26 +501,25 @@ JSON-schema output and function calling are **kept in separate requests**. [Rese
 
 One shell, one design system (the Freshroots tokens: dark by default with a light theme, a single accent, colour kept for meaning, phone-width layouts, visible keyboard focus, reduced motion respected). New accent colour so it reads as its own product. Colour meaning: green = qualified or sent, amber = needs a person, red = failed or blocked, blue = information.
 
-**The "no dummy buttons" rule.** Every control either works or is not shown. Things that are off are shown as *status* (a "Test mode" chip with a sentence), not as disabled buttons. We enforce it with a lint rule against `<button>` without an action and a browser sweep that clicks every control on seeded data.
+**The "no dummy buttons" rule.** Every control either works or is not shown. Things that are off are shown as *status* (a "Test mode" chip with a sentence), not as disabled buttons. At present this is kept by review and by checking each page in a browser; an automated test that fails on a control with no action is still to be written.
 
-Every page has a loading skeleton, an empty state that says what to do, and an error state that says what happened.
+Every page has a loading skeleton, an empty state that says what to do, and an error state that says what happened. The design uses Sprinto's own palette (plum, warm paper, a lime accent), dark and light themes, a command palette (press Cmd-K to jump to any page or company), and motion that explains something (progress, arrival, success) and switches off for people who ask for reduced motion.
 
 | Page | What it is for |
 |---|---|
-| **Runs** (home) | "Needs attention" first: failed steps, held emails, unknown sends, Hunter or Gemini budget low, Gmail token about to expire, no tick for over an hour. Then the latest run's funnel, and what is going fine |
-| **New run** | Paste or upload domains. Checked in the browser (format, duplicates, suppressed, mailed in the last 30 days, over the cap), each refused row explained. Shows the estimate (Hunter searches, Gemini calls, minutes) *before* Run. Optional manual contacts CSV |
-| **Run detail** | Live table: domain, a 7-step progress strip, score, contact, lane. Tabs: Sent, In progress, Maybe, Not a fit, No contact, Held, Failed |
-| **Why (a company)** | The defence page. Timeline of the 7 steps. *What we saw*: pages and highlighted quotes. *Score*: bars per signal with the quote and page. *Why this person*: all candidates, parts, runner-up. *Pains*: the shortlist and the two chosen. *Email*: the draft, the lint checklist, the hook's source. *Send record*. A collapsed raw trace. Actions: Promote, Skip, Suppress, Re-run from a step (adds a new version, never edits), Copy "why" as text |
-| **Review queue** | Maybe, no contact, held and needs-more companies with one-click Promote or Skip, each with a reason. Add a manual contact here |
-| **ICP and Rulebook** | The rubric in words and as editable weights. Every change is a new version with a reason and a diff. A person signs it off. **Replay**: re-score every stored company under a draft ICP, without re-fetching, and see who moves lane (nothing saved until you choose to) |
-| **Pitch settings** | Sprinto facts file (versioned), the pain library, sender name, title and postal address, the test-mode address, the email preview on a sample |
-| **Contacts and budgets** | Hunter and Gemini budgets and spend; the 30-day cache; manual contact import |
-| **Quality watch** | Grounding failure rate, scrape failure rate, thin-page rate, qualification rate, contact hit rate, first-pass lint rate, tokens and time per company, the golden-set result. A reading without enough data says so rather than looking fine |
-| **Weekly report** | Companies researched, qualified, emailed; time saved with its working (manual minutes minus system and review minutes); copyable and printable |
-| **Downloads** | Eight CSVs: runs, prospects, evidence, contacts (admin only, emails masked otherwise), emails, suppressions, usage, decisions. Text is neutralised so a spreadsheet cannot run it as a formula |
-| **Ask Outbound** | Plain-English questions ("why did we skip Acme?", "who is in the maybe lane?") through read-only tools, with the evidence shown. It changes nothing |
+| **Runs** (home) | A readiness checklist until everything required is in place; then the last 7 days against the 7 before, what needs a decision, where every company has ended up, and the list of runs |
+| **New run** | A paste box that finds domains in any text (a spreadsheet column, an email thread, links) as you type, with a one-click tidy and a CSV drop zone. *Check the list* shows what will run, what is skipped and why, and the Hunter credits it could use, before anything starts |
+| **Run detail** | A progress ring and one-line status, a time estimate that waits for enough data, how many companies reached each of the seven steps, a dot track per company, filters, a feed of what just happened, and Pause with a reason |
+| **Why (a company)** | The defence page. A plain-English summary written by code from the recorded facts; then the score with each point's quote and source page, the ranked contact candidates, the two pains, the draft with its 12 checks, the person's decision on it, and the full append-only trace. Actions: promote, put back in the queue, re-run, do not contact, add a contact by hand |
+| **Review** | The desk where a person decides. Drafts waiting for approval, with the email, why the company scored, the contact and any flags beside it; approve, edit (measured, and re-checked) or reject with a reason; clean drafts can be approved together; keyboard shortcuts. Below it, the companies that need a person for other reasons (maybes, no contact) |
+| **Impact** | The funnel, where the rest went and why, quality rates, cost as quantities, and time saved *with its working*; a weekly report you can copy or print |
+| **Scorecard** | The class's three kill criteria checked against recorded decisions, each on a gauge with its stop line, the time comparison, and "too early to say" below 8 decisions |
+| **Quality** | This week against last week, with "not enough data" wherever a sample is too small, and the golden set of known companies (run on demand and weekly) |
+| **Ask** | Plain-English questions answered from the records through seven read-only lookups, with what it looked at shown. It changes nothing |
+| **Rulebook** | The seven steps and who does each, the evidence map (what question, which page, when it is enough), the rubric in words, the defences, the human boundary and the shutdown rules |
+| **ICP and replay** | The rubric and every version with what changed; sign-off; **Replay**: re-score every stored company under a draft ICP without re-reading any site, and see who moves lane (nothing saved) |
+| **Settings** | What must be true before sending (with a readiness ring), the approval switch, the sender, limits and cost assumptions, the claims an email may make about Sprinto (each verified by a person against its source), the do-not-contact list, and hand-picked contacts. Every change is a new version with a reason |
 | **People** | Admins approve accounts and set roles |
-| **Help** | Plain-language guide to every page, the lanes, the roles and what to do when something looks wrong |
 
 **Roles.** Waiting for approval sees nothing; Viewer reads; Operator runs, promotes, edits settings and facts; Admin also manages people and exports contacts. Nobody becomes admin by signing up.
 
@@ -511,36 +546,44 @@ Every page has a loading skeleton, an empty state that says what to do, and an e
 | **Web security** | CSP, HSTS, no framing, nosniff, referrer policy (reused); same-origin form actions |
 | **Outages** | Gemini down: queue waits and retries, nothing is sent half-finished. Hunter down or out of budget: manual contacts and review lane. Gmail token expired: Needs attention, not silent failure |
 | **Silent staleness** | Needs attention flags a worker that has not ticked; the page never shows an all-clear when it did not look |
+| **An email nobody read** | Every draft waits for a person by default; the text sent is the approved text; a rejected draft is never sent; switching approval off needs an admin and a reason, and the app then shows a warning |
+| **A system that quietly stops being worth it** | The Scorecard checks the shutdown rules from real decisions and never reports a small sample as good news |
+| **A model that spends its budget thinking** | Output budgets leave room for thinking; a cut-off answer is a retry or a stated failure, never a half answer used as if complete |
 
 ---
 
 ## 13. Beyond the case
 
-**Tier 1: part of "done"** (built in the first pass)
+**Tier 1: part of "done"** (all built)
 1. The Why page with grounded quotes
 2. Deterministic, versioned ICP with a score breakdown
-3. Hunter budget, cache and manual fallback
+3. Hunter budget, cache and hand-picked fallback
 4. Test-mode lock and the "would have gone to" inbox header
 5. The 12-check lint and the hold lane
 6. Suppression list, opt-out line, 30-day repeat guard
 7. Run funnel and drop-off reasons
 8. Needs attention list
 
-**Tier 2: if time allows**
+**Tier 2** (built, except where marked)
 9. **Replay** of a different ICP on stored facts (what-if, nothing saved)
-10. **Quality watch** with a golden set of known companies, also run in CI and weekly
-11. **Review queue** with one-click promote and skip
+10. **Quality watch** with a golden set of known companies, run on demand and weekly
+11. **Review desk** with approve, edit and reject, and one-click promote of a maybe
 12. **Ask Outbound**
-13. **Weekly report and time-saved ledger**
+13. **Impact and the weekly report** with time saved and its working
 14. Injection flag on pages
-15. Subject-line variants stored for later testing
+15. Subject-line variants stored for later testing (**not built**)
+
+**Added after the plan**
+16. **The approval gate and edit measure** (how much a person changed each draft)
+17. **The Scorecard** (the class's kill criteria, from real decisions)
+18. **The Rulebook** and evidence map, a readiness checklist, a live run view, a paste box that finds domains in any text, and the command palette
 
 **Tier 3: roadmap, said out loud in the demo, not built**
-16. Going live: a checklist and signed-off setting, a warm-up plan, a domain reputation check
-17. Reply detection (needs a read scope, so a separate decision) that auto-suppresses
-18. Follow-ups on day 3 and 7, drafted and approved by a person
-19. Finding new domains from lookalikes of Sprinto's customers
-20. CRM push and Slack alerts
+- Going live: a checklist and signed-off setting, a warm-up plan, a domain reputation check
+- Reply detection (needs a read scope, so a separate decision) that auto-suppresses, and so measures conversion
+- Follow-ups on day 3 and 7, drafted and approved by a person
+- Finding new domains from lookalikes of Sprinto's customers
+- CRM push and Slack alerts
 
 ---
 
@@ -548,33 +591,38 @@ Every page has a loading skeleton, an empty state that says what to do, and an e
 
 ```
 sprinto-outbound/
-  src/app/(app)/{runs,new,run/[id],why/[prospectId],review,icp,pitch,budgets,quality,report,downloads,ask,admin,help}
-  src/app/api/{worker/tick,runs/[id]/advance,export/[kind],ask,health}
-  src/lib/{scrape,extract,icp,contacts,pains,email,send,ai,queue,budgets,csv,auth,supabase}
-  supabase/migrations/        append-only history, each file applied once
-  scripts/{migrate,contract-live,secret,gmail-token,smoke,make-worker,make-admin}.ts
-  tests/ e2e/ fixtures/sites/   saved pages for 10 sample companies
+  src/app/(app)/{page(runs),runs/new,runs/[id],prospects/[id],review,impact,scorecard,quality,ask,rulebook,icp,settings,people,outbox}
+  src/app/api/{worker/tick,worker/golden,runs/advance}
+  src/lib/{scrape,extract,icp,contacts,pitch,email,ai,agent,worker,ask,quality,app,db,demo,smoke}
+  supabase/migrations/        11 files, append-only history, each applied once
+  scripts/{keys,smoke,golden,gmail-token}.ts
+  tests/                      53 test files; tests/db runs the real migrations on PGlite (a real Postgres)
   .github/workflows/{ci,worker,golden}.yml
-  docs/{Sprinto-Outbound-Components-Map.pdf,Sprinto-Outbound-Scope.md,DEMO.md}
+  docs/{Sprinto-Outbound-Components-Map.pdf,Sprinto-Outbound-Scope.md,DEMO.md,REHEARSAL.md,map/}
 ```
 
-**Reused from Freshroots Ops, adapted:** sign-in, reset, roles and `proxy.ts`; the Shell, theme toggle, `ui.tsx`, skeletons; `src/lib/ask` (Gemini client, loop, rate limit, in-flight gate); `next.config.ts` headers and CSP; CSV export neutralisation; `migrate.ts` and `contract-live.ts`; the PGlite contract-test harness; the `ci.yml` and scheduled workflow patterns; the health endpoint. **Reused from Clearway:** the hidden-prompt secret script, and the "AI reads, rules decide" structure.
+**Reused from Freshroots Ops, adapted:** sign-in and roles and `proxy.ts`; the theme approach; the Gemini client and loop pattern, rate limit and in-flight gate; `next.config.ts` headers and CSP; CSV neutralisation; the PGlite contract-test harness; the CI and scheduled-workflow patterns. **Reused from Clearway:** the hidden-prompt key script, and the "AI reads, rules decide" structure. Everything else was written fresh for this case.
 
-**Read first:** Freshroots' `AGENTS.md` warns that this Next.js version has breaking changes. Before writing code, read the docs shipped in `node_modules/next/dist/docs/`.
+**Read first:** `AGENTS.md` warns that this Next.js version has breaking changes. Before writing code, read the docs shipped in `node_modules/next/dist/docs/`.
 
-**Environment**
+**Environment** (local `.env.local`, copied to Vercel; secrets are entered through a hidden prompt, never pasted into a chat)
 
 | Name | Where | Secret? |
 |---|---|---|
 | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Vercel, local | public by design |
-| `GEMINI_API_KEY` (and optional `GEMINI_MODEL`) | Vercel | yes |
-| `HUNTER_API_KEY` | Vercel | yes |
-| `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, `GMAIL_REFRESH_TOKEN`, `GMAIL_SENDER` | Vercel | yes |
-| `OUTBOUND_TEST_TO` | Vercel | no, but treat as private |
-| `WORKER_TOKEN`, `WORKER_EMAIL`, `WORKER_PASSWORD` | Vercel; token also in GitHub secrets | yes |
-| `DATABASE_URL` | local only, never Vercel | yes |
+| `GEMINI_API_KEY` (and optional `GEMINI_MODEL`) | Vercel, local | yes |
+| `HUNTER_API_KEY` | Vercel, local | yes |
+| `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, `GMAIL_REFRESH_TOKEN`, `GMAIL_FROM` (and `GMAIL_FROM_NAME`) | Vercel, local | yes |
+| `OUTBOUND_TEST_TO` | Vercel, local | no, but treat as private |
+| `CRON_SECRET` | Vercel, local, and a GitHub secret | yes |
+| `WORKER_EMAIL`, `WORKER_PASSWORD` | Vercel, local | yes |
+| `APP_URL` | Vercel, and a GitHub secret | no |
 
-**Commands (planned):** `dev`, `check` (typecheck, lint, tests), `e2e`, `db:migrate`, `db:contract`, `secret`, `gmail:token`, `auth:make-worker`, `auth:make-admin`, `pipeline -- domain` (offline, on fixtures), `smoke -- domain --live` (real Hunter, Gemini and Gmail; spends budget).
+There is no Supabase service-role key anywhere: the worker signs in as its own limited account.
+
+**Commands:** `dev`, `dev:demo` (sample data, no keys), `check` (typecheck and tests), `keys` (hidden-prompt key entry, `-- --only gmail` for one group), `smoke` (checks every service; `-- --send` sends one test email; `-- --pipeline domain` is a real dry run on one company), `golden` (the quality check), `gmail-token`.
+
+**Deployment:** `npx vercel deploy --prod` (a `.vercelignore` keeps uploads to source only), with the same settings as above held in Vercel.
 
 ---
 
@@ -591,14 +639,18 @@ sprinto-outbound/
 | **Hunter client** | Quota arithmetic, cache hits, 400, 401, 429 mapping |
 | **Database contract (PGlite, a real Postgres 18)** | The migrations run as written. Who can read and write what, per role; no privilege for the anonymous or service role; append-only on 17 tables; stamping; one live email per prospect; every email status change checked pair by pair; send cap and one-per-domain; claim, lease and retry behaviour. *Not testable in one connection:* two workers truly claiming at the same instant. That rests on `FOR UPDATE SKIP LOCKED` plus the advisory lock, and should be watched on the first live run |
 | **Pipeline end to end (PGlite + fakes)** | A domain goes from queued to a sent test email through the real queue and roles, with a fake web, Gemini, Hunter and Gmail; plus every early exit, retry, unknown send, lost lease and the privacy rule |
-| **Pipeline on fixtures** | All 7 steps on 10 saved sites with the scripted Gemini; includes an injection page and a JavaScript-only page |
+| **Pipeline on the demo world** | All 7 steps on invented companies with a scripted model, including an injection page, a JavaScript-only page, a competitor and a company that needs approval |
 | **Golden set** | Known companies must land in the expected lane. Runs in CI and weekly (catches a prompt or model change moving verdicts) |
-| **Browser** | Signed-out surface, security headers, pages at phone width and in both themes, and the dead-control sweep |
-| **Live smoke** | One real domain through real services, by hand, before the demo |
+| **Browser** | *Not automated.* Pages were checked by hand in a browser pane at desktop and phone width, and the live app's headers were checked with `curl`. An automated browser sweep (and a dead-control check) is still to be written |
+| **Live smoke** | `npm run smoke` checks every service; `-- --pipeline domain` runs one real company through the real site and the real model, with nothing sent. This is what found the thinking-token budgets |
+| **Approvals, scorecard and run view** | The approval gate (approve, edit, reject, switched off, rate-limited retry), the edit measure, the kill-criteria rules at every boundary, and the run page's progress, estimate and filters, each with deliberate-break checks |
+| **Totals** | 1,302 tests in 53 files, offline and repeatable |
 
 ---
 
 ## 16. Build plan
+
+*Kept as written, for the record.* The session plan below was the intent for the case's 90 minutes. The system as built goes well beyond Tier 1; the timings are not a record of how long it took, and the "Before the session" list was done live with the Growth Lead (accounts, keys, Gmail, Vercel), in an order shaped by what failed along the way.
 
 ### 16.1 Before the session (do now; this is what makes 90 minutes possible)
 
@@ -632,6 +684,8 @@ sprinto-outbound/
 
 ## 17. Demo (3 minutes) and likely questions
 
+The current script is `docs/DEMO.md`, and the practice run behind it is `docs/REHEARSAL.md`. The table below is the original sketch.
+
 | Time | Show | Say |
 |---|---|---|
 | 0:00 | Runs page, needs attention | "One screen of what needs a person." |
@@ -649,9 +703,9 @@ sprinto-outbound/
 - *What stops it making things up?* Quotes must exist in the page text; Sprinto claims must be in the facts file; the lint refuses anything else.
 - *Could it email a real person by mistake?* No code path takes a contact's address as a recipient.
 - *What if Hunter has no one?* Manual contact, or the review lane.
-- *What do we do when the quota ends?* It says so, and the Apollo CSV still works.
+- *What do we do when the quota ends?* It says so, and hand-picked contacts still work.
 - *Why 65?* It is a hypothesis. Replay and the golden set are how we tune it.
-- *What is not built?* Live sending, reply tracking, follow-ups.
+- *What is not built?* Live sending, reply tracking (so conversion cannot be measured yet), follow-ups.
 
 ---
 
@@ -659,14 +713,18 @@ sprinto-outbound/
 
 - **JavaScript-only websites** give little text because we do not run a browser; they land in "needs more".
 - **Headcount and stage are inferred** from the site (stated team size, job counts). They are flagged as estimates; we do not scrape LinkedIn.
-- **Hunter's quota is small.** At most a couple of dozen fully live domains a month. Cached results and manual contacts stretch it.
+- **Hunter's quota is small.** The free allowance is 50 credits a month, and only companies that qualify or are promoted spend one. Cached results and hand-picked contacts stretch it.
 - **The ICP weights are a researched hypothesis**, not tuned on Sprinto's won and lost deals. They should be tuned against real outcomes once there are some.
-- **Sprinto's own site blocked our research**, so the facts file depends on you verifying it.
+- **Sprinto's own site blocked our research**, so the facts file depends on a person verifying it. One claim (F1) is verified, against the case brief; the figures a claim may contain are fixed at 2, 27001 and 15.
 - **Test mode proves the pipeline, not deliverability or replies.** Spam filtering, sender reputation and reply handling are untested until live.
 - **Gemini is not perfectly repeatable** across model updates. The golden set exists to notice.
 - **A quote on the page is not proof the page is true** (section 7.2). Grounding stops the model inventing evidence; it cannot stop a company overstating itself.
-- **Gemini's exact schema behaviour is unconfirmed until we have the key.** Model names were checked against Google's model page on 4 Nov 2026 (`gemini-3.6-flash` stable, `gemini-3.5-flash-lite` stable); that page does not say which models support JSON-schema output or function calling, and whether `nullable` works together with `enum` in the response schema is something the first live call must pin.
-- **Gmail refresh tokens can expire** (section 8.4).
+- **Gemini's behaviour is now measured, but it can change.** With the real key, JSON-schema output and function calling both work on the three models in the chain, and `nullable` together with `enum` is accepted. The models spend output tokens thinking, which is why each call's budget leaves room for it. A model update could change this; `npm run smoke` and the golden set exist to notice.
+- **The Gmail sign-in expires about every 7 days** while the Google app is in Testing mode, and cannot be published without a domain we own (section 8.4). Renew it before any demo.
+- **Conversion is not measured.** Nobody outside is mailed in test mode and replies are not tracked, so the pipeline-conversion aim in the class's plan cannot be checked. The Scorecard says so instead of guessing.
+- **Many companies score as a "maybe".** Headcount is often not on a site and the system does not guess it, so company size scores 0 and a person decides.
+- **Time saved is an estimate** from assumptions in Settings (manual minutes, review minutes), not a stopwatch, and is labelled as such everywhere it appears.
+- **The hook is a model's pick** among real quotes from the company's own pages. The strongest scoring signals are now offered first, but the model may still choose another; a person sees it before anything goes out.
 - **Scraping has terms-of-service and robots considerations.** We obey robots.txt and fetch only public pages, but you should decide, before going live, that this is acceptable for Sprinto.
 - **The what-if and replay measure how the rubric behaves**, not whether the emails would convert.
 
@@ -682,12 +740,14 @@ sprinto-outbound/
 
 ---
 
-## 20. Questions for you
+## 20. The questions, and where they stand
 
-1. **"The AI link they gave us inside the case study."** The PDF's only link is sprinto.com. Is there another link (a model endpoint, a starter kit, a Sprinto resource) I should see? Until then I assume it means Gemini.
-2. **Hunter, Apollo, or both?** I defaulted to Hunter plus manual Apollo fallback (D1). Do you want Apollo-only?
-3. **Gmail.** Is `siddhant_bassi@pg27.mesaschool.co` a Google Workspace account (OAuth "Internal", no expiry) or a personal Gmail account (7-day token)? Should the test-mode inbox be that address?
-4. **Sender identity** in the emails: your name and a title such as "Growth, Sprinto"? And is it acceptable to use a placeholder postal address for the footer in test mode?
-5. **Time.** Is the build confined to the 1.5-hour session (then do section 16.1 now), or do we have longer?
-6. **Domain list.** Do you already have the list, or should I propose 12 candidates?
-7. **Name.** Is "Sprinto Outbound" fine, or do you want a product name?
+| # | Question | Where it stands |
+|---|---|---|
+| 1 | "The AI link inside the case study" | Not answered. The PDF's only link is sprinto.com, so the AI layer is Gemini, with the key from the course |
+| 2 | Hunter, Apollo, or both? | Hunter, plus a hand-picked contact form (D1). Apollo is used only as a place to look someone up by hand |
+| 3 | Gmail: Workspace (no expiry) or personal (7-day token)? | A personal account with the app in Testing, so the 7-day limit applies (section 8.4) |
+| 4 | Sender identity, and a placeholder postal address in test mode? | Set in Settings. The postal address was a bare postcode and needs a full address before real use |
+| 5 | Time: only the 1.5-hour session? | Built over a longer period than the session; section 16 is kept as the original plan |
+| 6 | The domain list | Entered by the Growth Lead in each run. The first real run used `documenso.com` and `trigger.dev` |
+| 7 | Name | "Sprinto Outbound" kept |
