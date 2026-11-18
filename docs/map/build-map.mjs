@@ -13,12 +13,12 @@ const OUT_PNG = join(here, "map-preview.png");
 
 const TITLE = "MESA AI-Native Track · Sprinto Outbound: Components Map";
 const SUBTITLE =
-  "Domains in, a decision trail out: scrape, extract, qualify, find the person, pick two pains, draft, send. AI is Gemini, used to read and write. Code, not the model, decides who qualifies and what is sent.";
+  "Domains in, a decision trail out: scrape, extract, qualify, find the person, pick two pains, draft, send. AI is Gemini, used to read and write. Code, not the model, decides who qualifies, and a person approves every email before it is sent.";
 const BOUNDARY = [
-  "The platform researches, scores, drafts and sends, and in test mode every email goes to the Growth Lead's own inbox: no prospect is ever mailed. Gemini only reads page text and writes drafts; it never picks a recipient, changes a score or sends anything. Every score comes from code, on facts that carry a quote from the page.",
-  "Which companies to pursue, whether to ever go live, and what to say when someone replies stays with the Growth Lead. Going live is a signed-off settings change, not a button anyone can press.",
+  "The platform researches, scores and drafts, and sends only what a person has approved. In test mode every email goes to the Growth Lead's own inbox, so no prospect is ever mailed. Gemini only reads page text and writes drafts: it never picks a recipient, changes a score or sends anything. Every score comes from code, on facts that carry a quote from the page.",
+  "Which companies to pursue, whether each draft goes out, whether to ever go live, and what to say when someone replies stays with the Growth Lead. Going live is a deliberate admin change after review, not a button anyone can press. The Scorecard says when to stop: over half the drafts rewritten, the wrong person more than 4 times in 10, or more time spent than saved.",
 ];
-const FOOTER = "Built from MESA AI-Native Track Case 02 and the PitchPrep components-map style reference";
+const FOOTER = "Live: sprinto-outbound-eight.vercel.app (test mode)  ·  Built from MESA AI-Native Track Case 02 and the PitchPrep components-map style reference";
 
 const COLS = ["Actor", "Trigger", "Input", "Context", "Processing", "AI", "Output"];
 const KIND = ["", "trigger", "input", "context", "processing", "ai", "output"];
@@ -29,23 +29,23 @@ const ROWS = [
     name: "Growth Lead", sub: "(Sprinto · human)", tint: "#fdfaf2",
     boxes: {
       1: "A list of domains is ready, or she opens Runs first thing",
-      2: "Pasted or CSV domains; an optional hand-picked contact (Apollo); her call on each held email",
-      6: "Funnel for the run, emails in her inbox, a 'why' panel for every company",
+      2: "Pasted or CSV domains; an optional hand-picked contact; her decision on each maybe and each draft",
+      6: "Live progress for the run, drafts to approve, a plain-English 'why' for every company",
     },
   },
   {
-    name: "Domain import", sub: "(Paste · CSV · Apollo sheet)", tint: "#fdf5ea",
+    name: "Domain import", sub: "(Paste · CSV · hand-picked contact)", tint: "#fdf5ea",
     boxes: {
-      3: "Checked in the browser: format, duplicates, suppressed and recently mailed domains; refused rows explained",
-      4: "Saved as a run with one job per domain; repeats within 30 days skipped",
+      3: "Domains found in any pasted text as she types; repeats, bad entries, suppressed and recently mailed domains explained",
+      4: "Saved as a run with one job per domain; a domain mailed in the last 30 days is skipped",
     },
   },
   {
-    name: "Outbound app", sub: "(Next.js on Vercel)", tint: "#eff8f1",
+    name: "Outbound app", sub: "(Next.js on Vercel · invite-only)", tint: "#eff8f1",
     boxes: {
       1: "Every 15 minutes a GitHub Actions worker, or a live run open in the browser",
-      3: "Checks the role, loads the ICP version, the Sprinto facts file and today's caps",
-      4: "Claims the next step of the next job; each step is saved before the next begins; failures retried",
+      3: "Checks the signed-in role, loads the signed-off ICP, the verified Sprinto facts and today's caps",
+      4: "Claims the next step of the next job; each step is saved before the next begins; failures retried with back-off",
     },
   },
   {
@@ -59,15 +59,15 @@ const ROWS = [
   {
     name: "ICP gate", sub: "(Step 3 · code, not the AI)", tint: "#f2f1fa",
     boxes: {
-      3: "Thin data? Gemini may ask for up to 4 more allowed pages; code re-scores after each",
+      3: "Thin data? Gemini may ask for up to 8 more pages (4 rounds, 5 safe tools); code re-scores each time",
       4: "Score 0 to 100 from the facts using the signed-off ICP weights: same facts, same score",
-      6: "Fit, maybe or not a fit, with the reason; thin data says 'needs more', never a guess",
+      6: "Fit, maybe or not a fit, with the reason; a maybe waits for a person, thin data says 'needs more', never a guess",
     },
   },
   {
-    name: "Contact finder", sub: "(Step 4 · Hunter or Apollo)", tint: "#eef4fc",
+    name: "Contact finder", sub: "(Step 4 · Hunter or hand-picked)", tint: "#eef4fc",
     boxes: {
-      2: "Hunter domain search, or the hand-picked Apollo contact",
+      2: "Hunter domain search, or the hand-picked contact; only for companies that qualified or were promoted",
       3: "Hunter credits left, 30-day cache, titles ranked for the company's size and stage",
       4: "People ranked by title, seniority and verified email; one is chosen, with the reason",
       6: "A contact with name, title and proof; nobody found goes to the review lane",
@@ -76,43 +76,53 @@ const ROWS = [
   {
     name: "Database", sub: "(Supabase · Postgres)", tint: "#fdf6ec",
     boxes: {
-      3: "Runs, steps, evidence, contacts, emails, ICP versions, suppressions, usage; row level security",
+      3: "Runs, steps, evidence, contacts, emails, reviews, ICP versions, suppressions, usage; invite-only sign-in; row level security",
       4: "Append-only: no edits or deletes; time and name stamped by the database",
     },
   },
   {
     name: "AI model", sub: "(Gemini · reads and writes only)", tint: "#f0f7ee",
     boxes: {
-      3: "Page text sent as data, never as instructions; no emails, passwords or keys sent",
+      3: "Page text sent as data, never as instructions; only a first name and title, no contact email addresses, passwords or keys",
       5: "Pulls out facts, picks pages to fetch (4 rounds at most), chooses two pains, drafts the email",
     },
   },
   {
     name: "Pitch builder", sub: "(Steps 5 and 6 · Gemini + code)", tint: "#fcf0f5",
     boxes: {
-      3: "Pain library, the vetted Sprinto facts file, the contact's title and the company card",
-      4: "Two pains chosen with evidence; draft checked: length, name, grounded hook, one ask, opt-out line",
+      3: "Pain library, the verified Sprinto facts file, the contact's title and the company's strongest quotes",
+      4: "Two pains chosen with evidence; draft checked 12 ways: length, name, grounded hook, one ask, opt-out line, address",
       6: "Subject and body with the hook's source shown; a draft that fails is held, never sent",
+    },
+  },
+  {
+    name: "Review desk", sub: "(Step 6b · the Growth Lead decides)", tint: "#fff6ea",
+    boxes: {
+      1: "A draft is parked for a person; nothing has been sent",
+      2: "She approves, edits or rejects with a reason; clean drafts can be approved together",
+      3: "The draft, its hook quote and page, why the company scored, the contact, any flags",
+      4: "Edits measured in words and re-checked (12 checks); every decision is a permanent row",
+      6: "Approved text goes to delivery; rewrite rate and contact accuracy feed the Scorecard",
     },
   },
   {
     name: "Delivery", sub: "(Step 7 · Gmail)", tint: "#eef4fc",
     boxes: {
-      1: "The draft passed its checks and today's send cap is not reached",
-      2: "Draft, the owner's own address, the real contact kept as a note",
+      1: "She approved the draft and today's send cap (20 a day) is not reached",
+      2: "The approved text; the owner's own address as the only recipient; the real contact kept as a note",
       3: "Test mode: the 'to' address is fixed to the owner; one send per domain",
       4: "Sent through the Gmail API with send-only permission; message id saved; failures retried",
       6: "Email in her inbox headed 'Would have gone to name, title'; still failing after retries is held",
     },
   },
   {
-    name: "Operations and Quality", sub: "(Budgets · Suppression · Watch)", tint: "#fdf1f1",
+    name: "Operations and Quality", sub: "(Budgets · Suppression · Scorecard)", tint: "#fdf1f1",
     boxes: {
       1: "A run ends, or a week closes",
-      2: "She marks a reply, a bounce or 'do not contact'; she edits the ICP with a reason",
-      3: "Hunter and Gemini budgets, suppression list, a golden set of known companies",
-      4: "Funnel and drop-off reasons; quality watch; replay a different ICP on stored facts",
-      6: "Weekly report with time saved and its working; needs-attention list; eight CSV downloads",
+      2: "She suppresses a domain, promotes a maybe, hand-picks a contact, edits the ICP with a reason",
+      3: "Hunter and Gemini budgets, suppression list, golden set of known companies, shut-down rules",
+      4: "Funnel and drop-offs; quality watch; replay another ICP on stored facts; kill criteria",
+      6: "Weekly report with time saved and its working; Scorecard; run results as CSV",
     },
   },
 ];
@@ -130,8 +140,9 @@ const LINKS = [
   ["h", "8,3", "8,5"], ["dl", "8,5", "9,4"],
   ["h", "9,3", "9,4"], ["h", "9,4", "9,6"], ["v", "9,4", "10,4"],
   ["h", "10,1", "10,2"], ["h", "10,2", "10,3"], ["h", "10,3", "10,4"], ["h", "10,4", "10,6"], ["v", "10,4", "11,4"],
-  ["h", "11,1", "11,2"], ["h", "11,2", "11,3"], ["h", "11,3", "11,4"], ["h", "11,4", "11,6"],
-  ["rail", "10,6", "1,6"],
+  ["h", "11,1", "11,2"], ["h", "11,2", "11,3"], ["h", "11,3", "11,4"], ["h", "11,4", "11,6"], ["v", "11,4", "12,4"],
+  ["h", "12,1", "12,2"], ["h", "12,2", "12,3"], ["h", "12,3", "12,4"], ["h", "12,4", "12,6"],
+  ["rail", "11,6", "1,6"],
 ];
 
 // ---- layout ----
@@ -146,7 +157,7 @@ const TITLE_Y = 38, SUB_Y = 58;
 const HEAD_Y = 74, HEAD_H = 40;
 const ROWS_Y = HEAD_Y + HEAD_H + 10;
 const rowsEnd = ROWS_Y + ROWS.length * ROW_H;
-const BOUND_Y = rowsEnd + 14, BOUND_H = 104;
+const BOUND_Y = rowsEnd + 14, BOUND_H = 112;
 const H = BOUND_Y + BOUND_H + 44;
 
 const cx = (c) => COL0 + (c - 1) * COL_W + COL_W / 2;
