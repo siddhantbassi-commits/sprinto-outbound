@@ -269,7 +269,7 @@ a.card:hover { text-decoration: none; transform: translateY(-2px); box-shadow: v
 /* ---------- stats and KPIs ---------- */
 .stat { display: grid; gap: 4px; position: relative; overflow: hidden; }
 .stat b { font-size: 2rem; letter-spacing: -0.03em; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.1; }
-.stat span { color: var(--muted); font-size: 0.86rem; }
+.stat > span { color: var(--muted); font-size: 0.86rem; }
 .stat::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--grad); opacity: 0.85; }
 .kpis { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
 .kpi { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 18px; box-shadow: var(--shadow-1); display: grid; gap: 6px; }
