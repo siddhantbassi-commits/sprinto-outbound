@@ -4,7 +4,7 @@ A practice run on the live deployment, start to finish, about 25 minutes. It pro
 drills the things most likely to go wrong. Everything here is in **test mode**: mail goes only to the test address in Settings, and no
 contact is ever mailed.
 
-Live app: **https://sprinto-outbound-eight.vercel.app** (invite-only). The same link needs no sign-in for a guest (a short welcome, then admin-like access with spending caps); the owner signs in at `/login`. `docs/DEMO.md` is the three-minute script; this is the
+Live app: **https://sprinto-outbound-eight.vercel.app**. The link needs no sign-in for a guest (a short welcome, then admin-like access with spending caps); the owner signs in at `/login`. `docs/DEMO.md` is the three-minute script; this is the
 rehearsal behind it.
 
 Run the rehearsal the day before, and again an hour before, because the Gmail sign-in expires (see "Before anything else").

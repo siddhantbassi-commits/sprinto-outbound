@@ -12,7 +12,7 @@ Working name: **Sprinto Outbound**. Companion file: [Sprinto-Outbound-Components
 
 This document began as the plan. It has been corrected to match what exists; where the build departs from the plan, the section says so.
 
-**What exists.** A Next.js app on Vercel (Mumbai) at https://sprinto-outbound-eight.vercel.app, invite-only, in test mode. Supabase holds the data and sign-in (17 migrations, row level security, append-only history). A GitHub Actions worker runs every 15 minutes, and a weekly job runs the discovery digest. Gemini, Hunter and Gmail are all live. 1,761 automated tests in 86 files pass and the typecheck is clean. The logic that decides things (score, ranking, lint, edit measure, scorecard, run view) was also checked by deliberately breaking it and confirming a test fails; survivors were either harmless or became new tests.
+**What exists.** A Next.js app on Vercel (Mumbai) at https://sprinto-outbound-eight.vercel.app, in test mode, open to a reviewer as a guest with no sign-in (the owner signs in at `/login`). Supabase holds the data and sign-in (17 migrations, row level security, append-only history). A GitHub Actions worker runs every 15 minutes, and a weekly job runs the discovery digest. Gemini, Hunter and Gmail are all live. 1,761 automated tests in 86 files pass and the typecheck is clean. The logic that decides things (score, ranking, lint, edit measure, scorecard, run view) was also checked by deliberately breaking it and confirming a test fails; survivors were either harmless or became new tests.
 
 **Pages:** Today, Discover, Runs, Paste a list, Run detail, Weekly digest, Leads (board, search, saved views, exports), Call brief, Why, Review, Impact, Scorecard, What is working, Quality, Ask, Rulebook, ICP and replay, Settings, Go-live readiness, People (and a Test inbox in demo mode only).
 
@@ -83,7 +83,7 @@ This document began as the plan. It has been corrected to match what exists; whe
 |---|---|---|
 | D1 | Hunter is the primary contact finder; a hand-picked contact (looked up in Apollo or anywhere, entered in Settings) is always available and outranks Hunter | The case wants "run it on a list of domains, end to end". Only Hunter has an API. The fallback means a Hunter quota or outage never stops a run |
 | D2 | Gmail API with a send-only OAuth scope, not SMTP | Least privilege, no password stored. Needs a one-time token (section 8.4) |
-| D3 | Platform, not a script: invite-only sign-in, Supabase, GitHub Actions worker | Matches Freshroots and Clearway quality; the ask says "platform" |
+| D3 | Platform, not a script: owner sign-in plus a capped guest pass for reviewers, Supabase, GitHub Actions worker | Matches Freshroots and Clearway quality; the ask says "platform" |
 | D4 | Test mode only. `to` is fixed to your address in code | The case says hardcode it [Case]. Also safe |
 | D5 | Qualify at 65 of 100; 45 to 64 is "maybe" and waits for a person; under 45 is "not a fit" | The case wants no decisions mid-run, so only clear fits proceed. A person can promote a "maybe" with one click |
 | D6 | One Hunter search per domain, cached 30 days, with a hard reserve | Quota is tiny (section 8.3) |
@@ -113,8 +113,8 @@ This document began as the plan. It has been corrected to match what exists; whe
 | Right decision-maker | Contact ranking table: every candidate, its score parts, the runner-up |
 | Two most likely pains for *that person* | Pain library, persona-weighted, two chosen with evidence |
 | Name plus a specific hook | Lint requires the first name and a hook tied to a quote from the site; the quote is shown beside the email |
-| Email lands in your inbox | Section 8.4; the inbox copy carries the "why" summary at the top |
-| Defend every decision | The Why page, and the header block in every email |
+| Email lands in your inbox | Section 8.4; the inbox copy carries the "why" summary in a notice under the email |
+| Defend every decision | The Why page, the discovery-call brief, and the notice under every test email |
 
 ---
 
@@ -290,9 +290,9 @@ Hi <FirstName>,
 If this isn't relevant, reply "no" and I won't write again. <Postal address>
 ```
 
-### 6.2 Inbox header (test mode only)
+### 6.2 The test notice under the email (test mode only)
 
-Above the email, separated by a rule, the owner sees the defence in a few lines: *Would have gone to Priya Rao, CTO at Acme (email verified, confidence 94). Qualified 78/100: strong enterprise signals (quote), certification in progress (quote). Chosen over: CTO, 44. Pains: P1, P2. Hook source: acme.com/pricing. Open the full trace: link.* This is the "defend every decision" line, delivered in the inbox.
+Below the email, after a rule (so the email itself reads like the real thing above it), the owner sees the defence in a few lines: *Would have gone to Priya Rao, CTO at Acme (email verified, confidence 94). Qualified 78/100: strong enterprise signals (quote), certification in progress (quote). Chosen over: CTO, 44. Pains: P1, P2. Hook source: acme.com/pricing. Open the full trace: link.* This is the "defend every decision" line, delivered in the inbox.
 
 ### 6.3 The Sprinto facts file
 
