@@ -3,13 +3,14 @@ import { LeadBoard } from "./lead-board";
 import { LeadFilters } from "./lead-filters";
 import { OutcomeForm } from "./outcome-form";
 import { Icon } from "@/components/icons";
-import { Empty, LanePill, PageHead, Pill, Ring, VerdictPill } from "@/components/ui";
+import { Empty, SectionTitle, LanePill, PageHead, Pill, Ring, VerdictPill } from "@/components/ui";
 import { ago } from "@/lib/app/format";
 import { applyLeadQuery, describeQuery, isFiltered, parseLeadQuery, toSearch, type LeadView } from "@/lib/app/lead-query";
 import { listLeads } from "@/lib/app/leads";
 import { dayOf, followUpOf, followUpText, OUTCOME_BY_ID } from "@/lib/app/outcomes";
 import { getSession } from "@/lib/app/runtime";
 import { seesContacts } from "@/lib/app/privacy";
+import { FitSpread } from "@/components/charts";
 
 export const metadata = { title: "Leads" };
 
@@ -40,6 +41,13 @@ export default async function Leads({ searchParams }: { searchParams: Promise<Re
           ))}
         </nav>
       </div>
+
+      {all.filter((l) => l.score !== null).length >= 2 ? (
+        <section className="card stack tight" aria-label="Fit spread">
+          <SectionTitle icon="chart" title="Every researched company, by fit" sub="Each dot is a company on the 0 to 100 score line. Click one to open its brief." />
+          <FitSpread leads={all.map((l) => ({ id: l.id, name: l.name, score: l.score, verdict: l.verdict }))} />
+        </section>
+      ) : null}
 
       <LeadFilters query={query} shown={rows.length} total={applyLeadQuery(all, { ...query, q: "", verdict: "any", outcome: "any", skipCompetitor: false }, now).length} />
 

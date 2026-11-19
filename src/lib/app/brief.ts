@@ -34,6 +34,8 @@ export async function briefFor(db: DbPort, id: string, canSeeContacts: boolean):
   const check = chosen ? checks.find((c) => c.contact_id === String(chosen.id)) : undefined;
   const nameOf = (c: (typeof contacts)[number]) => (canSeeContacts ? [c.first_name, c.last_name].filter(Boolean).join(" ") || "A shared mailbox" : String(c.first_initial ?? "A contact"));
   const { claims, unverified } = await claimsFile(db);
+  const [icpRow] = score?.icp_version_id ? await db.select("icp_versions", { id: score.icp_version_id }, { limit: 1 }) : [];
+  const cfg = icpRow?.config as { qualifyAt?: number; maybeAt?: number; points?: unknown } | undefined;
   const input: BriefInput = {
     domain: p.domain,
     pages: pages.map((pg) => ({ url: String(pg.url), kind: String(pg.kind), title: (pg.title as string | null) ?? null, text: String(pg.text ?? "") })),
@@ -64,6 +66,7 @@ export async function briefFor(db: DbPort, id: string, canSeeContacts: boolean):
       .map((c) => ({ name: nameOf(c), title: (c.position as string | null) || null, email: canSeeContacts ? ((c.email as string | null) ?? null) : null, rankScore: c.rank_score === null || c.rank_score === undefined ? null : Number(c.rank_score), source: String(c.source ?? ""), verification: (c.verification as string | null) ?? null })),
     picks: arr<BriefInput["picks"][number]>(painsEvent?.output.picks),
     email: email ? { subject: String(email.subject), body: String(email.body), status: String(email.status), hookQuote: hook?.quote ?? null, hookSource: hook?.source ?? null } : null,
+    icp: cfg && typeof cfg.qualifyAt === "number" && typeof cfg.maybeAt === "number" ? { qualifyAt: cfg.qualifyAt, maybeAt: cfg.maybeAt, points: cfg.points as never } : null,
     claims,
     unverifiedClaims: unverified,
   };

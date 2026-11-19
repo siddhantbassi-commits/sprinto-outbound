@@ -10,6 +10,7 @@ import { companyName } from "@/lib/pitch/company";
 import type { PainId } from "@/lib/pitch/pains";
 import type { Facts } from "@/lib/icp/types";
 import { buildGroup, type GroupCandidate, type GroupMember } from "./group";
+import { buildIntel, type Intel, type IntelInput } from "./intel";
 import { FRAMING, OBJECTIONS, QUESTIONS, SIGNAL_LABEL, UNIVERSAL_QUESTIONS } from "./library";
 
 export interface BriefInput {
@@ -32,6 +33,8 @@ export interface BriefInput {
   candidates: number;
   picks: { id: string; label: string; plain: string; reason: string; evidence: { id: string; text: string; quotes: string[]; kind: string }[] }[];
   email: { subject: string; body: string; status: string; hookQuote: string | null; hookSource: string | null } | null;
+  /** The thresholds and point values of the ICP version this company was scored under, for the path-to-verdict. */
+  icp?: IntelInput["icp"];
   /** Claims about Sprinto a person has verified, and how many are still waiting. */
   claims: string[];
   unverifiedClaims: number;
@@ -45,7 +48,7 @@ export interface Cited {
 
 export interface Brief {
   company: { name: string; domain: string; about: string; size: string | null; sizeFromHunter: boolean; certification: string | null; product: string | null };
-  fit: { verdict: string; label: string; score: number | null; summary: string; strengths: (Cited & { points: number; max: number })[]; gaps: string[]; usesCompetitor: Cited | null };
+  fit: { verdict: string; label: string; score: number | null; summary: string; parts: BriefInput["parts"]; strengths: (Cited & { points: number; max: number })[]; gaps: string[]; usesCompetitor: Cited | null };
   contact: { id: string | null; name: string; title: string | null; email: string | null; trust: string; why: string; checked: { status: string; score: number | null; at: string } | null; shouldVerify: boolean } | null;
   group: GroupMember[];
   whyNow: Cited[];
@@ -54,6 +57,8 @@ export interface Brief {
   objections: { says: string; response: string }[];
   mayState: string[];
   email: { subject: string; body: string; status: string } | null;
+  /** Where they stand on each framework, what it means for the call, the path to a stronger verdict, a call plan, and how well supported it all is. */
+  intel: Intel;
   ready: { ok: boolean; checks: { label: string; ok: boolean; note: string }[] };
 }
 
@@ -125,17 +130,39 @@ export function buildBrief(i: BriefInput): Brief {
     { label: "Verified facts about Sprinto to cite", ok: i.claims.length > 0, note: i.claims.length ? `${i.claims.length} verified` : "None verified yet" },
   ];
 
+  const group = buildGroup({ candidates: i.others ?? [], facts: i.rawFacts ?? null, avoid: i.picks.map((p) => p.id) });
+  const usesCompetitor = ((p) => (p ? cited(p.label, p.quotes[0]) : null))(i.parts.find((x) => /competitor/i.test(x.label) && x.points < 0));
+  const intel = buildIntel({
+    facts: i.facts,
+    pages: i.pages,
+    verdict: i.verdict,
+    score: i.score,
+    icp: i.icp ?? null,
+    missing: i.missing,
+    picks: i.picks,
+    whyNow: whyNow.map((w) => ({ text: w.text, quote: w.quote })),
+    hook: i.email ? { quote: i.email.hookQuote, source: i.email.hookSource } : null,
+    claims: i.claims,
+    group: group.map((m) => ({ title: m.title, roleLabel: m.roleLabel ?? null, name: m.name })),
+    contact: i.contact ? { name: i.contact.name, title: i.contact.title, verification: i.contact.verification, checkedValid: v?.status === "valid" } : null,
+    usesCompetitor: usesCompetitor ? { quote: usesCompetitor.quote } : null,
+    pagesRead: i.pages.length,
+  });
+  // The objections this company's own evidence makes likely come first, then the general ones, without repeats.
+  const mergedObjections = [...intel.extraObjections, ...objections].filter((o, k, all) => all.findIndex((x) => x.says === o.says) === k).slice(0, 8);
+
   return {
     company: { name, domain: i.domain, about: home ? aboutFrom(home.text, home.title ?? "") : "", size: size ? String(size) : null, sizeFromHunter: Boolean(size) && i.facts?.headcount?.source === "hunter_discover", certification: cert ? (SIGNAL_LABEL[String(cert)] ?? String(cert)) : null, product: product ? String(product) : null },
-    fit: { verdict, label: FIT_LABEL[verdict] ?? "Not assessed", score: i.score, summary: fitSummary, strengths, gaps, usesCompetitor: ((p) => (p ? cited(p.label, p.quotes[0]) : null))(i.parts.find((x) => /competitor/i.test(x.label) && x.points < 0)) },
+    fit: { verdict, label: FIT_LABEL[verdict] ?? "Not assessed", score: i.score, summary: fitSummary, parts: i.parts, strengths, gaps, usesCompetitor },
     contact,
-    group: buildGroup({ candidates: i.others ?? [], facts: i.rawFacts ?? null, avoid: i.picks.map((p) => p.id) }),
+    group,
     whyNow,
     talkingPoints,
     questions,
-    objections,
+    objections: mergedObjections,
     mayState: i.claims,
     email: i.email ? { subject: i.email.subject, body: i.email.body, status: i.email.status } : null,
+    intel,
     ready: { ok: checks.every((c) => c.ok), checks },
   };
 }
@@ -150,6 +177,11 @@ export function briefToText(b: Brief): string {
   if (b.fit.usesCompetitor) out.push(`Caution: they already seem to use a competitor${b.fit.usesCompetitor.quote ? ` ("${b.fit.usesCompetitor.quote}")` : ""}.`);
   const facts = [b.company.size ? `${b.company.size} people${b.company.sizeFromHunter ? " (per Hunter)" : ""}` : null, b.company.certification].filter(Boolean);
   if (facts.length) out.push(facts.join(" · "));
+  h("Where they stand");
+  out.push(`${b.intel.stance.headline}. ${b.intel.stance.angle}`, `Careful: ${b.intel.stance.caution}`);
+  for (const f of b.intel.frameworks.filter((x) => x.status !== "not_indicated")) out.push(`- ${f.name}: ${f.headline}${f.basis === "inferred" ? " (our inference)" : ""}${f.quote ? ` ("${f.quote}")` : ""}${f.sprintoClaim ? "" : " [no verified Sprinto claim: do not promise]"}`);
+  out.push(`Path: ${b.intel.path.summary}`);
+  out.push(`Evidence: ${b.intel.confidence.percent}% (${b.intel.confidence.label}).`);
   if (b.contact) {
     h("Who to speak to");
     out.push(`${b.contact.name}${b.contact.title ? `, ${b.contact.title}` : ""}${b.contact.email ? ` <${b.contact.email}>` : ""}`, b.contact.trust, b.contact.why);
@@ -169,7 +201,11 @@ export function briefToText(b: Brief): string {
       for (const e of t.evidence) out.push(`  Evidence: ${e.text}${e.quote ? ` ("${e.quote}")` : ""}${e.source ? ` ${e.source}` : ""}`);
     }
   }
-  h("Questions to ask");
+  h("Call plan");
+  if (b.intel.plan.opener) out.push(b.intel.plan.opener.line);
+  b.intel.plan.steps.forEach((st, k) => out.push(`${k + 1}. ${st.title}: ${st.ask}`));
+  out.push(`Bring: ${b.intel.plan.bring.join("; ")}`, `Next step: ${b.intel.plan.nextStep}`, `After: ${b.intel.plan.followUp}`);
+  h("More questions to ask");
   for (const q of b.questions) out.push(`- ${q.text}`);
   if (b.objections.length) {
     h("If they say");

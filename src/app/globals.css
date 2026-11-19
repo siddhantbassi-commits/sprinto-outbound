@@ -1034,3 +1034,79 @@ fieldset.crit legend { padding: 0; margin-bottom: 8px; font-size: 0.72rem; font-
 @keyframes intro-pop { from { opacity: 0; transform: scale(0.4) rotate(-12deg); } to { opacity: 1; transform: none; } }
 @keyframes intro-ring { from { transform: scale(0.85); opacity: 0.9; } to { transform: scale(1.35); opacity: 0; } }
 @keyframes intro-breathe { 50% { transform: scale(1.12); opacity: 0.8; } }
+
+/* ---- charts and deal intelligence (brief, Why page) ---- */
+.chart { margin: 0; display: grid; gap: 6px; }
+.chart svg { width: 100%; height: auto; display: block; overflow: visible; }
+.chart .ct { font-size: 12px; fill: var(--muted); font-variant-numeric: tabular-nums; }
+.chart .cv { font-size: 15px; font-weight: 700; fill: var(--ink); font-variant-numeric: tabular-nums; }
+.chart .cz { font-size: 11.5px; fill: var(--muted); letter-spacing: .02em; }
+
+.scorebars { list-style: none; margin: 0; padding: 0; display: grid; gap: 9px; }
+.scorebars li { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1.1fr) auto; gap: 12px; align-items: center; }
+.sb-label { font-size: 0.9rem; color: var(--ink-2); min-width: 0; }
+.sb-label small { display: inline-block; margin-left: 8px; font-size: 0.68rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.sb-track { height: 9px; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
+.sb-track i { display: block; height: 100%; border-radius: 999px; background: var(--brand); transform-origin: left; animation: sb-grow .7s cubic-bezier(.2,.8,.2,1) both; }
+.scorebars .g-need .sb-track i { background: var(--info); }
+.scorebars .g-timing .sb-track i { background: var(--orange); }
+.scorebars .neg .sb-track i { background: var(--bad); }
+.sb-val { font-variant-numeric: tabular-nums; font-weight: 650; font-size: 0.9rem; text-align: right; white-space: nowrap; }
+.sb-val small { color: var(--muted); font-weight: 500; }
+@keyframes sb-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@media (prefers-reduced-motion: reduce) { .sb-track i { animation: none; } }
+@media (max-width: 560px) { .scorebars li { grid-template-columns: 1fr auto; } .sb-track { grid-column: 1 / -1; order: 3; } }
+
+.fwmap { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
+.fw { border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 12px 14px; background: var(--surface); display: grid; gap: 6px; align-content: start; border-top: 3px solid var(--line-strong); }
+.fw.s-held { border-top-color: var(--good); }
+.fw.s-in_progress { border-top-color: var(--info); }
+.fw.s-likely { border-top-color: var(--orange); }
+.fw.s-not_indicated { opacity: .72; }
+.fw-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.fw-name { font-weight: 700; letter-spacing: -.01em; }
+.fw-state { display: inline-flex; align-items: center; gap: 4px; font-size: .74rem; font-weight: 650; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+.fw.s-held .fw-state { color: var(--good); }
+.fw.s-in_progress .fw-state { color: var(--info); }
+.fw.s-likely .fw-state { color: var(--warn); }
+.fw-head { font-weight: 600; font-size: .95rem; }
+.fw-why { margin: 0; }
+.fw-quote { margin: 2px 0 0; padding: 6px 10px; font-size: .84rem; }
+.fw-foot { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+.fw-basis, .fw-claim { font-size: .7rem; font-weight: 650; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink-2); }
+.fw-basis.inferred { background: var(--warn-soft); color: var(--warn); border-color: transparent; }
+.fw-claim.yes { background: var(--good-soft); color: var(--good); border-color: transparent; }
+.fw-claim.no { background: var(--bad-soft); color: var(--bad); border-color: transparent; }
+
+.buyermap { display: grid; justify-items: center; gap: 0; }
+.bm-top { display: grid; justify-items: center; gap: 6px; }
+.bm-node { border: 1px solid var(--line); background: var(--surface); border-radius: var(--radius-sm); padding: 10px 14px; display: grid; gap: 3px; justify-items: start; min-width: 0; max-width: 100%; }
+.bm-node.primary { border-color: var(--brand); box-shadow: var(--ring); }
+.bm-tag { font-size: .72rem; font-weight: 650; letter-spacing: .06em; text-transform: uppercase; color: var(--brand); }
+.bm-note { color: var(--ink-2); }
+.bm-stem { width: 2px; height: 18px; background: var(--line-strong); }
+.bm-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; position: relative; padding-top: 14px; width: 100%; }
+.bm-row::before { content: ""; position: absolute; top: 0; left: 12%; right: 12%; height: 2px; background: var(--line-strong); }
+.bm-leaf { position: relative; flex: 1 1 200px; max-width: 280px; display: grid; }
+.bm-leaf::before { content: ""; position: absolute; top: -14px; left: 50%; width: 2px; height: 14px; background: var(--line-strong); }
+
+.conf { display: flex; gap: 16px; align-items: center; }
+.conf ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: .86rem; }
+.conf li { display: flex; gap: 8px; align-items: baseline; }
+.conf li .tick { font-weight: 700; width: 1em; }
+.conf li.ok .tick { color: var(--good); }
+.conf li.no .tick { color: var(--warn); }
+
+.plan-steps { margin: 0; padding: 0; list-style: none; counter-reset: ps; display: grid; gap: 12px; }
+.plan-steps li { counter-increment: ps; display: grid; grid-template-columns: 30px 1fr; gap: 12px; }
+.plan-steps li::before { content: counter(ps); display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--accent-soft); color: var(--brand); font-weight: 700; font-size: .85rem; }
+.plan-steps b { display: block; }
+.stance { display: grid; gap: 6px; }
+.stance .stance-angle { font-size: 1.02rem; }
+.unknowns { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.unknowns li { display: flex; justify-content: space-between; gap: 12px; font-size: .9rem; border-bottom: 1px dashed var(--line); padding-bottom: 6px; }
+.fitspread .dot { transition: r .15s ease; cursor: pointer; }
+.fitspread a:hover .dot, .fitspread a:focus-visible .dot { r: 9; }
+.fs-legend { display: flex; flex-wrap: wrap; gap: 14px; }
+.fs-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.fs-legend i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }

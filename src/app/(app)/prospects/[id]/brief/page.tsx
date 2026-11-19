@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Icon } from "@/components/icons";
+import { BuyerMap, FrameworkMap, ScoreBars, ScoreTrack } from "@/components/charts";
 import { ReportActions } from "@/components/report-actions";
 import { Banner, LanePill, PageHead, Pill, Ring, SectionTitle } from "@/components/ui";
 import { briefFor } from "@/lib/app/brief";
@@ -77,6 +78,62 @@ export default async function Brief({ params }: { params: Promise<{ id: string }
         </ul>
       </section>
 
+      <section className="card stack" aria-label="Where they stand">
+        <SectionTitle icon="target" title="Where they stand" sub="What each compliance framework means for this company, read from their own site. Anything we worked out ourselves is labelled as our inference." />
+        <div className="stance">
+          <h3 style={{ margin: 0 }}>{b.intel.stance.headline}</h3>
+          <p className="stance-angle" style={{ margin: 0 }}><b>Lead with:</b> {b.intel.stance.angle}</p>
+          <p className="small muted" style={{ margin: 0 }}><b>Careful:</b> {b.intel.stance.caution}</p>
+        </div>
+        <FrameworkMap rows={b.intel.frameworks} />
+      </section>
+
+      <section className="card stack" aria-label="Why it scored this">
+        <SectionTitle icon="chart" title="Why it scored this, and what could change it" sub="Each bar is a signal from the ICP: the points it earned out of the points it could. Hatching shows how far the facts the site left unsaid could carry it." />
+        <ScoreTrack path={b.intel.path} />
+        <ScoreBars parts={b.fit.parts} />
+        {b.intel.path.unknowns.length ? (
+          <div className="stack tight">
+            <h3 style={{ margin: 0, fontSize: "1rem" }}>Not on the site, and worth asking</h3>
+            <ul className="unknowns">
+              {b.intel.path.unknowns.map((u) => <li key={u.key}><span>{u.label}</span><span className="muted">worth up to {u.couldAdd} points</span></li>)}
+            </ul>
+          </div>
+        ) : null}
+      </section>
+
+      <section className="card stack" aria-label="Call plan">
+        <SectionTitle icon="chat" title="Call plan" sub="An order for the conversation, each step tied to something on their own site. Guidance, not a script." />
+        {b.intel.plan.opener ? (
+          <blockquote className="quote" style={{ margin: 0 }}>
+            {b.intel.plan.opener.line}
+            {b.intel.plan.opener.source ? <cite><a href={b.intel.plan.opener.source} target="_blank" rel="noopener noreferrer nofollow">{b.intel.plan.opener.source.replace(/^https?:\/\//, "")}</a></cite> : null}
+          </blockquote>
+        ) : null}
+        <ol className="plan-steps">
+          {b.intel.plan.steps.map((st) => (
+            <li key={st.title}>
+              <div>
+                <b>{st.title}</b>
+                <span>{st.ask}</span>
+                <span className="small muted">{st.why}</span>
+              </div>
+            </li>
+          ))}
+        </ol>
+        <div className="grid">
+          <div className="stack tight">
+            <h3 style={{ margin: 0, fontSize: "1rem" }}>What to bring</h3>
+            <ul className="small" style={{ margin: 0, paddingLeft: "1.1em", display: "grid", gap: 4 }}>{b.intel.plan.bring.map((x) => <li key={x}>{x}</li>)}</ul>
+          </div>
+          <div className="stack tight">
+            <h3 style={{ margin: 0, fontSize: "1rem" }}>How to close and follow up</h3>
+            <p className="small" style={{ margin: 0 }}><b>Ask:</b> {b.intel.plan.nextStep}</p>
+            <p className="small muted" style={{ margin: 0 }}>{b.intel.plan.followUp}</p>
+          </div>
+        </div>
+      </section>
+
       <div className="split">
         <div className="stack" style={{ gap: 22 }}>
           {b.whyNow.length ? (
@@ -99,7 +156,7 @@ export default async function Brief({ params }: { params: Promise<{ id: string }
           </section>
 
           <section className="card stack" aria-label="Questions to ask">
-            <SectionTitle icon="help" title="Questions to ask" sub="Open questions that let them describe the problem in their own numbers." />
+            <SectionTitle icon="help" title="More questions to ask" sub="Open questions that let them describe the problem in their own numbers." />
             <ol className="qs">
               {b.questions.map((q, i) => <li key={i}>{q.text}{q.pain ? <span className="small muted"> · {q.pain}</span> : null}</li>)}
             </ol>
@@ -117,6 +174,27 @@ export default async function Brief({ params }: { params: Promise<{ id: string }
         </div>
 
         <aside className="stack" style={{ gap: 22 }}>
+          <section className="card stack" aria-label="How well supported">
+            <SectionTitle icon="shield" title="How well supported" sub="How much of this brief rests on evidence rather than on gaps." />
+            <div className="conf">
+              <Ring value={b.intel.confidence.percent} max={100} label="%" tone={b.intel.confidence.percent >= 80 ? "good" : b.intel.confidence.percent >= 55 ? "warn" : "bad"} size={84} />
+              <div className="stack tight" style={{ minWidth: 0 }}>
+                <strong>{b.intel.confidence.label}</strong>
+                <ul>{b.intel.confidence.reasons.map((r) => <li key={r.text} className={r.ok ? "ok" : "no"}><span className="tick" aria-hidden>{r.ok ? "✓" : "!"}</span><span>{r.text}</span></li>)}</ul>
+              </div>
+            </div>
+          </section>
+
+          {b.contact || b.group.length ? (
+            <section className="card stack" aria-label="The buying group">
+              <SectionTitle icon="people" title="The buying group" sub="Who is in the room, and who to bring in next." />
+              <BuyerMap
+                lead={b.contact ? { name: b.contact.name, title: b.contact.title } : null}
+                others={b.group.map((m) => ({ name: m.name, title: m.title, role: m.roleLabel ?? null, note: m.angle ? `Lead with: ${m.angle.label}` : null }))}
+              />
+            </section>
+          ) : null}
+
           <section className="card stack" aria-label="What happened">
             <SectionTitle icon="flag" title="What happened" sub="Record each step after the call, so the numbers on Impact are real." />
             {now ? (

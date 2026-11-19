@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { GUEST_MAX_PER_RUN, guestMay, guestMayPay, promoteSql, startOfUtcDay, sumUsage, type GuestCaps, type GuestUsage } from "@/lib/app/guest";
+import { GUEST_MAX_PER_RUN, guestCooldown, guestMay, guestMayPay, promoteSql, startOfUtcDay, sumUsage, type GuestCaps, type GuestUsage } from "@/lib/app/guest";
 import { wantsIntro } from "@/lib/app/enter";
 import { realCredentials, readEnv } from "@/lib/env";
 
@@ -147,5 +147,33 @@ describe("the line that makes the guest an admin", () => {
     expect(promoteSql("x'; drop table profiles; --@example.org")).toBeNull();
     expect(promoteSql("not an email")).toBeNull();
     expect(promoteSql("")).toBeNull();
+  });
+});
+
+describe("actions a guest may repeat only after a pause", () => {
+  const NOW = Date.UTC(2026, 10, 19, 10, 0);
+  const ago = (min: number) => new Date(NOW - min * 60_000).toISOString();
+
+  it("allows the first run, and a run after the window", () => {
+    expect(guestCooldown(null, NOW, 60, "The digest")).toEqual({ ok: true });
+    expect(guestCooldown(undefined, NOW, 60, "The digest")).toEqual({ ok: true });
+    expect(guestCooldown(ago(60), NOW, 60, "The digest")).toEqual({ ok: true });
+    expect(guestCooldown(ago(61), NOW, 60, "The digest")).toEqual({ ok: true });
+  });
+
+  it("refuses inside the window, saying how long to wait, and that the last result is still there", () => {
+    const g = guestCooldown(ago(20), NOW, 60, "The digest");
+    expect(g).toMatchObject({ ok: false, waitMinutes: 40 });
+    expect((g as { message: string }).message).toMatch(/The digest was run recently.*once every 60 minutes.*about 40 minutes.*still on the page/);
+  });
+
+  it("speaks in hours for long windows, and counts a single minute properly", () => {
+    const long = guestCooldown(ago(30), NOW, 360, "The golden set") as { ok: false; message: string };
+    expect(long.message).toMatch(/once every 6 hours.*about 6 hours/);
+    expect((guestCooldown(new Date(NOW - 59 * 60_000 - 30_000).toISOString(), NOW, 60, "x") as { message: string }).message).toMatch(/about 1 minute\./);
+  });
+
+  it("does not block on an unreadable date", () => {
+    expect(guestCooldown("not a date", NOW, 60, "x")).toEqual({ ok: true });
   });
 });

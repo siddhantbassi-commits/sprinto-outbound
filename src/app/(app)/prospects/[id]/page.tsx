@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ProspectActions } from "./controls";
 import { Icon } from "@/components/icons";
+import { ScoreBars } from "@/components/charts";
 import { Banner, LanePill, PageHead, Pill, Ring, SectionTitle, VerdictPill } from "@/components/ui";
 import { ACTIONS, dateTime, STEP_ORDER, STEPS, tokens } from "@/lib/app/format";
 import { getProspect } from "@/lib/app/queries";
@@ -117,6 +118,7 @@ export default async function Why({ params }: { params: Promise<{ id: string }> 
                 </li>
               ))}
             </ul>
+            <ScoreBars parts={parts} />
             <div className="parts">
               {parts.filter((x) => x.points !== 0 || x.max !== 0).map((x) => (
                 <div key={x.id} className={`part ${x.points < 0 ? "neg" : ""}`}>

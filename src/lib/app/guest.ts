@@ -76,3 +76,19 @@ export function promoteSql(email: string): string | null {
   if (!/^[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9.-]{1,190}\.[A-Za-z]{2,}$/.test(e)) return null;
   return `update public.profiles set role = 'admin' where id = (select id from auth.users where email = '${e.replace(/'/g, "''")}');`;
 }
+
+export type Cooldown = { ok: true } | { ok: false; message: string; waitMinutes: number };
+
+/**
+ * Some actions are safe for an admin but would be easy to spam on a public link: emailing the owner a digest, spending model time on a
+ * quality run. A guest may do each only once per window, judged from the newest recorded row, so it holds across servers.
+ */
+export function guestCooldown(lastAt: string | null | undefined, now: number, minutes: number, what: string): Cooldown {
+  if (!lastAt) return { ok: true };
+  const last = new Date(lastAt).getTime();
+  if (!Number.isFinite(last)) return { ok: true };
+  const waitMs = last + minutes * 60_000 - now;
+  if (waitMs <= 0) return { ok: true };
+  const waitMinutes = Math.ceil(waitMs / 60_000);
+  return { ok: false, waitMinutes, message: `${what} was run recently, and guests can run it once every ${minutes >= 120 ? `${Math.round(minutes / 60)} hours` : `${minutes} minutes`}. Try again in about ${waitMinutes >= 90 ? `${Math.round(waitMinutes / 60)} hours` : `${waitMinutes} minute${waitMinutes === 1 ? "" : "s"}`}. The last result is still on the page.` };
+}
