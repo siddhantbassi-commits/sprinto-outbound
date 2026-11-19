@@ -68,9 +68,9 @@ export default async function Settings() {
         <div className="row" style={{ gap: 22, alignItems: "center", flexWrap: "nowrap" }}>
           <Ring value={readiness.done} max={readiness.total} label={`of ${readiness.total}`} tone={readiness.ready ? "good" : "brand"} size={84} />
           <div style={{ minWidth: 0 }}>
-            <h2 id="ready-h" style={{ fontSize: "1.2rem" }}>{readiness.ready ? "Ready to send" : "Not ready to send yet"}</h2>
+            <h2 id="ready-h" style={{ fontSize: "1.2rem" }}>{readiness.ready ? "Ready to go live" : "Not ready to go live yet"}</h2>
             <p className="muted" style={{ margin: "4px 0 0", maxWidth: "60ch" }}>
-              {readiness.ready ? "Everything required is in place. This page shows what was checked, not what is hoped." : "Sending needs every required item below. Until then the system will not start a run or send an email."}
+              {readiness.ready ? "Everything required is in place. This page shows what was checked, not what is hoped." : "Every required item below should be done before real sending. The test address, ICP sign-off and verified claims are enforced already, so test runs work; the rest, such as a full postal address, are checked here and must be complete before going live."}
             </p>
           </div>
         </div>

@@ -50,8 +50,8 @@ export default async function Today() {
           <div className="row" style={{ gap: 22, alignItems: "center", flexWrap: "nowrap" }}>
             <Ring value={t.readiness.done} max={t.readiness.total} label={`of ${t.readiness.total}`} tone="brand" size={96} />
             <div style={{ minWidth: 0 }}>
-              <h2 id="setup-h" style={{ fontSize: "1.25rem" }}>Before you can send</h2>
-              <p className="muted" style={{ margin: "4px 0 0", maxWidth: "58ch" }}>{todo.length === 1 ? "One item remains." : `${todo.length} items remain.`} Each takes a minute, and the system will not start a run or send an email until they are done.</p>
+              <h2 id="setup-h" style={{ fontSize: "1.25rem" }}>Before you go live</h2>
+              <p className="muted" style={{ margin: "4px 0 0", maxWidth: "58ch" }}>{todo.length === 1 ? "One item remains." : `${todo.length} items remain.`} Each takes a minute. The test address, ICP sign-off and verified claims are enforced already; the rest are checked here and should be done before any real sending.</p>
             </div>
           </div>
           <ul className="checklist stagger">
@@ -66,7 +66,7 @@ export default async function Today() {
         </section>
       ) : (
         <div className="row" style={{ gap: 14 }}>
-          <span className="chip"><span className="dot-live" aria-hidden /> Ready to send</span>
+          <span className="chip"><span className="dot-live" aria-hidden /> Ready to go live</span>
           <span className="small muted">{t.testTo ? <>Mail goes only to {t.testTo}. </> : null}Worker {lastTick ? `last ran ${ago(t.lastTick)}` : "has not run yet"}. <Link href="/golive">Go-live readiness</Link></span>
         </div>
       )}

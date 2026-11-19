@@ -24,7 +24,7 @@ Run the rehearsal the day before, and again an hour before, because the Gmail si
       ceiling for today (the rehearsal below needs at most 3).
 - [ ] **Sign in on the live app,** in one browser. Request the link and open it in **the same browser** (the link is tied to the browser
       that asked for it). If a link fails, request a new one; they work once.
-- [ ] **Home page says *Ready to send*.** If not, the checklist on the Runs page names what is missing (ICP signed off, Sprinto claim
+- [ ] **Home page says *Ready to go live*.** If not, the checklist on the Runs page names what is missing (ICP signed off, Sprinto claim
       verified, test address, Gemini, Gmail, worker heartbeat).
 - [ ] **Settings → Sending and limits is right:** a full **postal address** (it prints in every opt-out footer), the sender name and
       title, the test address, *A person approves each email* switched **on**.
