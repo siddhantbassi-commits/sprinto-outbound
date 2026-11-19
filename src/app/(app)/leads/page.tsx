@@ -66,6 +66,13 @@ export default async function Leads({ searchParams }: { searchParams: Promise<Re
       ) : query.view === "board" ? (
         <LeadBoard leads={rows} canMove={canRun} />
       ) : (
+        <>
+        {rows.length >= 2 ? (
+          <form id="compare-form" action="/leads/compare" method="get" className="comparebar">
+            <span className="small muted">Tick two to four companies, then compare them side by side.</span>
+            <button className="btn small" type="submit"><Icon name="chart" />Compare selected</button>
+          </form>
+        ) : null}
         <ul className="leadcards">
           {rows.map((l, i) => (
             <li key={l.id} className="leadcard" style={{ animationDelay: `${Math.min(i, 10) * 40}ms` }}>
@@ -96,10 +103,12 @@ export default async function Leads({ searchParams }: { searchParams: Promise<Re
               <div className="lcside">
                 <span className="small muted">{ago(l.updatedAt, now)}</span>
                 <Link className="btn small primary" href={`/prospects/${l.id}/brief`}>Open brief<Icon name="arrow" /></Link>
+                {rows.length >= 2 ? <label className="cmp-pick"><input type="checkbox" name="id" value={l.id} form="compare-form" aria-label={`Compare ${l.name}`} /> Compare</label> : null}
               </div>
             </li>
           ))}
         </ul>
+        </>
       )}
     </div>
   );

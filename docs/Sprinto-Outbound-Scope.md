@@ -12,7 +12,7 @@ Working name: **Sprinto Outbound**. Companion file: [Sprinto-Outbound-Components
 
 This document began as the plan. It has been corrected to match what exists; where the build departs from the plan, the section says so.
 
-**What exists.** A Next.js app on Vercel (Mumbai) at https://sprinto-outbound-eight.vercel.app, invite-only, in test mode. Supabase holds the data and sign-in (17 migrations, row level security, append-only history). A GitHub Actions worker runs every 15 minutes, and a weekly job runs the discovery digest. Gemini, Hunter and Gmail are all live. 1,735 automated tests in 84 files pass and the typecheck is clean. The logic that decides things (score, ranking, lint, edit measure, scorecard, run view) was also checked by deliberately breaking it and confirming a test fails; survivors were either harmless or became new tests.
+**What exists.** A Next.js app on Vercel (Mumbai) at https://sprinto-outbound-eight.vercel.app, invite-only, in test mode. Supabase holds the data and sign-in (17 migrations, row level security, append-only history). A GitHub Actions worker runs every 15 minutes, and a weekly job runs the discovery digest. Gemini, Hunter and Gmail are all live. 1,761 automated tests in 86 files pass and the typecheck is clean. The logic that decides things (score, ranking, lint, edit measure, scorecard, run view) was also checked by deliberately breaking it and confirming a test fails; survivors were either harmless or became new tests.
 
 **Pages:** Today, Discover, Runs, Paste a list, Run detail, Weekly digest, Leads (board, search, saved views, exports), Call brief, Why, Review, Impact, Scorecard, What is working, Quality, Ask, Rulebook, ICP and replay, Settings, Go-live readiness, People (and a Test inbox in demo mode only).
 
@@ -539,8 +539,8 @@ Every page has a loading skeleton, an empty state that says what to do, and an e
 | **What is working** | Recorded outcomes compared with the ICP score and the signals behind it, shown only once ten companies have been reached, never as a guess |
 | **Go-live readiness** | A plain list of what is still needed before real sending: the sending domain's SPF, DKIM and DMARC records, the sender, the postal address, the unsubscribe header, and a gradual ramp-up |
 | **Discover** | Describe a good customer (pre-filled from the ICP), see ranked companies with the reason for each, choose which to research, and see the cost before starting |
-| **Leads** | A fit-spread chart of every researched company, then the companies as a list or a board you can drag across stages, with search, filters, sort and saved views; who to speak to, the two pains, what came of each lead (reached out, replied, meeting booked, not interested, bounced, wrong person, with a note and a follow-up date) and exports to CSV and HubSpot |
-| **Call brief** | Everything for the discovery call on one page, copyable as text or printed as a call sheet. It reads where the company stands on five compliance frameworks (what its site states, and what we infer, each with the reason and the quote), says what that means for the conversation, shows how far the fit score is from the next verdict and which unknowns could move it, lays out a call plan, adds the objections that company's evidence makes likely, draws the buying group, charts the score breakdown, and says how much of it rests on evidence. A framework no verified Sprinto claim covers is flagged so nothing is promised about it. A paid check (one Hunter credit) confirms an address is deliverable |
+| **Leads** | A fit-spread chart of every researched company, a compare view (two to four companies side by side, with the differences stated in words), then the companies as a list or a board you can drag across stages, with search, filters, sort and saved views; who to speak to, the two pains, what came of each lead (reached out, replied, meeting booked, not interested, bounced, wrong person, with a note and a follow-up date) and exports to CSV and HubSpot |
+| **Call brief** | Everything for the discovery call on one page, copyable as text or printed as a call sheet. It reads where the company stands on five compliance frameworks (what its site states, and what we infer, each with the reason and the quote), says what that means for the conversation, shows how far the fit score is from the next verdict and which unknowns could move it, lays out a call plan, adds the objections that company's evidence makes likely, draws the buying group, charts the score breakdown, and says how much of it rests on evidence. A framework no verified Sprinto claim covers is flagged so nothing is promised about it. It downloads as a one-page PDF (always one A4 page: sections are added in order of usefulness and one that does not fit is left out), built from the same brief so it can say nothing the page does not. A paid check (one Hunter credit) confirms an address is deliverable |
 | **Paste a list** | A paste box that finds domains in any text (a spreadsheet column, an email thread, links) as you type, with a one-click tidy and a CSV drop zone. *Check the list* shows what will run, what is skipped and why, and the Hunter credits it could use, before anything starts |
 | **Run detail** | A progress ring and one-line status, a time estimate that waits for enough data, how many companies reached each of the seven steps, a dot track per company, filters, a feed of what just happened, and Pause with a reason |
 | **Why (a company)** | The defence page. A plain-English summary written by code from the recorded facts; then the score with each point's quote and source page, the ranked contact candidates, the two pains, the draft with its 12 checks, the person's decision on it, and the full append-only trace. Actions: promote, put back in the queue, re-run, do not contact, add a contact by hand |
@@ -630,7 +630,7 @@ sprinto-outbound/
   src/lib/{scrape,extract,icp,discovery,digest,brief,golive,contacts,pitch,email,ai,agent,worker,ask,quality,app,db,demo,smoke}
   supabase/migrations/        17 files, append-only history, each applied once
   scripts/{keys,smoke,golden,gmail-token}.ts
-  tests/                      84 test files; tests/db runs the real migrations on PGlite (a real Postgres)
+  tests/                      86 test files; tests/db runs the real migrations on PGlite (a real Postgres)
   .github/workflows/{ci,worker,golden,digest}.yml
   docs/{Sprinto-Outbound-Components-Map.pdf,Sprinto-Outbound-Scope.md,DEMO.md,REHEARSAL.md,map/}
 ```
@@ -679,7 +679,7 @@ There is no Supabase service-role key anywhere: the worker signs in as its own l
 | **Live smoke** | `npm run smoke` checks every service; `-- --pipeline domain` runs one real company through the real site and the real model, with nothing sent. This is what found the thinking-token budgets |
 | **Approvals, scorecard and run view** | The approval gate (approve, edit, reject, switched off, rate-limited retry), the edit measure, the kill-criteria rules at every boundary, and the run page's progress, estimate and filters, each with deliberate-break checks |
 | **Every control does something** | `tests/controls.test.ts` reads the syntax tree of every component and page and fails on a button with no type or handler, a link to nowhere, a form with no action, an empty handler, or a permanently disabled button; each rule was proven by planting a dead control in a real page |
-| **Totals** | 1,735 tests in 84 files, offline and repeatable |
+| **Totals** | 1,761 tests in 86 files, offline and repeatable |
 
 ---
 

@@ -48,6 +48,7 @@ export default async function Brief({ params }: { params: Promise<{ id: string }
       <PageHead eyebrow="Discovery call brief" title={b.company.name} sub={<>Everything to know before the call, from what the company says about itself. <a href={`https://${b.company.domain}`} target="_blank" rel="noreferrer noopener">{b.company.domain}</a></>}>
         <LanePill lane={view.lane} />
         <Link className="btn" href={`/prospects/${view.prospectId}`}><Icon name="book" />Why the system decided this</Link>
+        <a className="btn" href={`/prospects/${view.prospectId}/brief/pdf`} download><Icon name="down" />Download one-pager (PDF)</a>
         <ReportActions text={briefToText(b)} label="Copy the brief" printLabel="Print call sheet" />
       </PageHead>
 

@@ -162,3 +162,23 @@ export function FitSpread({ leads, maybeAt = 45, qualifyAt = 65 }: { leads: Spre
     </figure>
   );
 }
+
+/** The companies being compared as bars on one scale, with the two bars that decide a verdict marked on every track. */
+export function CompareBars({ columns, maybeAt = 45, qualifyAt = 65 }: { columns: { id: string; name: string; score: number | null; verdict: string }[]; maybeAt?: number; qualifyAt?: number }) {
+  const rows = [...columns].sort((a, b) => (b.score ?? -1) - (a.score ?? -1));
+  return (
+    <ul className="cmpbars" aria-label="Fit score by company">
+      {rows.map((c) => (
+        <li key={c.id}>
+          <span className="cb-name">{c.name}</span>
+          <span className="cb-track" aria-hidden>
+            <i style={{ width: `${Math.max(0, Math.min(100, c.score ?? 0))}%`, background: VERDICT_FILL[c.verdict] ?? "var(--muted)" }} />
+            <b style={{ left: `${maybeAt}%` }} />
+            <b style={{ left: `${qualifyAt}%` }} />
+          </span>
+          <span className="cb-val">{c.score ?? "n/a"}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}

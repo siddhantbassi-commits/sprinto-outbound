@@ -1112,3 +1112,31 @@ fieldset.crit legend { padding: 0; margin-bottom: 8px; font-size: 0.72rem; font-
 .fs-legend { display: flex; flex-wrap: wrap; gap: 14px; }
 .fs-legend span { display: inline-flex; align-items: center; gap: 6px; }
 .fs-legend i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+
+/* ---- comparison ---- */
+.comparebar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; padding: 10px 14px; border: 1px dashed var(--line-strong); border-radius: var(--radius-sm); background: var(--surface-2); }
+.cmp-pick { display: inline-flex; align-items: center; gap: 6px; font-size: .84rem; color: var(--ink-2); cursor: pointer; }
+.cmp-pick input { width: 16px; height: 16px; accent-color: var(--brand); }
+.cmpbars { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.cmpbars li { display: grid; grid-template-columns: minmax(90px, 160px) 1fr 44px; gap: 12px; align-items: center; }
+.cb-name { font-weight: 600; font-size: .92rem; overflow-wrap: anywhere; }
+.cb-track { position: relative; height: 14px; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
+.cb-track i { position: absolute; inset: 0 auto 0 0; border-radius: 999px; animation: sb-grow .7s cubic-bezier(.2,.8,.2,1) both; transform-origin: left; }
+.cb-track b { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--ink-2); opacity: .45; }
+.cb-val { font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; }
+.cmp-diff { margin: 0; padding-left: 1.1em; display: grid; gap: 6px; font-size: .92rem; }
+.cmp-scroll { overflow-x: auto; margin: 0 -4px; padding: 0 4px; }
+.cmp { border-collapse: separate; border-spacing: 0; width: 100%; min-width: 640px; font-size: .9rem; }
+.cmp th, .cmp td { text-align: left; vertical-align: top; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+.cmp thead th { position: sticky; top: 0; background: var(--surface); font-size: 1rem; }
+.cmp thead th a { font-weight: 700; display: block; }
+.cmp tbody th { font-weight: 600; color: var(--muted); font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; white-space: nowrap; width: 1%; position: sticky; left: 0; background: var(--surface); }
+.cmp-big { font-size: 1.5rem; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.cmp-list { margin: 0; padding-left: 1.1em; display: grid; gap: 4px; }
+.cmp-st { font-weight: 650; }
+.cmp-st.s-held { color: var(--good); }
+.cmp-st.s-in_progress { color: var(--info); }
+.cmp-st.s-likely { color: var(--warn); }
+.cmp-st.s-not_indicated { color: var(--muted); font-weight: 500; }
+.cmp thead th { text-transform: none; letter-spacing: normal; font-family: var(--font); }
+.cmp thead th .mono { display: block; text-transform: none; letter-spacing: normal; font-weight: 400; font-family: var(--mono); }

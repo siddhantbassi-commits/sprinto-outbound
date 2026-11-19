@@ -122,7 +122,7 @@ const ROWS = [
       2: "She records what came of each lead (replied, meeting, not interested) with a note and a follow-up date",
       3: "Researched companies, the verified Sprinto facts, outcomes so far, and the sending domain's SPF, DKIM and DMARC",
       4: "Board stages by code; framework map, call plan, score chart; paid address check; outcomes compared with the ICP",
-      6: "Leads board with CSV and HubSpot export, a printable call sheet, 'what is working', and a go-live readiness list",
+      6: "Leads board, side-by-side compare, one-page PDF brief, CSV and HubSpot export, 'what is working', go-live list",
     },
   },
   {
