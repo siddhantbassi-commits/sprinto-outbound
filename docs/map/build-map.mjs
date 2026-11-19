@@ -15,10 +15,10 @@ const TITLE = "MESA AI-Native Track · Sprinto Outbound: Components Map";
 const SUBTITLE =
   "Domains in, a decision trail out: scrape, extract, qualify, find the person, pick two pains, draft, send. AI is Gemini, used to read and write. Code, not the model, decides who qualifies, and a person approves every email before it is sent.";
 const BOUNDARY = [
-  "The platform researches, scores and drafts, and sends only what a person has approved. In test mode every email goes to the Growth Lead's own inbox, so no prospect is ever mailed. Gemini only reads page text and writes drafts: it never picks a recipient, changes a score or sends anything. Every score comes from code, on facts that carry a quote from the page.",
+  "The platform researches, scores and drafts, and sends only what a person has approved. In test mode every email goes to an inbox a person can read: the Growth Lead's own, or a reviewer's own address once they prove it with a code. No prospect is ever mailed. Gemini only reads page text and writes drafts: it never picks a recipient, changes a score or sends anything. Every score comes from code, on facts that carry a quote from the page.",
   "Which companies to pursue, whether each draft goes out, whether to ever go live, and what to say when someone replies stays with the Growth Lead. Going live is a deliberate admin change after review, not a button anyone can press. The Scorecard says when to stop: over half the drafts rewritten, the wrong person more than 4 times in 10, or more time spent than saved.",
 ];
-const FOOTER = "Open, no sign-in (guest access): sprinto-outbound-eight.vercel.app  ·  Owner sign-in at /login  ·  Test mode: mail only to the owner  ·  MESA AI-Native Track Case 02";
+const FOOTER = "Open, no sign-in (guest access): sprinto-outbound-eight.vercel.app  ·  Owner sign-in at /login  ·  Test mode: never a prospect  ·  MESA AI-Native Track Case 02";
 
 const COLS = ["Actor", "Trigger", "Input", "Context", "Processing", "AI", "Output"];
 const KIND = ["", "trigger", "input", "context", "processing", "ai", "output"];
@@ -101,7 +101,7 @@ const ROWS = [
       1: "A draft is parked for a person; nothing has been sent",
       2: "She approves, edits or rejects with a reason; clean drafts can be approved together",
       3: "The draft, its hook quote and page, why the company scored, the contact, any flags",
-      4: "Edits measured in words and re-checked (12 checks); every decision is a permanent row",
+      4: "Edits re-checked (12 checks); a reviewer may get the test email in their own inbox, proved by a code",
       6: "Approved text goes to delivery; rewrite rate and contact accuracy feed the Scorecard",
     },
   },
@@ -109,10 +109,10 @@ const ROWS = [
     name: "Delivery", sub: "(Step 7 · Gmail)", tint: "#eef4fc",
     boxes: {
       1: "She approved the draft and today's send cap (20 a day) is not reached",
-      2: "The approved text; the owner's own address as the only recipient; the real contact kept as a note",
-      3: "Test mode: the 'to' address is fixed to the owner; one send per domain",
+      2: "The approved text; the owner's address, or a reviewer's own address proved by a code; the real contact kept as a note",
+      3: "Test mode: never to a prospect; a reviewer address needs a code and is capped per day; one send per domain",
       4: "Sent through the Gmail API with send-only permission as a formal HTML and plain-text letter; message id saved; failures retried",
-      6: "Formal email in her inbox with a notice under it: 'Would have gone to name, title'; still failing after retries is held",
+      6: "Formal email with a notice under it: 'Would have gone to name, title'; still failing after retries is held",
     },
   },
   {
