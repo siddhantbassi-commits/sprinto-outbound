@@ -6,13 +6,17 @@ import { Icon } from "@/components/icons";
 import { Banner, SectionTitle } from "@/components/ui";
 import { cleanPaste } from "@/lib/app/paste";
 
-const EXAMPLE = "northwind.io\nhttps://www.cobaltledger.io/pricing\nPaul Tran <paul@harborpay.com>\norbit-labs.dev";
+// The demo's own invented companies, and for the real app a few real ones that fit the ICP, shown in the three shapes a list can take.
+const EXAMPLE_DEMO = "northwind.io\nhttps://www.cobaltledger.io/pricing\nPaul Tran <paul@harborpay.com>\norbit-labs.dev";
+const EXAMPLE_REAL = "documenso.com\nhttps://www.trigger.dev/about\nAlex Kim <alex@cal.com>";
 
 export interface RunFacts {
   approval: boolean;
   dailyCap: number | null;
   testTo: string | null;
   maxRun: number | null;
+  /** The demo, where the example list is invented companies. */
+  demo?: boolean;
 }
 
 const NEXT: [string, string, "globe" | "target" | "people" | "mail"][] = [
@@ -56,7 +60,7 @@ export function NewRunForm({ facts }: { facts: RunFacts }) {
 
           <div id="live" className="livebar" aria-live="polite">
             {text.trim() === "" ? (
-              <span className="muted small">Nothing yet. <button type="button" className="linkbtn" onClick={() => setText(EXAMPLE)}>Try an example</button></span>
+              <span className="muted small">Nothing yet. <button type="button" className="linkbtn" onClick={() => setText(facts.demo ? EXAMPLE_DEMO : EXAMPLE_REAL)}>Try an example</button></span>
             ) : live.domains.length === 0 && !live.csv ? (
               <span className="small" style={{ color: "var(--warn)" }}><Icon name="alert" />No domains found yet. A domain looks like acme.com.</span>
             ) : (

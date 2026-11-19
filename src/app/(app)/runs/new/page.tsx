@@ -20,7 +20,7 @@ export default async function NewRun() {
         </Banner>
       ) : null}
       {!settings?.test_to ? <Banner tone="warn" title="Test mode has no address yet">You can start a run, but nothing will be sent until an admin sets the test address in Settings.</Banner> : null}
-      <NewRunForm facts={{ approval: settings?.require_approval !== false, dailyCap: settings?.daily_send_cap ?? null, testTo: settings?.test_to ?? null, maxRun: settings?.max_run_size ?? null }} />
+      <NewRunForm facts={{ approval: settings?.require_approval !== false, dailyCap: settings?.daily_send_cap ?? null, testTo: settings?.test_to ?? null, maxRun: settings?.max_run_size ?? null, demo: s.mode === "demo" }} />
     </div>
   );
 }

@@ -4,8 +4,6 @@ import { useActionState, useState } from "react";
 import { Banner, Pill } from "@/components/ui";
 import { askQuestion, type AskItem, type AskState } from "./actions";
 
-const SUGGESTIONS = ["Who is waiting for a person?", "Which companies had no usable contact?", "How many companies are in each outcome?", "Why was petalpop.app not a fit?", "Tell me about harborpay.com", "What are the send rules?"];
-
 const argText = (a: Record<string, unknown>) => Object.entries(a).map(([k, v]) => `${k}: ${String(v)}`).join(", ");
 
 function Answer({ item }: { item: AskItem }) {
@@ -44,7 +42,7 @@ function Answer({ item }: { item: AskItem }) {
   );
 }
 
-export function AskForm() {
+export function AskForm({ suggestions }: { suggestions: string[] }) {
   const [state, action, pending] = useActionState<AskState | null, FormData>(askQuestion, null);
   const [question, setQuestion] = useState("");
   const [seen, setSeen] = useState(0);
@@ -64,7 +62,7 @@ export function AskForm() {
           <button className="btn primary" type="submit" disabled={pending || question.trim().length === 0} aria-busy={pending}>{pending ? "Looking it up…" : "Ask"}</button>
         </div>
         <div className="row" style={{ flexWrap: "wrap", gap: 6 }} aria-label="Example questions">
-          {SUGGESTIONS.map((s) => <button key={s} type="button" className="btn small" onClick={() => setQuestion(s)}>{s}</button>)}
+          {suggestions.map((s) => <button key={s} type="button" className="btn small" onClick={() => setQuestion(s)}>{s}</button>)}
         </div>
       </form>
       {state?.notice ? <Banner tone="warn" title={state.notice} /> : null}

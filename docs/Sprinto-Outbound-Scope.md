@@ -12,7 +12,7 @@ Working name: **Sprinto Outbound**. Companion file: [Sprinto-Outbound-Components
 
 This document began as the plan. It has been corrected to match what exists; where the build departs from the plan, the section says so.
 
-**What exists.** A Next.js app on Vercel (Mumbai) at https://sprinto-outbound-eight.vercel.app, invite-only, in test mode. Supabase holds the data and sign-in (17 migrations, row level security, append-only history). A GitHub Actions worker runs every 15 minutes, and a weekly job runs the discovery digest. Gemini, Hunter and Gmail are all live. 1,729 automated tests in 82 files pass and the typecheck is clean. The logic that decides things (score, ranking, lint, edit measure, scorecard, run view) was also checked by deliberately breaking it and confirming a test fails; survivors were either harmless or became new tests.
+**What exists.** A Next.js app on Vercel (Mumbai) at https://sprinto-outbound-eight.vercel.app, invite-only, in test mode. Supabase holds the data and sign-in (17 migrations, row level security, append-only history). A GitHub Actions worker runs every 15 minutes, and a weekly job runs the discovery digest. Gemini, Hunter and Gmail are all live. 1,735 automated tests in 84 files pass and the typecheck is clean. The logic that decides things (score, ranking, lint, edit measure, scorecard, run view) was also checked by deliberately breaking it and confirming a test fails; survivors were either harmless or became new tests.
 
 **Pages:** Today, Discover, Runs, Paste a list, Run detail, Weekly digest, Leads (board, search, saved views, exports), Call brief, Why, Review, Impact, Scorecard, What is working, Quality, Ask, Rulebook, ICP and replay, Settings, Go-live readiness, People (and a Test inbox in demo mode only).
 
@@ -630,7 +630,7 @@ sprinto-outbound/
   src/lib/{scrape,extract,icp,discovery,digest,brief,golive,contacts,pitch,email,ai,agent,worker,ask,quality,app,db,demo,smoke}
   supabase/migrations/        17 files, append-only history, each applied once
   scripts/{keys,smoke,golden,gmail-token}.ts
-  tests/                      82 test files; tests/db runs the real migrations on PGlite (a real Postgres)
+  tests/                      84 test files; tests/db runs the real migrations on PGlite (a real Postgres)
   .github/workflows/{ci,worker,golden,digest}.yml
   docs/{Sprinto-Outbound-Components-Map.pdf,Sprinto-Outbound-Scope.md,DEMO.md,REHEARSAL.md,map/}
 ```
@@ -679,7 +679,7 @@ There is no Supabase service-role key anywhere: the worker signs in as its own l
 | **Live smoke** | `npm run smoke` checks every service; `-- --pipeline domain` runs one real company through the real site and the real model, with nothing sent. This is what found the thinking-token budgets |
 | **Approvals, scorecard and run view** | The approval gate (approve, edit, reject, switched off, rate-limited retry), the edit measure, the kill-criteria rules at every boundary, and the run page's progress, estimate and filters, each with deliberate-break checks |
 | **Every control does something** | `tests/controls.test.ts` reads the syntax tree of every component and page and fails on a button with no type or handler, a link to nowhere, a form with no action, an empty handler, or a permanently disabled button; each rule was proven by planting a dead control in a real page |
-| **Totals** | 1,729 tests in 82 files, offline and repeatable |
+| **Totals** | 1,735 tests in 84 files, offline and repeatable |
 
 ---
 
