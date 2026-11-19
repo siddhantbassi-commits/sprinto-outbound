@@ -30,8 +30,11 @@ export interface ReadyItem {
   /** Not needed to send. A missing optional item is shown quietly. */
   optional?: boolean;
   detail: string;
-  href: string;
+  /** Where the button goes, or null when the fix is not a page in this app (a key set on the host, say). */
+  href: string | null;
   action: string;
+  /** What to say instead of a button when the fix is the page you are already on. */
+  hereNote?: string;
 }
 
 export interface Readiness {
@@ -47,27 +50,27 @@ const HOUR = 3_600_000;
 export function buildReadiness(i: ReadinessInput): Readiness {
   const demo = i.mode === "demo";
   const items: ReadyItem[] = [
-    { id: "test", label: "Test address", ok: !!i.testTo, detail: i.testTo ? `Mail goes only to ${i.testTo}` : "Not set: every send is refused", href: "/settings", action: "Set it" },
+    { id: "test", label: "Test address", ok: !!i.testTo, detail: i.testTo ? `Mail goes only to ${i.testTo}` : "Not set: every send is refused", href: "/settings#test-to", action: "Set it" },
     {
       id: "address",
       label: "Postal address",
       ok: looksLikeFullAddress(i.postalAddress ?? null),
       detail: looksLikeFullAddress(i.postalAddress ?? null) ? "A full address is in every opt-out line" : i.postalAddress ? `"${i.postalAddress.trim().slice(0, 40)}" is not a full address, and it ends every email` : "Not set: it ends every email",
-      href: "/settings",
-      action: "Set it",
+      href: "/settings#postal-address",
+      action: "Add the address",
     },
     { id: "icp", label: "ICP signed off", ok: i.icpSignedVersion !== null, detail: i.icpSignedVersion !== null ? `Version ${i.icpSignedVersion} is in use` : "Nothing is signed off, so no run can start", href: "/icp", action: "Review and sign off" },
-    { id: "facts", label: "Sprinto claims verified", ok: i.factsProblems.length === 0, detail: i.factsProblems.length ? i.factsProblems[0]! : "Verified by a person, sender and address set", href: "/settings", action: "Verify" },
-    { id: "gemini", label: "Gemini", ok: demo || i.geminiSet, detail: demo ? "Scripted model (demo)" : i.geminiSet ? "Key set" : "No key: nothing can be read or written", href: "/settings", action: "See how" },
-    { id: "gmail", label: "Gmail", ok: demo || i.gmailSet, detail: demo ? "Test inbox (demo)" : i.gmailSet ? "OAuth configured" : "Not configured: nothing can be sent", href: "/settings", action: "See how" },
+    { id: "facts", label: "Sprinto claims verified", ok: i.factsProblems.length === 0, detail: i.factsProblems.length ? i.factsProblems[0]! : "Verified by a person, sender and address set", href: "/settings#claims", action: "Verify" },
+    { id: "gemini", label: "Gemini", ok: demo || i.geminiSet, detail: demo ? "Scripted model (demo)" : i.geminiSet ? "Key set" : "No key: nothing can be read or written", href: null, action: "Set on the host" },
+    { id: "gmail", label: "Gmail", ok: demo || i.gmailSet, detail: demo ? "Test inbox (demo)" : i.gmailSet ? "OAuth configured" : "Not configured: nothing can be sent", href: null, action: "Set on the host" },
     {
       id: "hunter",
       label: "Hunter",
       optional: true,
       ok: !!i.hunter && !("error" in i.hunter),
       detail: !i.hunter ? "Not configured: only hand-picked contacts will work" : "error" in i.hunter ? i.hunter.error : `${i.hunter.remaining} credits left, ${i.reserve} kept in reserve`,
-      href: "/settings",
-      action: "See how",
+      href: null,
+      action: "Set on the host",
     },
   ];
   // The worker only matters once there is work for it: a quiet worker with an empty queue is not a fault.
@@ -81,7 +84,21 @@ export function buildReadiness(i: ReadinessInput): Readiness {
     detail: i.waiting === 0 ? (tick ? "Idle, nothing waiting" : "Has not run yet, nothing waiting") : beating ? "Running" : tick ? "Companies are waiting and it has not run in over an hour" : "Companies are waiting and it has never run",
     href: "/",
     action: "Run it now",
+    hereNote: "Press \u201cRun the worker now\u201d above",
   });
   const required = items.filter((x) => !x.optional);
   return { items, ready: required.every((x) => x.ok), done: required.filter((x) => x.ok).length, total: required.length };
+}
+
+export type ReadyAction = { kind: "link"; href: string; label: string } | { kind: "note"; label: string };
+
+/**
+ * What to show beside a checklist item that is not done, given the page it is shown on. A button that leads to the page you are
+ * already on, or nowhere at all, is worse than none, so those become a plain note. Every page that lists these items uses this.
+ */
+export function actionFor(item: ReadyItem, here: string): ReadyAction {
+  if (!item.href) return { kind: "note", label: item.action };
+  const [path, hash] = item.href.split("#");
+  if (path === here && !hash) return { kind: "note", label: item.hereNote ?? "You are here" };
+  return { kind: "link", href: item.href, label: item.action };
 }

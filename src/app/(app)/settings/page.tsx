@@ -4,6 +4,8 @@ import { ActionForm } from "@/components/action-form";
 import { Icon } from "@/components/icons";
 import { Banner, Empty, PageHead, Pill, Ring, SectionTitle } from "@/components/ui";
 import { ago, dateTime } from "@/lib/app/format";
+import { FocusTarget } from "@/components/focus-target";
+import { ItemAction } from "@/components/item-action";
 import { buildReadiness } from "@/lib/app/readiness";
 import { settingsPage, workerStatus } from "@/lib/app/queries";
 import { getSession, hunterBalance } from "@/lib/app/runtime";
@@ -61,6 +63,7 @@ export default async function Settings() {
         {SECTIONS.map(([id, label]) => <a key={id} href={`#${id}`}>{label}</a>)}
       </nav>
 
+      <FocusTarget />
       <section id="ready" className="card hero stack" aria-labelledby="ready-h">
         <div className="row" style={{ gap: 22, alignItems: "center", flexWrap: "nowrap" }}>
           <Ring value={readiness.done} max={readiness.total} label={`of ${readiness.total}`} tone={readiness.ready ? "good" : "brand"} size={84} />
@@ -76,7 +79,7 @@ export default async function Settings() {
             <li key={x.id} className={x.ok ? "done" : x.optional ? "" : "todo"}>
               <span className="tick" aria-hidden><Icon name={x.ok ? "check" : x.optional ? "info" : "alert"} /></span>
               <span><b>{x.label}{x.optional ? <span className="muted"> (optional)</span> : null}</b><small>{x.detail}</small></span>
-              {x.ok ? <Pill tone="good">Done</Pill> : <Link className="btn small" href={x.href}>{x.action}<Icon name="arrow" /></Link>}
+              {x.ok ? <Pill tone="good">Done</Pill> : <ItemAction item={x} here="/settings" />}
             </li>
           ))}
           {admin && env.mode === "supabase" ? (
@@ -116,10 +119,10 @@ export default async function Settings() {
               <fieldset className="group">
                 <legend>Who it comes from</legend>
                 <div className="fields">
-                  <label>Test address <span className="hint">the only address test mode can mail</span><input type="email" name="test_to" defaultValue={set.test_to ?? ""} maxLength={254} /></label>
+                  <label>Test address <span className="hint">the only address test mode can mail</span><input id="test-to" type="email" name="test_to" defaultValue={set.test_to ?? ""} maxLength={254} /></label>
                   <label>Sender first name<input type="text" name="sender_name" defaultValue={set.sender_name} maxLength={60} /></label>
                   <label>Sender title<input type="text" name="sender_title" defaultValue={set.sender_title} maxLength={80} /></label>
-                  <label>Postal address <span className="hint">in the opt-out line</span><input type="text" name="postal_address" defaultValue={set.postal_address} maxLength={200} /></label>
+                  <label>Postal address <span className="hint">in the opt-out line</span><input id="postal-address" type="text" name="postal_address" defaultValue={set.postal_address} maxLength={200} /></label>
                 </div>
               </fieldset>
               <fieldset className="group">

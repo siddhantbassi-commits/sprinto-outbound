@@ -10,6 +10,7 @@ import { followUpText } from "@/lib/app/outcomes";
 import { roughTime } from "@/lib/app/progress";
 import { dateHeading } from "@/lib/app/today";
 import { loadToday } from "@/lib/app/today-load";
+import { ItemAction } from "@/components/item-action";
 
 export const metadata = { title: "Today" };
 
@@ -58,7 +59,7 @@ export default async function Today() {
               <li key={x.id} className={x.ok ? "done" : x.optional ? "" : "todo"}>
                 <span className="tick" aria-hidden><Icon name={x.ok ? "check" : x.optional ? "info" : "alert"} /></span>
                 <span><b>{x.label}</b><small>{x.detail}</small></span>
-                {x.ok ? <Pill tone="good">Done</Pill> : s.user.role === "admin" || x.id === "worker" ? <Link className="btn small" href={x.href}>{x.action}<Icon name="arrow" /></Link> : <Pill tone="muted">Ask an admin</Pill>}
+                {x.ok ? <Pill tone="good">Done</Pill> : s.user.role === "admin" || x.id === "worker" ? <ItemAction item={x} here="/" /> : <Pill tone="muted">Ask an admin</Pill>}
               </li>
             ))}
           </ul>

@@ -12,7 +12,7 @@ Working name: **Sprinto Outbound**. Companion file: [Sprinto-Outbound-Components
 
 This document began as the plan. It has been corrected to match what exists; where the build departs from the plan, the section says so.
 
-**What exists.** A Next.js app on Vercel (Mumbai) at https://sprinto-outbound-eight.vercel.app, invite-only, in test mode. Supabase holds the data and sign-in (16 migrations, row level security, append-only history). A GitHub Actions worker runs every 15 minutes, and a weekly job runs the discovery digest. Gemini, Hunter and Gmail are all live. 1,654 automated tests in 78 files pass and the typecheck is clean. The logic that decides things (score, ranking, lint, edit measure, scorecard, run view) was also checked by deliberately breaking it and confirming a test fails; survivors were either harmless or became new tests.
+**What exists.** A Next.js app on Vercel (Mumbai) at https://sprinto-outbound-eight.vercel.app, invite-only, in test mode. Supabase holds the data and sign-in (16 migrations, row level security, append-only history). A GitHub Actions worker runs every 15 minutes, and a weekly job runs the discovery digest. Gemini, Hunter and Gmail are all live. 1,664 automated tests in 79 files pass and the typecheck is clean. The logic that decides things (score, ranking, lint, edit measure, scorecard, run view) was also checked by deliberately breaking it and confirming a test fails; survivors were either harmless or became new tests.
 
 **Pages:** Today, Discover, Runs, Paste a list, Run detail, Weekly digest, Leads (board, search, saved views, exports), Call brief, Why, Review, Impact, Scorecard, What is working, Quality, Ask, Rulebook, ICP and replay, Settings, Go-live readiness, People (and a Test inbox in demo mode only).
 
@@ -527,7 +527,7 @@ JSON-schema output and function calling are **kept in separate requests**. [Rese
 
 One shell, one design system (the Freshroots tokens: dark by default with a light theme, a single accent, colour kept for meaning, phone-width layouts, visible keyboard focus, reduced motion respected). New accent colour so it reads as its own product. Colour meaning: green = qualified or sent, amber = needs a person, red = failed or blocked, blue = information.
 
-**The "no dummy buttons" rule.** Every control either works or is not shown. Things that are off are shown as *status* (a "Test mode" chip with a sentence), not as disabled buttons. This is enforced by a test (`tests/controls.test.ts`) that fails on a control that plainly does nothing, and each page was also checked in a browser. The test cannot know that a handler is *useful*, only that it is not empty.
+**The "no dummy buttons" rule.** Every control either works or is not shown. Things that are off are shown as *status* (a "Test mode" chip with a sentence), not as disabled buttons. This is enforced by a test (`tests/controls.test.ts`) that fails on a control that plainly does nothing, and each page was also checked in a browser. A second test (`tests/links.test.ts`) reads every link in the source and fails on one that points to a page that does not exist, to a field that does not exist, or to the page it is already on, and a checklist button that has nowhere useful to go becomes a plain note. The test cannot know that a handler is *useful*, only that it is not empty.
 
 Every page has a loading skeleton, an empty state that says what to do, and an error state that says what happened. The design uses Sprinto's own palette (plum, warm paper, a lime accent), dark and light themes, a command palette (press Cmd-K to jump to any page or company), and motion that explains something (progress, arrival, success) and switches off for people who ask for reduced motion.
 
@@ -630,7 +630,7 @@ sprinto-outbound/
   src/lib/{scrape,extract,icp,discovery,digest,brief,golive,contacts,pitch,email,ai,agent,worker,ask,quality,app,db,demo,smoke}
   supabase/migrations/        16 files, append-only history, each applied once
   scripts/{keys,smoke,golden,gmail-token}.ts
-  tests/                      78 test files; tests/db runs the real migrations on PGlite (a real Postgres)
+  tests/                      79 test files; tests/db runs the real migrations on PGlite (a real Postgres)
   .github/workflows/{ci,worker,golden,digest}.yml
   docs/{Sprinto-Outbound-Components-Map.pdf,Sprinto-Outbound-Scope.md,DEMO.md,REHEARSAL.md,map/}
 ```
@@ -679,7 +679,7 @@ There is no Supabase service-role key anywhere: the worker signs in as its own l
 | **Live smoke** | `npm run smoke` checks every service; `-- --pipeline domain` runs one real company through the real site and the real model, with nothing sent. This is what found the thinking-token budgets |
 | **Approvals, scorecard and run view** | The approval gate (approve, edit, reject, switched off, rate-limited retry), the edit measure, the kill-criteria rules at every boundary, and the run page's progress, estimate and filters, each with deliberate-break checks |
 | **Every control does something** | `tests/controls.test.ts` reads the syntax tree of every component and page and fails on a button with no type or handler, a link to nowhere, a form with no action, an empty handler, or a permanently disabled button; each rule was proven by planting a dead control in a real page |
-| **Totals** | 1,654 tests in 78 files, offline and repeatable |
+| **Totals** | 1,664 tests in 79 files, offline and repeatable |
 
 ---
 

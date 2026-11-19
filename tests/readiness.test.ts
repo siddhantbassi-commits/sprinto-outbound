@@ -20,14 +20,16 @@ describe("buildReadiness", () => {
   ] as [string, Partial<ReadinessInput>][])("is not ready when %s is missing, and says what to do", (id, over) => {
     const r = buildReadiness({ ...READY, ...over });
     expect(r.ready).toBe(false);
-    expect(item({ ...READY, ...over }, id)).toMatchObject({ ok: false, href: expect.stringMatching(/^\//), action: expect.any(String) });
+    // Something to fix in this app has a page to go to; a key that lives on the host does not, and says so instead.
+    const onHost = id === "gemini" || id === "gmail";
+    expect(item({ ...READY, ...over }, id)).toMatchObject(onHost ? { ok: false, href: null, action: "Set on the host" } : { ok: false, href: expect.stringMatching(/^\//), action: expect.any(String) });
     expect(r.done).toBe(r.total - 1);
   });
   it("says why an incomplete postal address is not enough, and treats a missing one the same way", () => {
     expect(item({ ...READY, postalAddress: "600020" }, "address").detail).toMatch(/"600020" is not a full address, and it ends every email/);
     expect(item({ ...READY, postalAddress: "" }, "address")).toMatchObject({ ok: false, detail: "Not set: it ends every email" });
     expect(item({ ...READY, postalAddress: null }, "address").ok).toBe(false);
-    expect(item(READY, "address")).toMatchObject({ ok: true, href: "/settings" });
+    expect(item(READY, "address")).toMatchObject({ ok: true, href: "/settings#postal-address" });
   });
   it("reports the first facts problem, not all of them", () => expect(item({ ...READY, factsProblems: ["First.", "Second."] }, "facts").detail).toBe("First."));
   it("treats Hunter as optional: missing or failing does not block", () => {
