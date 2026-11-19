@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createGmailSender, type Draft, type GmailConfig } from "@/lib/email/gmail";
-import { MimeError } from "@/lib/email/mime";
+import { MimeError, readMessage } from "@/lib/email/mime";
 
 const SECRETS = { clientId: "client-id-123", clientSecret: "client-secret-ABC", refreshToken: "1//refresh-token-XYZ" };
 const ME = "siddhant@pg27.mesaschool.co";
@@ -221,6 +221,68 @@ describe("sendTest: secrets stay out of results", () => {
     for (const o of outcomes) {
       const text = JSON.stringify(o);
       for (const secret of [...Object.values(SECRETS), "access-SECRET", "Hello."]) expect(text).not.toContain(secret);
+    }
+  });
+});
+
+describe("sending to a reviewer's own address", () => {
+  const PROF = "prof@uni.edu";
+  const toOf = (call: Call) => /^To: (.*)$/m.exec(rawOf(call))?.[1];
+
+  it("sends the same email to the reviewer's address, and still not to the contact or the owner", async () => {
+    const h = harness([tokenOk(), sentOk()]);
+    const r = await h.sender.sendToReviewer!("Prof@Uni.EDU ", { ...DRAFT, to: CONTACT } as Draft);
+    expect(r).toMatchObject({ status: "sent" });
+    expect(toOf(h.sends()[0]!)).toBe(PROF);
+    expect(rawOf(h.sends()[0]!)).not.toContain(CONTACT);
+    expect(rawOf(h.sends()[0]!)).toContain(DRAFT.subject);
+  });
+
+  it("refuses anything that is not one plain address, before any request is made", async () => {
+    for (const bad of ["", "nope", "a@b.com, c@d.com", "Name <a@b.com>", "a@b.com\nBcc: c@d.com", "a b@c.com"]) {
+      const h = harness([]);
+      const r = await h.sender.sendToReviewer!(bad, DRAFT);
+      expect(r, JSON.stringify(bad)).toMatchObject({ status: "failed", code: "invalid_message", retryable: false });
+      expect(h.calls).toEqual([]);
+    }
+  });
+
+  it("leaves sendTest exactly as it was: it still mails only the owner", async () => {
+    const h = harness([tokenOk(), sentOk()]);
+    await h.sender.sendTest(DRAFT);
+    expect(toOf(h.sends()[0]!)).toBe(ME);
+  });
+
+  it("reports the same three outcomes when sending to a reviewer", async () => {
+    const unknown = harness([tokenOk(), err(503)]);
+    expect(await unknown.sender.sendToReviewer!(PROF, DRAFT)).toMatchObject({ status: "unknown" });
+    const failed = harness([tokenOk(), err(400)]);
+    expect(await failed.sender.sendToReviewer!(PROF, DRAFT)).toMatchObject({ status: "failed", code: "bad_request" });
+    const expired = harness([err(400, { error: "invalid_grant" })]);
+    expect(await expired.sender.sendToReviewer!(PROF, DRAFT)).toMatchObject({ status: "failed", code: "reauthorize" });
+  });
+});
+
+describe("sending the confirmation code", () => {
+  it("sends a short message with the code to the address, and nowhere else", async () => {
+    const h = harness([tokenOk(), sentOk()]);
+    const r = await h.sender.sendCode!("prof@uni.edu", "482913");
+    expect(r).toMatchObject({ status: "sent" });
+    const raw = rawOf(h.sends()[0]!);
+    expect(/^To: (.*)$/m.exec(raw)?.[1]).toBe("prof@uni.edu");
+    const { head, text } = readMessage(raw);
+    expect(head).toContain("482913");
+    expect(text).toContain("Your code is 482913.");
+    expect(text).toMatch(/lasts 15 minutes/);
+    expect(text).toMatch(/ignore it/i);
+  });
+
+  it("accepts only a six-digit code and one plain address, before any request is made", async () => {
+    for (const [to, code] of [["prof@uni.edu", "12345"], ["prof@uni.edu", "1234567"], ["prof@uni.edu", "12a456"], ["prof@uni.edu", "123456\n"], ["a@b.com, c@d.com", "123456"], ["", "123456"]] as const) {
+      const h = harness([]);
+      const r = await h.sender.sendCode!(to, code);
+      expect(r, `${to} ${JSON.stringify(code)}`).toMatchObject({ status: "failed", code: "invalid_message" });
+      expect(h.calls).toEqual([]);
     }
   });
 });

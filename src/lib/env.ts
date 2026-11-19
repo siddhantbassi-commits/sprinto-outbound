@@ -25,7 +25,7 @@ export interface AppEnv {
    */
   guest: { email: string; password: string; dailyTokens: number; dailyHunter: number; dailyCompanies: number; keepCredits: number } | null;
   gmail: { clientId: string; clientSecret: string; refreshToken: string; from: string; fromName: string | undefined } | null;
-  /** The only address test mode may mail. */
+  /** The default address test mode mails. A reviewer may confirm their own instead (see lib/app/reviewer.ts); a contact is never mailed. */
   testTo: string | null;
   appUrl: string | null;
   /** Named in the scraper's user agent so a site owner can reach us. */

@@ -76,7 +76,8 @@ export interface ContactRow {
   chosen: boolean;
 }
 
-export type ReserveResult = { ok: true; test_to: string } | { ok: false; reason: string };
+/** `deliver_to` is a reviewer's own address that the database recorded when the draft was approved; null means the owner's address. */
+export type ReserveResult = { ok: true; test_to: string; deliver_to: string | null } | { ok: false; reason: string };
 
 const one = (rows: Row[]) => rows[0];
 const scalar = (rows: Row[]) => (rows[0] ? Object.values(rows[0])[0] : undefined);
@@ -230,8 +231,8 @@ export class Store {
     return r ? ({ ...(r as unknown as EmailReview), edit_ratio: Number(r.edit_ratio) }) : null;
   }
   async reserveSend(emailId: string): Promise<ReserveResult> {
-    const r = scalar(await this.db.rpc("reserve_send", { p_email: emailId })) as { ok: boolean; reason?: string; test_to?: string };
-    return r.ok ? { ok: true, test_to: r.test_to as string } : { ok: false, reason: r.reason ?? "refused" };
+    const r = scalar(await this.db.rpc("reserve_send", { p_email: emailId })) as { ok: boolean; reason?: string; test_to?: string; deliver_to?: string | null };
+    return r.ok ? { ok: true, test_to: r.test_to as string, deliver_to: r.deliver_to ?? null } : { ok: false, reason: r.reason ?? "refused" };
   }
   async setEmailStatus(emailId: string, status: "sent" | "unknown" | "failed", o: { messageId?: string; threadId?: string | null; error?: string; retryable?: boolean } = {}) {
     await this.db.rpc("set_email_status", { p_email: emailId, p_status: status, p_message_id: o.messageId ?? null, p_thread_id: o.threadId ?? null, p_error: o.error ?? null, p_retryable: o.retryable ?? false, p_reason: null });

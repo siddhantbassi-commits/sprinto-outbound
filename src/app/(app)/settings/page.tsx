@@ -120,7 +120,7 @@ export default async function Settings() {
               <fieldset className="group">
                 <legend>Who it comes from</legend>
                 <div className="fields">
-                  <label>Test address <span className="hint">the only address test mode can mail</span><input id="test-to" type="email" name="test_to" defaultValue={set.test_to ?? ""} maxLength={254} readOnly={Boolean(s.guest)} /></label>
+                  <label>Test address <span className="hint">where test mail goes by default</span><input id="test-to" type="email" name="test_to" defaultValue={set.test_to ?? ""} maxLength={254} readOnly={Boolean(s.guest)} /></label>
                   <label>Sender first name<input type="text" name="sender_name" defaultValue={set.sender_name} maxLength={60} /></label>
                   <label>Sender title<input type="text" name="sender_title" defaultValue={set.sender_title} maxLength={80} /></label>
                   <label>Postal address <span className="hint">in the opt-out line</span><input id="postal-address" type="text" name="postal_address" defaultValue={set.postal_address} maxLength={200} /></label>

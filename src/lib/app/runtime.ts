@@ -14,6 +14,7 @@ import { supabasePort, type SupabaseLike } from "@/lib/db/supabase";
 import { cappedAi, liveHunter, liveShared } from "@/lib/demo/live";
 import { demoFetchDeps, demoHunter, getDemo, type LiveParts } from "@/lib/demo/world";
 import { createGmailSender, type GmailSender } from "@/lib/email/gmail";
+import { reviewerKey } from "@/lib/app/reviewer";
 import { readEnv, type AppEnv } from "@/lib/env";
 import { nodeTransport, systemResolver, type FetchDeps } from "@/lib/scrape/fetch";
 import { botUserAgent } from "@/lib/scrape/site";
@@ -150,6 +151,18 @@ export async function workerDeps(): Promise<PipelineDeps> {
     now: Date.now,
     stepBudgetMs: 35_000,
   };
+}
+
+/**
+ * What the reviewer's own inbox needs: the real app (not the demo), a way to send the code, and a server secret to key the codes with.
+ * Null means the feature is off: it is also off when REVIEWER_INBOX=0, so the owner can switch it off without a deploy of code.
+ */
+export function reviewerSetup(): { key: Buffer; gmail: GmailSender } | null {
+  const e = env();
+  if (e.mode !== "supabase" || !e.gmail || !e.testTo || process.env.REVIEWER_INBOX === "0") return null;
+  const key = reviewerKey({ cron: e.cronSecret, gmailSecret: e.gmail.clientSecret });
+  if (!key) return null;
+  return { key, gmail: createGmailSender({ ...e.gmail, testTo: e.testTo }) };
 }
 
 /** Hunter's live credit balance for the New run page. Null means Hunter is not configured; an error is shown, not hidden. */

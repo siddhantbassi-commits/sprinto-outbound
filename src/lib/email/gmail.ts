@@ -4,6 +4,10 @@ import { assertAddress, buildMessage, MimeError, toRaw } from "./mime";
  * Sending, in test mode only. `sendTest` takes a draft and no recipient: the To address is the server's own setting,
  * fixed when the sender is built, so there is no code path where a contact's address becomes a recipient.
  *
+ * A reviewer may also receive the test email at their own address. That is a separate, narrower path: `sendToReviewer` takes an
+ * address, but the worker only ever passes the one the database recorded with the approval, and the database records one only
+ * after the reviewer entered a code sent to it. `sendCode` sends that code. Neither is ever given a contact's address.
+ *
  * Three outcomes, and the difference matters:
  *  - sent: Gmail confirmed and gave a message id.
  *  - failed: Gmail refused before sending (bad token, bad request, limits). Nothing went out; retrying is safe if retryable.
@@ -47,6 +51,10 @@ export interface GmailSender {
   /** The fixed recipient, for display. */
   readonly recipient: string;
   sendTest(draft: Draft): Promise<SendOutcome>;
+  /** The same test email, to a reviewer address the database recorded after a code proved it. Optional so a stand-in need not have it. */
+  sendToReviewer?(to: string, draft: Draft): Promise<SendOutcome>;
+  /** The one-line message carrying a confirmation code. */
+  sendCode?(to: string, code: string): Promise<SendOutcome>;
 }
 
 interface Token {
@@ -109,47 +117,76 @@ export function createGmailSender(cfg: GmailConfig): GmailSender {
     });
   }
 
+  async function deliver(to: string, draft: Draft): Promise<SendOutcome> {
+    let raw: string;
+    try {
+      // Only these four fields are read from the draft. Anything else on the object, a `to` included, is ignored.
+      raw = toRaw(buildMessage({ from, fromName: cfg.fromName, to, subject: draft.subject, body: draft.body, html: draft.html, runId: draft.runId, unsubscribe: from, date: new Date(now()) }));
+    } catch (e) {
+      return { status: "failed", code: "invalid_message", retryable: false, reason: e instanceof MimeError ? e.message : "The message could not be built." };
+    }
+
+    let t = await accessToken();
+    if (!t.ok) return t.outcome;
+    let res: Response;
+    try {
+      res = await post(raw, t.token);
+      if (res.status === 401) {
+        // An expired token is refused before anything is sent, so one fresh token and one more try is safe.
+        t = await accessToken(true);
+        if (!t.ok) return t.outcome;
+        res = await post(raw, t.token);
+      }
+    } catch (e) {
+      // The request may have reached Gmail before the connection failed. Do not guess: it is unknown.
+      return { status: "unknown", reason: isTimeout(e) ? "Gmail did not answer in time, so the message may or may not have been sent." : "The connection to Gmail dropped, so the message may or may not have been sent." };
+    }
+
+    const body = (await res.json().catch(() => null)) as Json | null;
+    if (res.ok) {
+      if (typeof body?.id === "string") return { status: "sent", messageId: body.id, threadId: typeof body.threadId === "string" ? body.threadId : null };
+      return { status: "unknown", reason: "Gmail answered but did not confirm a message id, so the message may have been sent." };
+    }
+    if (res.status >= 500) return { status: "unknown", reason: `Gmail answered with a server error (${res.status}), so the message may or may not have been sent.` };
+
+    const reason = typeof (body?.error as Json | undefined)?.status === "string" ? ((body!.error as Json).status as string) : "";
+    if (res.status === 429 || (res.status === 403 && /rate|quota|limit/i.test(JSON.stringify((body?.error as Json | undefined)?.errors ?? reason)))) {
+      return { status: "failed", code: "rate_limited", retryable: true, reason: "Gmail's sending limit was reached. Try again later." };
+    }
+    if (res.status === 401 || res.status === 403) return { status: "failed", code: res.status === 401 ? "reauthorize" : "forbidden", retryable: false, reason: "Gmail refused permission to send. Check the OAuth scope and account." };
+    return { status: "failed", code: "bad_request", retryable: false, reason: `Gmail rejected the message (${res.status}).` };
+  }
+
+  const invalid = (e: unknown): SendOutcome => ({ status: "failed", code: "invalid_message", retryable: false, reason: e instanceof MimeError ? e.message : "The message could not be built." });
+
   return {
     recipient: testTo,
 
-    async sendTest(draft: Draft): Promise<SendOutcome> {
-      let raw: string;
+    sendTest: (draft: Draft) => deliver(testTo, draft),
+
+    async sendToReviewer(to: string, draft: Draft): Promise<SendOutcome> {
+      let address: string;
       try {
-        // Only these four fields are read from the draft. Anything else on the object, a `to` included, is ignored.
-        raw = toRaw(buildMessage({ from, fromName: cfg.fromName, to: testTo, subject: draft.subject, body: draft.body, html: draft.html, runId: draft.runId, unsubscribe: from, date: new Date(now()) }));
+        address = assertAddress("Reviewer address", String(to).trim().toLowerCase());
       } catch (e) {
-        return { status: "failed", code: "invalid_message", retryable: false, reason: e instanceof MimeError ? e.message : "The message could not be built." };
+        return invalid(e);
       }
+      return deliver(address, draft);
+    },
 
-      let t = await accessToken();
-      if (!t.ok) return t.outcome;
-      let res: Response;
+    async sendCode(to: string, code: string): Promise<SendOutcome> {
+      let address: string;
       try {
-        res = await post(raw, t.token);
-        if (res.status === 401) {
-          // An expired token is refused before anything is sent, so one fresh token and one more try is safe.
-          t = await accessToken(true);
-          if (!t.ok) return t.outcome;
-          res = await post(raw, t.token);
-        }
+        address = assertAddress("Reviewer address", String(to).trim().toLowerCase());
+        if (!/^\d{6}$/.test(code)) throw new MimeError("The code must be six digits");
       } catch (e) {
-        // The request may have reached Gmail before the connection failed. Do not guess: it is unknown.
-        return { status: "unknown", reason: isTimeout(e) ? "Gmail did not answer in time, so the message may or may not have been sent." : "The connection to Gmail dropped, so the message may or may not have been sent." };
+        return invalid(e);
       }
-
-      const body = (await res.json().catch(() => null)) as Json | null;
-      if (res.ok) {
-        if (typeof body?.id === "string") return { status: "sent", messageId: body.id, threadId: typeof body.threadId === "string" ? body.threadId : null };
-        return { status: "unknown", reason: "Gmail answered but did not confirm a message id, so the message may have been sent." };
-      }
-      if (res.status >= 500) return { status: "unknown", reason: `Gmail answered with a server error (${res.status}), so the message may or may not have been sent.` };
-
-      const reason = typeof (body?.error as Json | undefined)?.status === "string" ? ((body!.error as Json).status as string) : "";
-      if (res.status === 429 || (res.status === 403 && /rate|quota|limit/i.test(JSON.stringify((body?.error as Json | undefined)?.errors ?? reason)))) {
-        return { status: "failed", code: "rate_limited", retryable: true, reason: "Gmail's sending limit was reached. Try again later." };
-      }
-      if (res.status === 401 || res.status === 403) return { status: "failed", code: res.status === 401 ? "reauthorize" : "forbidden", retryable: false, reason: "Gmail refused permission to send. Check the OAuth scope and account." };
-      return { status: "failed", code: "bad_request", retryable: false, reason: `Gmail rejected the message (${res.status}).` };
+      return deliver(address, {
+        subject: `Your Sprinto Outbound review code: ${code}`,
+        body: `Your code is ${code}.\n\nIt lasts 15 minutes. Enter it on the Review page of Sprinto Outbound and the test emails you approve there will be delivered to this address.\n\nIf you did not ask for this, ignore it. Nothing is sent to you unless the code is entered, and the code is useless to anyone else.`,
+        runId: "reviewer-code",
+      });
     },
   };
 }

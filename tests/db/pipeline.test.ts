@@ -775,6 +775,44 @@ describe("approval before sending", () => {
     expect(decode(r.gmail!.sends[0]!).head).toContain(`Subject: ${d.subject}`);
   });
 
+  it("sends to a reviewer's own address, once a code proved it, and not to the owner", async () => {
+    const r = await reachedApproval();
+    const p = await one(r.w);
+    const d = await draftOf(r.w, p.id);
+    const hash = "a".repeat(64);
+    await r.w.s.operator.query("select public.request_reviewer_code('Prof@Uni.edu', $1)", [hash]);
+    await r.w.s.operator.query("select public.confirm_reviewer_code('prof@uni.edu', $1)", [hash]);
+    await r.w.s.operator.query("select * from public.approve_email((select id from public.emails where prospect_id = $1 order by attempt desc limit 1), $2, $3, 0, '', 'prof@uni.edu')", [p.id, d.subject, d.body]);
+    await r.run();
+    expect(await one(r.w)).toMatchObject({ step: "sent", lane: "sent" });
+    expect(r.gmail!.sends).toHaveLength(1);
+    const sent = decode(r.gmail!.sends[0]!);
+    expect(sent.head).toMatch(/^To: prof@uni\.edu\r?$/m);
+    // In this rig the owner's address is also the sender, so check the To line itself: the owner is not a recipient.
+    expect(/^To: (.*)\r?$/m.exec(sent.head)?.[1]?.trim()).toBe("prof@uni.edu");
+    expect(/^(Cc|Bcc): /m.test(sent.head)).toBe(false);
+    expect(TEST_TO).toBeTruthy();
+    // It is still the test email: the notice under it says it was not sent to the contact.
+    expect(sent.body).toMatch(/TEST DELIVERY/);
+    expect(sent.body).toMatch(/not sent to the contact/);
+  });
+
+  it("falls back to failing safely, and mails nobody, if the sender cannot deliver to a reviewer", async () => {
+    const r = await reachedApproval();
+    const p = await one(r.w);
+    const d = await draftOf(r.w, p.id);
+    const hash = "b".repeat(64);
+    await r.w.s.operator.query("select public.request_reviewer_code('prof@uni.edu', $1)", [hash]);
+    await r.w.s.operator.query("select public.confirm_reviewer_code('prof@uni.edu', $1)", [hash]);
+    await r.w.s.operator.query("select * from public.approve_email((select id from public.emails where prospect_id = $1 order by attempt desc limit 1), $2, $3, 0, '', 'prof@uni.edu')", [p.id, d.subject, d.body]);
+    const real = r.gmail!.sender;
+    // A sender with no reviewer support, as an older stand-in would be.
+    (r.deps as { gmail: unknown }).gmail = { recipient: real.recipient, sendTest: real.sendTest };
+    await r.run();
+    expect(r.gmail!.sends).toHaveLength(0);
+    expect((await r.w.db.admin<{ status: string; send_error: string }>("select status, send_error from public.emails order by attempt desc limit 1"))[0]).toMatchObject({ status: "failed", send_error: expect.stringMatching(/cannot deliver to a reviewer/) });
+  });
+
   it("sends the person's edited wording, not the model's, and leaves the stored draft untouched", async () => {
     const r = await reachedApproval();
     const p = await one(r.w);

@@ -68,7 +68,7 @@ export const KEY_DEFS: KeyDef[] = [
   { name: "GMAIL_REFRESH_TOKEN", label: "Gmail refresh token", group: "Gmail", secret: true, help: "Made by the one-off token helper, with only the gmail.send scope.", validate: nonEmpty(20, "The token") },
   { name: "GMAIL_FROM", label: "Gmail sender address", group: "Gmail", secret: false, help: "The account the token belongs to.", validate: address },
   { name: "GMAIL_FROM_NAME", label: "Sender display name", group: "Gmail", secret: false, optional: true, help: "Shown as the From name." },
-  { name: "OUTBOUND_TEST_TO", label: "Test address", group: "Gmail", secret: false, help: "The ONLY address test mode can mail. Your own inbox. It must match Settings in the app.", validate: address },
+  { name: "OUTBOUND_TEST_TO", label: "Test address", group: "Gmail", secret: false, help: "The default address test mode mails. Your own inbox (a reviewer can confirm their own instead). It must match Settings in the app.", validate: address },
   { name: "OUTBOUND_CONTACT_EMAIL", label: "Contact address for the scraper's user agent", group: "Deployment", secret: false, optional: true, help: "So a site owner can reach you. Defaults to the test address.", validate: address },
 ];
 

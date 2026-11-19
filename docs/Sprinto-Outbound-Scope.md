@@ -12,7 +12,7 @@ Working name: **Sprinto Outbound**. Companion file: [Sprinto-Outbound-Components
 
 This document began as the plan. It has been corrected to match what exists; where the build departs from the plan, the section says so.
 
-**What exists.** A Next.js app on Vercel (Mumbai) at https://sprinto-outbound-eight.vercel.app, in test mode, open to a reviewer as a guest with no sign-in (the owner signs in at `/login`). Supabase holds the data and sign-in (17 migrations, row level security, append-only history). A GitHub Actions worker runs every 15 minutes, and a weekly job runs the discovery digest. Gemini, Hunter and Gmail are all live. 1,761 automated tests in 86 files pass and the typecheck is clean. The logic that decides things (score, ranking, lint, edit measure, scorecard, run view) was also checked by deliberately breaking it and confirming a test fails; survivors were either harmless or became new tests.
+**What exists.** A Next.js app on Vercel (Mumbai) at https://sprinto-outbound-eight.vercel.app, in test mode, open to a reviewer as a guest with no sign-in (the owner signs in at `/login`). Supabase holds the data and sign-in (17 migrations, row level security, append-only history). A GitHub Actions worker runs every 15 minutes, and a weekly job runs the discovery digest. Gemini, Hunter and Gmail are all live. 1,804 automated tests in 88 files pass and the typecheck is clean. The logic that decides things (score, ranking, lint, edit measure, scorecard, run view) was also checked by deliberately breaking it and confirming a test fails; survivors were either harmless or became new tests.
 
 **Pages:** Today, Discover, Runs, Paste a list, Run detail, Weekly digest, Leads (board, search, saved views, exports), Call brief, Why, Review, Impact, Scorecard, What is working, Quality, Ask, Rulebook, ICP and replay, Settings, Go-live readiness, People (and a Test inbox in demo mode only).
 
@@ -73,7 +73,7 @@ This document began as the plan. It has been corrected to match what exists; whe
 - **Every fact carries a quote** copied from the page. Code checks the quote really appears in the stored page text. A fact whose quote cannot be found is thrown away.
 - **Every step writes a trace** (inputs, output, prompt version, model, tokens, time). The "why" page is just that trace made readable.
 
-**The safety line (the human boundary).** In test mode, which is the only mode we build, every email goes to *your own inbox*, as the case instructs [Case]. The real contact is recorded and shown at the top of the email ("Would have gone to Priya Rao, CTO"), never mailed. There is no live-send button, because a dead or dangerous button is exactly what we have avoided in every past build. Nothing is sent until a person has approved it on the Review desk (decision D8).
+**The safety line (the human boundary).** In test mode, which is the only mode we build, every email goes to *your own inbox*, as the case instructs [Case]. One narrow extension: a reviewer marking the work can have the test email delivered to *their* inbox instead, but only after proving it is theirs. The app emails a six-digit code to the address they type; they enter it back; only then will the database accept an approval addressed there (decision D10: the code expires in 15 minutes, only a keyed hash of it is stored, five wrong guesses lock it, the confirmation lasts 24 hours, and there are daily limits on new addresses, codes and reviewer emails). Test mail still never goes to a contact, and a reviewer cannot aim it at an inbox they cannot read. The real contact is recorded and shown at the top of the email ("Would have gone to Priya Rao, CTO"), never mailed. There is no live-send button, because a dead or dangerous button is exactly what we have avoided in every past build. Nothing is sent until a person has approved it on the Review desk (decision D8).
 
 **What this reuses.** A large part of the platform already exists in Freshroots Ops: sign-in and roles, the app shell and light/dark theme, the Gemini client and loop, rate limiter, security headers and CSP, CSV neutralisation, migration runner, database contract tests, CI and the scheduled GitHub Action. We copy and adapt them (section 14). That is what makes this achievable in the time.
 
@@ -84,12 +84,13 @@ This document began as the plan. It has been corrected to match what exists; whe
 | D1 | Hunter is the primary contact finder; a hand-picked contact (looked up in Apollo or anywhere, entered in Settings) is always available and outranks Hunter | The case wants "run it on a list of domains, end to end". Only Hunter has an API. The fallback means a Hunter quota or outage never stops a run |
 | D2 | Gmail API with a send-only OAuth scope, not SMTP | Least privilege, no password stored. Needs a one-time token (section 8.4) |
 | D3 | Platform, not a script: owner sign-in plus a capped guest pass for reviewers, Supabase, GitHub Actions worker | Matches Freshroots and Clearway quality; the ask says "platform" |
-| D4 | Test mode only. `to` is fixed to your address in code | The case says hardcode it [Case]. Also safe |
+| D4 | Test mode only. `to` is fixed to your address in code (or, after a code check, a reviewer's own; see D10) | The case says hardcode it [Case]. Also safe |
 | D5 | Qualify at 65 of 100; 45 to 64 is "maybe" and waits for a person; under 45 is "not a fit" | The case wants no decisions mid-run, so only clear fits proceed. A person can promote a "maybe" with one click |
 | D6 | One Hunter search per domain, cached 30 days, with a hard reserve | Quota is tiny (section 8.3) |
 | D7 | Gemini does extraction, page-choosing, pain-picking and drafting. It never scores, never picks a recipient, never sends | Defensibility |
 | D8 | A person approves every email before it is sent (on by default; an admin can switch it off, with a reason, and the page then says so) | The class's own plan has the Growth Lead reviewing before any send, and the rewrite rate is the number that says whether the system saves time |
 | D9 | The class's kill criteria are checked from recorded decisions, and a small sample is shown as "too early", never as good news | Deciding in advance when to shut it down, then actually checking |
+| D10 | A reviewer may receive the test email at their own address, but only after confirming it with a code | The person marking the work should see the email arrive in their own inbox, but mail aimed at an address anyone can type would let a public link email strangers. A six-digit code proves the inbox is theirs; the code is hashed, short-lived, attempt-limited and capped per day. Sent mail is labelled as a test, and the owner can switch it off (`REVIEWER_INBOX=0`) |
 
 **Questions for you are collected in section 20.** None blocks reading this.
 
@@ -630,7 +631,7 @@ sprinto-outbound/
   src/lib/{scrape,extract,icp,discovery,digest,brief,golive,contacts,pitch,email,ai,agent,worker,ask,quality,app,db,demo,smoke}
   supabase/migrations/        17 files, append-only history, each applied once
   scripts/{keys,smoke,golden,gmail-token}.ts
-  tests/                      86 test files; tests/db runs the real migrations on PGlite (a real Postgres)
+  tests/                      88 test files; tests/db runs the real migrations on PGlite (a real Postgres)
   .github/workflows/{ci,worker,golden,digest}.yml
   docs/{Sprinto-Outbound-Components-Map.pdf,Sprinto-Outbound-Scope.md,DEMO.md,REHEARSAL.md,map/}
 ```
@@ -679,7 +680,8 @@ There is no Supabase service-role key anywhere: the worker signs in as its own l
 | **Live smoke** | `npm run smoke` checks every service; `-- --pipeline domain` runs one real company through the real site and the real model, with nothing sent. This is what found the thinking-token budgets |
 | **Approvals, scorecard and run view** | The approval gate (approve, edit, reject, switched off, rate-limited retry), the edit measure, the kill-criteria rules at every boundary, and the run page's progress, estimate and filters, each with deliberate-break checks |
 | **Every control does something** | `tests/controls.test.ts` reads the syntax tree of every component and page and fails on a button with no type or handler, a link to nowhere, a form with no action, an empty handler, or a permanently disabled button; each rule was proven by planting a dead control in a real page |
-| **Totals** | 1,761 tests in 86 files, offline and repeatable |
+| **Reviewer inbox** | The code check (tests/reviewer.test.ts: keyed hashes, signed cookie, forgery, expiry) and the database rules (tests/db/reviewer.test.ts: caps, wrong-code lockout, expiry, nothing readable through the API), plus the send path to a reviewer's address and its safe failure |
+| **Totals** | 1,804 tests in 88 files, offline and repeatable |
 
 ---
 

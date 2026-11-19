@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { editRatio } from "@/lib/app/editdiff";
 import { approvalQueue, lintDraftEdit } from "@/lib/app/review";
 import { getSession, type AppSession } from "@/lib/app/runtime";
+import { confirmedReviewer } from "@/lib/app/reviewer-session";
 
 export interface DecisionResult {
   ok: boolean;
@@ -33,6 +34,7 @@ export async function approveDraft(emailId: string, subjectIn: string, bodyIn: s
   const subject = norm(String(subjectIn ?? "")).trim().slice(0, 200);
   const body = norm(String(bodyIn ?? "")).trimEnd().slice(0, 6000);
   if (!subject || !body.trim()) return { ok: false, message: "The subject and body cannot be empty." };
+  const deliverTo = await confirmedReviewer();
   try {
     const [email] = await s.db.select("emails", { id: String(emailId) });
     if (!email) return { ok: false, message: "That draft no longer exists." };
@@ -43,12 +45,13 @@ export async function approveDraft(emailId: string, subjectIn: string, bodyIn: s
       if (!lint.ok) return { ok: false, message: `Your edit breaks ${lint.failed.length} ${lint.failed.length === 1 ? "check" : "checks"}. Fix ${lint.failed.length === 1 ? "it" : "them"} to approve.`, failed: lint.failed };
     }
     const ratio = edited ? editRatio(`${before.subject}\n${before.body}`, `${subject}\n${body}`) : 0;
-    await s.db.rpc("approve_email", { p_email: String(emailId), p_subject: subject, p_body: body, p_edit_ratio: ratio, p_note: String(note ?? "").trim().slice(0, 300) });
+    // The address is only passed when there is one, so the usual approval is exactly what it always was.
+    await s.db.rpc("approve_email", { p_email: String(emailId), p_subject: subject, p_body: body, p_edit_ratio: ratio, p_note: String(note ?? "").trim().slice(0, 300), ...(deliverTo ? { p_deliver_to: deliverTo } : {}) });
   } catch (e) {
     return { ok: false, message: ERR(e) };
   }
   refresh();
-  return { ok: true, message: "Approved. It will send on the next worker pass." };
+  return { ok: true, message: deliverTo ? "Approved. It will be delivered to your own address on the next worker pass." : "Approved. It will send on the next worker pass." };
 }
 
 const REASONS: Record<string, string> = { weak_hook: "The opening is weak", wrong_person: "Wrong person", not_fit: "Not a fit after all", timing: "Not the right time", other: "Other" };
@@ -81,9 +84,10 @@ export async function approveAllClean(): Promise<DecisionResult & { approved: nu
     const clean = (await approvalQueue(s.db, true, 100)).filter((i) => i.clean).slice(0, MAX_BATCH);
     if (clean.length === 0) return { ok: true, approved: 0, message: "No draft is clean enough to approve in bulk. Open each to review it." };
     let approved = 0;
+    const deliverTo = await confirmedReviewer();
     for (const i of clean) {
       try {
-        await s.db.rpc("approve_email", { p_email: i.email.id, p_subject: i.email.subject, p_body: i.email.body, p_edit_ratio: 0, p_note: "Approved in bulk: every check passed" });
+        await s.db.rpc("approve_email", { p_email: i.email.id, p_subject: i.email.subject, p_body: i.email.body, p_edit_ratio: 0, p_note: "Approved in bulk: every check passed", ...(deliverTo ? { p_deliver_to: deliverTo } : {}) });
         approved += 1;
       } catch {
         // A draft decided elsewhere in the meantime is fine to skip; the next page load shows the truth.

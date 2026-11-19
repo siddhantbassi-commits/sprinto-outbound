@@ -4,7 +4,9 @@ import { Banner, Empty, LanePill, PageHead, Pill, SectionTitle } from "@/compone
 import { ago, LANES, plural } from "@/lib/app/format";
 import { currentSettings, needsAttention } from "@/lib/app/queries";
 import { approvalQueue } from "@/lib/app/review";
-import { getSession } from "@/lib/app/runtime";
+import { getSession, reviewerSetup } from "@/lib/app/runtime";
+import { confirmedReviewer } from "@/lib/app/reviewer-session";
+import { ReviewerInbox } from "./reviewer-inbox";
 import { ReviewDesk } from "./desk";
 import { seesContacts } from "@/lib/app/privacy";
 
@@ -29,6 +31,8 @@ export default async function Review() {
   const groups = ORDER.map((lane) => ({ lane, rows: others.filter((i) => i.lane === lane) })).filter((g) => g.rows.length > 0);
   const sender = settings?.sender_name ? `${settings.sender_name}${settings.sender_title ? `, ${settings.sender_title}` : ""}` : "Sender not set";
   const approvalOn = settings?.require_approval !== false;
+  const inboxOn = canDecide && reviewerSetup() !== null;
+  const myInbox = inboxOn ? await confirmedReviewer() : null;
 
   return (
     <div className="stack" style={{ gap: 26 }}>
@@ -41,11 +45,13 @@ export default async function Review() {
         <Banner tone="warn" title="Approval is off">Drafts are sent without waiting for a person. An admin can turn approval back on in Settings.</Banner>
       ) : null}
 
+      {inboxOn ? <ReviewerInbox confirmed={myInbox} ownerAddress={settings?.test_to ?? null} /> : null}
+
       {approvalOn ? (
         queue.length ? (
           <section className="stack tight" aria-label="Drafts to approve">
             <SectionTitle icon="mail" title="Ready for your approval" sub="Nothing here has been sent. Each email goes out only after you approve it, with your edits if you make any." />
-            <ReviewDesk items={queue} canDecide={canDecide} sender={sender} testTo={settings?.test_to ?? null} />
+            <ReviewDesk items={queue} canDecide={canDecide} sender={sender} testTo={myInbox ?? settings?.test_to ?? null} />
           </section>
         ) : (
           <div className="card"><Empty title="No drafts are waiting for approval" icon="check"><p className="small" style={{ margin: 0 }}>New drafts appear here as the pipeline finishes them.</p></Empty></div>

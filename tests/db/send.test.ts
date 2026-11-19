@@ -33,10 +33,10 @@ describe("a draft is written once", () => {
     await expect(w.db.admin("update public.emails set subject = 'changed' where id = $1", [emailId])).rejects.toThrow(/cannot be edited/);
     await expect(w.db.admin("update public.emails set status = 'sent' where id = $1", [emailId])).rejects.toThrow(/Illegal email status change drafted to sent/);
     await expect(w.db.admin("delete from public.emails")).rejects.toThrow(/append-only/);
-    // email_reviews now references emails, so a plain truncate is refused by the foreign key. Truncating both together
-    // gets past that check, and the append-only guard must still stop it.
+    // email_reviews and email_deliveries reference emails, so a plain truncate is refused by the foreign key. Truncating them all
+    // together gets past that check, and the append-only guard must still stop it.
     await expect(w.db.admin("truncate public.emails")).rejects.toThrow(/foreign key|append-only/);
-    await expect(w.db.admin("truncate public.emails, public.email_reviews")).rejects.toThrow(/append-only/);
+    await expect(w.db.admin("truncate public.emails, public.email_reviews, public.email_deliveries")).rejects.toThrow(/append-only/);
     await expect(w.s.worker.query("update public.emails set status = 'sending'")).rejects.toThrow(/permission denied/);
   });
 
@@ -54,7 +54,7 @@ describe("reserve_send", () => {
     const w = await world();
     await w.startRun(["acme.com"]);
     const { emailId } = await w.toDrafted("acme.com");
-    expect(await reserve(w, emailId)).toEqual({ ok: true, test_to: TEST_TO, send_attempts: 1 });
+    expect(await reserve(w, emailId)).toEqual({ ok: true, test_to: TEST_TO, deliver_to: null, send_attempts: 1 });
     expect(await email(w, emailId)).toMatchObject({ status: "sending", send_attempts: 1 });
   });
 

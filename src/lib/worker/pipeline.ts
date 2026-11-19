@@ -349,6 +349,12 @@ export async function sendStep(p: ProspectRow, d: PipelineDeps): Promise<StepRes
     await d.store.setEmailStatus(email.id, "failed", { error: "The test address changed between the check and the reservation", retryable: false });
     return { kind: "done" };
   }
+  // A reviewer's own address, recorded by the database when the draft was approved after a code proved it. Never a contact's.
+  const reviewer = reserved.deliver_to;
+  if (reviewer && !d.gmail.sendToReviewer) {
+    await d.store.setEmailStatus(email.id, "failed", { error: "This sender cannot deliver to a reviewer's address", retryable: false });
+    return { kind: "done" };
+  }
 
   // From here the send may be under way. Whatever happens, the outcome is recorded; a crash is swept into 'unknown'.
   try {
@@ -377,12 +383,13 @@ export async function sendStep(p: ProspectRow, d: PipelineDeps): Promise<StepRes
     };
     const briefUrl = notice.traceUrl ? `${notice.traceUrl}/brief` : null;
 
-    const out = await d.gmail.sendTest({
+    const message = {
       subject: text.subject,
       body: composeTestBody(buildInboxHeader(notice), text.body),
       html: renderEmailHtml({ subject: text.subject, body: text.body, notice: { ...notice, briefUrl } }),
       runId: email.id,
-    });
+    };
+    const out = reviewer ? await d.gmail.sendToReviewer!(reviewer, message) : await d.gmail.sendTest(message);
     if (out.status === "sent") await d.store.setEmailStatus(email.id, "sent", { messageId: out.messageId, threadId: out.threadId });
     else if (out.status === "failed") await d.store.setEmailStatus(email.id, "failed", { error: out.reason, retryable: out.retryable });
     else await d.store.setEmailStatus(email.id, "unknown", { error: out.reason });

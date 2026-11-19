@@ -18,7 +18,7 @@ const PIPELINE: { n: number; name: string; who: Who; what: string }[] = [
   { n: 4, name: "Find the person", who: "Code", what: "A hand-picked contact first, then the cached Hunter result, then one Hunter search if credits allow. Code ranks candidates by title, seniority and confidence. The model never sees the address." },
   { n: 5, name: "Choose two pains", who: "Model, within limits", what: "From a fixed library of pains for that role, code builds a shortlist, the model picks two and gives a reason citing evidence, and code rejects anything outside the shortlist." },
   { n: 6, name: "Draft the email", who: "Model, code checks", what: "Gemini writes from a quote the code selected. Twelve checks run in code (claims, numbers, length, banned phrases, a real hook). Two repairs at most, then the draft is held for a person." },
-  { n: 7, name: "Send", who: "Code", what: "Reserved under a lock: test address only, daily cap, one email per domain per cooldown, suppression list, one live send per company. An uncertain result is never retried automatically." },
+  { n: 7, name: "Send", who: "Code", what: "Reserved under a lock: the test address only (or the reviewer's own address, once confirmed by a code), daily cap, one email per domain per cooldown, suppression list, one live send per company. An uncertain result is never retried automatically." },
 ];
 
 const WHO_TONE: Record<Who, "info" | "good" | "warn"> = { Code: "good", "Model, code checks": "info", "Model, within limits": "warn" };
