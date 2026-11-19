@@ -3,6 +3,8 @@ import { revalidatePath } from "next/cache";
 import { getSession, type AppSession } from "@/lib/app/runtime";
 import { isPlainAddress } from "@/lib/email/mime";
 import { isUsableFirstName } from "@/lib/pitch/draft";
+import { countToday, guestMayResume } from "@/lib/app/guest";
+import { guestSerial, guestUsage } from "@/lib/app/guest-load";
 
 export interface ActionResult {
   ok: boolean;
@@ -23,11 +25,23 @@ export async function resume(_p: ActionResult | null, f: FormData): Promise<Acti
   if (!s) return { ok: false, message: "Only an operator or admin can do that." };
   const id = String(f.get("id") ?? "");
   if (reasonOf(f).length < 3) return { ok: false, message: "Give a short reason (at least 3 characters)." };
-  try {
-    await s.db.rpc("resume_prospect", { p_prospect: id, p_reason: reasonOf(f), p_kind: f.get("kind") === "rerun" ? "rerun" : "promote" });
-  } catch (e) {
-    return { ok: false, message: ERR(e) };
-  }
+  const kind = f.get("kind") === "rerun" ? "rerun" : "promote";
+  const put = async (): Promise<ActionResult | null> => {
+    // A guest has a daily number of these, since each spends model time and maybe a Hunter credit; checked and recorded in one step.
+    if (s.guest) {
+      const [usage, decisions] = await Promise.all([guestUsage(s), s.db.select("decisions", {}, { order: "seq", ascending: false, limit: 500 })]);
+      const verdict = guestMayResume(usage, s.env.guest!, countToday(decisions, s.user.id, Date.now(), ["promote", "rerun"]));
+      if (!verdict.ok) return { ok: false, message: verdict.message };
+    }
+    try {
+      await s.db.rpc("resume_prospect", { p_prospect: id, p_reason: reasonOf(f), p_kind: kind });
+    } catch (e) {
+      return { ok: false, message: ERR(e) };
+    }
+    return null;
+  };
+  const refused = s.guest ? await guestSerial("resume", put) : await put();
+  if (refused) return refused;
   revalidatePath(`/prospects/${id}`);
   revalidatePath("/review");
   return { ok: true, message: "Back in the queue. The worker will pick it up." };

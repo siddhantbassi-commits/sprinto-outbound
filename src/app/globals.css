@@ -1078,17 +1078,19 @@ fieldset.crit legend { padding: 0; margin-bottom: 8px; font-size: 0.72rem; font-
 .fw-claim.yes { background: var(--good-soft); color: var(--good); border-color: transparent; }
 .fw-claim.no { background: var(--bad-soft); color: var(--bad); border-color: transparent; }
 
-.buyermap { display: grid; justify-items: center; gap: 0; }
-.bm-top { display: grid; justify-items: center; gap: 6px; }
+.buyermap { display: grid; gap: 0; }
+.bm-top { display: grid; gap: 6px; justify-items: start; }
 .bm-node { border: 1px solid var(--line); background: var(--surface); border-radius: var(--radius-sm); padding: 10px 14px; display: grid; gap: 3px; justify-items: start; min-width: 0; max-width: 100%; }
 .bm-node.primary { border-color: var(--brand); box-shadow: var(--ring); }
 .bm-tag { font-size: .72rem; font-weight: 650; letter-spacing: .06em; text-transform: uppercase; color: var(--brand); }
 .bm-note { color: var(--ink-2); }
-.bm-stem { width: 2px; height: 18px; background: var(--line-strong); }
-.bm-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; position: relative; padding-top: 14px; width: 100%; }
-.bm-row::before { content: ""; position: absolute; top: 0; left: 12%; right: 12%; height: 2px; background: var(--line-strong); }
-.bm-leaf { position: relative; flex: 1 1 200px; max-width: 280px; display: grid; }
-.bm-leaf::before { content: ""; position: absolute; top: -14px; left: 50%; width: 2px; height: 14px; background: var(--line-strong); }
+/* A tree down the left: a spine from the person the email goes to, with a tick to each other person, however many there are. */
+.bm-stem { width: 2px; height: 14px; background: var(--line-strong); margin-left: 18px; }
+.bm-row { display: grid; gap: 10px; padding-left: 36px; }
+.bm-leaf { position: relative; display: grid; }
+.bm-leaf::before { content: ""; position: absolute; left: -18px; top: 50%; width: 18px; height: 2px; background: var(--line-strong); }
+.bm-leaf::after { content: ""; position: absolute; left: -18px; top: -10px; width: 2px; height: calc(100% + 10px); background: var(--line-strong); }
+.bm-leaf:last-child::after { height: calc(50% + 10px); }
 
 .conf { display: flex; gap: 16px; align-items: center; }
 .conf ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: .86rem; }

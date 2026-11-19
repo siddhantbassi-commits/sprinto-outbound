@@ -4,6 +4,8 @@
  * click or a loop, not a billing guarantee; the per-question token budget is the hard ceiling.
  */
 export interface GuardOptions {
+  /** What is being counted, for the message. Defaults to "questions". */
+  noun?: string;
   max: number;
   windowMs: number;
   now?: () => number;
@@ -11,7 +13,7 @@ export interface GuardOptions {
 
 export type Entry = { ok: true; release: () => void } | { ok: false; reason: string; retryInMs: number };
 
-export function createGuard({ max, windowMs, now = Date.now }: GuardOptions) {
+export function createGuard({ max, windowMs, now = Date.now, noun = "questions" }: GuardOptions) {
   const hits = new Map<string, number[]>();
   const busy = new Set<string>();
   return {
@@ -22,7 +24,7 @@ export function createGuard({ max, windowMs, now = Date.now }: GuardOptions) {
       if (recent.length >= max) {
         const retryInMs = windowMs - (t - recent[0]!);
         hits.set(key, recent);
-        return { ok: false, reason: `That is ${max} questions in ${Math.round(windowMs / 60_000)} minutes. Try again in about ${Math.max(1, Math.ceil(retryInMs / 60_000))} minute${retryInMs > 60_000 ? "s" : ""}.`, retryInMs };
+        return { ok: false, reason: `That is ${max} ${noun} in ${Math.round(windowMs / 60_000)} minutes. Try again in about ${Math.max(1, Math.ceil(retryInMs / 60_000))} minute${retryInMs > 60_000 ? "s" : ""}.`, retryInMs };
       }
       recent.push(t);
       hits.set(key, recent);

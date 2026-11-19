@@ -1,7 +1,7 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { currentSettings } from "@/lib/app/queries";
-import { guestPayVerdict } from "@/lib/app/guest-load";
+import { guestPayVerdict, guestSerial } from "@/lib/app/guest-load";
 import { discoverySetup, getSession, hunterBalance } from "@/lib/app/runtime";
 import { HunterError } from "@/lib/contacts/hunter";
 
@@ -14,7 +14,7 @@ export interface VerifyResult {
  * Checks the chosen contact's address with Hunter's verifier, on purpose, because it costs a credit. It will not run if that
  * would dig into the reserve, and the answer is kept as a permanent row (the status and score only, never the address).
  */
-export async function verifyContact(prospectId: string): Promise<VerifyResult> {
+async function verifyNow(prospectId: string): Promise<VerifyResult> {
   const s = await getSession();
   if (!s || (s.user.role !== "operator" && s.user.role !== "admin")) return { ok: false, message: "Only an operator or admin can verify an address." };
   const may = await guestPayVerdict(s);
@@ -42,4 +42,10 @@ export async function verifyContact(prospectId: string): Promise<VerifyResult> {
   } catch (e) {
     return { ok: false, message: e instanceof HunterError || e instanceof Error ? e.message : "The address could not be checked." };
   }
+}
+
+/** A guest's paid checks go one at a time, so two at once cannot both pass the same daily cap; a signed-in person is not held up. */
+export async function verifyContact(prospectId: string): Promise<VerifyResult> {
+  const s = await getSession();
+  return s?.guest ? guestSerial("pay", () => verifyNow(prospectId)) : verifyNow(prospectId);
 }

@@ -2,6 +2,8 @@
 import { ask, type Evidence } from "@/lib/ask/ask";
 import type { Unsupported } from "@/lib/ask/check";
 import { createGuard } from "@/lib/ask/limit";
+import { countToday, guestMayAsk } from "@/lib/app/guest";
+import { guestSerial } from "@/lib/app/guest-load";
 import { askSetup, getSession } from "@/lib/app/runtime";
 
 export interface AskItem {
@@ -33,6 +35,23 @@ export async function askQuestion(prev: AskState | null, f: FormData): Promise<A
   if (!s || s.user.role === "pending") return { history, notice: "You need to be approved before you can ask questions." };
   const setup = askSetup();
   if (!setup.ok) return { history, notice: setup.reason };
+
+  // A guest's questions are counted in the database, so the daily limit holds across servers. It fails closed: if the count cannot be
+  // read or written (for example before the table exists), the question is not asked.
+  if (s.guest) {
+    const refused = await guestSerial("ask", async (): Promise<string | null> => {
+      try {
+        const rows = await s.db.select("ask_log", {}, { order: "created_at", ascending: false, limit: 300 });
+        const verdict = guestMayAsk(countToday(rows, s.user.id, Date.now()));
+        if (!verdict.ok) return verdict.message;
+        await s.db.rpc("log_ask", { p_tokens: 0 });
+        return null;
+      } catch {
+        return "Ask is paused for guests right now, so nothing was spent. Everything researched is still open to read.";
+      }
+    });
+    if (refused) return { history, notice: refused };
+  }
 
   const entry = guard.enter(s.user.id);
   if (!entry.ok) return { history, notice: entry.reason };

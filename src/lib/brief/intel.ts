@@ -227,10 +227,10 @@ export function buildIntel(i: IntelInput): Intel {
   // The call plan.
   const trigger = i.whyNow[0] ?? null;
   const steps: PlanStep[] = [];
-  if (trigger) steps.push({ title: "Open with what is happening for them", ask: trigger.quote ? `I read on your site: “${trigger.quote}”. What is behind that?` : `I noticed a sign on your site: ${trigger.text.charAt(0).toLowerCase()}${trigger.text.slice(1)}. What is behind that?`, why: `Signal: ${trigger.text}.` });
+  if (trigger) steps.push({ title: "Open with what is happening for them", ask: trigger.quote ? `I read on your site: “${trigger.quote.trim()}” What is behind that?` : `I noticed a sign on your site: ${trigger.text.charAt(0).toLowerCase()}${trigger.text.slice(1)}. What is behind that?`, why: `Signal: ${trigger.text}.` });
   const fwQuestion =
     comp === "in_progress" ? { ask: "Which audit date are you working towards, and what is slowest to get ready?", why: "A certification is in progress, so the work is live." }
-    : soc2Held ? { ask: "Between audits, how do you keep your evidence current, and who owns that?", why: `They hold ${soc2.headline}.` }
+    : soc2Held ? { ask: "Between audits, how do you keep your evidence current, and who owns that?", why: `Their site shows: ${soc2.headline}.` }
     : comp === "none_visible" && upmarket ? { ask: "Which customer asked for a security report most recently, and what did you send them?", why: "They sell to larger customers and show no report on the site." }
     : isoHeld ? { ask: "Are customers in the US asking you for SOC 2, and how are you answering today?", why: "ISO 27001 is held but no SOC 2 is visible." }
     : { ask: "Which frameworks have customers or prospects asked for, and by when?", why: "The site does not say where they stand." };

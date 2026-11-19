@@ -1,5 +1,5 @@
 import { selectAll } from "@/lib/db/all";
-import { guestMay, guestMayPay, sumUsage, type GuestUsage, type GuestVerdict } from "./guest";
+import { createFlight, createSerial, guestMay, guestMayPay, sumUsage, type GuestUsage, type GuestVerdict } from "./guest";
 import { hunterBalance, type AppSession } from "./runtime";
 
 /** Today's usage, read from the database so the limits hold across servers, plus Hunter's live balance. */
@@ -24,3 +24,8 @@ export async function guestPayVerdict(s: AppSession): Promise<GuestVerdict> {
   if (!s.guest || !s.env.guest) return { ok: true };
   return guestMayPay(await guestUsage(s), s.env.guest);
 }
+
+/** One guest cap check-and-spend at a time in this server, so two requests at once cannot both pass the same check. */
+export const guestSerial = createSerial();
+/** One long guest action at a time in this server. */
+export const guestFlight = createFlight();

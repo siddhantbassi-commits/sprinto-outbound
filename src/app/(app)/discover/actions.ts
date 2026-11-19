@@ -7,6 +7,7 @@ import { defaultCriteria, normaliseCriteria, type Criteria } from "@/lib/discove
 import { discover, type Outcome } from "@/lib/discovery/discover";
 import { ICP_V1 } from "@/lib/icp/config";
 import { GUEST_MAX_PER_RUN } from "@/lib/app/guest";
+import { createGuard } from "@/lib/ask/limit";
 
 export interface SearchResult {
   ok: boolean;
@@ -27,6 +28,9 @@ export async function searchCompanies(_prev: SearchResult | null, formData: Form
   if (!s || (s.user.role !== "operator" && s.user.role !== "admin")) return { ok: false, message: "Only an operator or admin can search for companies." };
   const setup = discoverySetup();
   if (!setup.ok) return { ok: false, message: setup.reason };
+  // A search asks Hunter several questions and opens up to two dozen home pages. A guest gets a few an hour, one at a time.
+  const slot = s.guest ? searchGuard.enter("guest") : null;
+  if (slot && !slot.ok) return { ok: false, message: slot.reason };
 
   let raw: unknown = null;
   try {
@@ -52,5 +56,9 @@ export async function searchCompanies(_prev: SearchResult | null, formData: Form
     };
   } catch (e) {
     return { ok: false, criteria, message: e instanceof HunterError || e instanceof Error ? e.message : "The search failed." };
+  } finally {
+    if (slot?.ok) slot.release();
   }
 }
+
+const searchGuard = createGuard({ max: 8, windowMs: 10 * 60_000, noun: "searches" });

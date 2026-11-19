@@ -5,6 +5,7 @@ import { defaultCriteria, normaliseCriteria } from "@/lib/discovery/criteria";
 import { loadSearch, runDigest } from "@/lib/digest/run";
 import { ICP_V1 } from "@/lib/icp/config";
 import { guestCooldown } from "@/lib/app/guest";
+import { guestFlight } from "@/lib/app/guest-load";
 
 export interface DigestResult {
   ok: boolean;
@@ -60,12 +61,18 @@ export async function setDigestEnabled(_prev: DigestResult | null, formData: For
 export async function runDigestNow(): Promise<DigestResult> {
   const s = await allowed();
   if (!s) return { ok: false, message: "Only an operator or admin can run the digest." };
-  // A guest runs this at most once an hour: it emails the owner, so a public link must not be able to repeat it.
+  // A guest runs this at most once an hour, and one at a time: it emails the owner, so a public link must not be able to repeat it.
   if (s.guest) {
     const [last] = await s.db.select("digests", {}, { order: "created_at", ascending: false, limit: 1 });
     const gate = guestCooldown(last?.created_at as string | undefined, Date.now(), 60, "The digest");
     if (!gate.ok) return { ok: false, message: gate.message };
+    const r = await guestFlight("digest", () => digestNow(s));
+    return r.busy ? { ok: false, message: "The digest is already running. Give it a minute." } : r.value;
   }
+  return digestNow(s);
+}
+
+async function digestNow(s: NonNullable<Awaited<ReturnType<typeof allowed>>>): Promise<DigestResult> {
   const setup = await digestSetup();
   if (!setup.ok) return { ok: false, message: setup.reason };
   try {

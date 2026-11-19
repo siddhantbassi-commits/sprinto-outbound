@@ -145,7 +145,8 @@ describe("the call plan", () => {
     const p = buildIntel({ ...BASE, hook: { quote: "We launched Cloud", source: "https://x.com/about" }, whyNow: [{ text: "A security role is open", quote: "Head of Security wanted" }] }).plan;
     expect(p.opener).toMatchObject({ quote: "We launched Cloud", source: "https://x.com/about" });
     expect(p.steps[0]).toMatchObject({ title: "Open with what is happening for them" });
-    expect(p.steps[0]!.ask).toBe("I read on your site: “Head of Security wanted”. What is behind that?");
+    expect(p.steps[0]!.ask).toBe("I read on your site: “Head of Security wanted” What is behind that?");
+    expect(p.steps[0]!.ask).not.toMatch(/\.”\./);
     expect(p.steps[0]!.why).toBe("Signal: A security role is open.");
     // Without a quote it says what was seen rather than inventing words.
     const bare = buildIntel({ ...BASE, whyNow: [{ text: "A security role is open", quote: null }] }).plan.steps[0]!;
@@ -156,6 +157,8 @@ describe("the call plan", () => {
     const ask = (facts: Record<string, ReturnType<typeof f>>) => withFacts(facts).plan.steps.find((s) => s.title === "Find where they stand")!.ask;
     expect(ask({ compliance: f("in_progress", "q") })).toMatch(/audit date/);
     expect(ask({ compliance: f("soc2_type2", "q") })).toMatch(/Between audits/);
+    const why = withFacts({ compliance: f("soc2_type2", "q") }).plan.steps.find((s) => s.title === "Find where they stand")!.why;
+    expect(why).toBe("Their site shows: SOC 2 Type 2 held.");
     expect(ask({ compliance: f("none_visible"), enterprisePlan: f(true, "q") })).toMatch(/security report most recently/);
     expect(ask({ compliance: f("iso_only", "q") })).toMatch(/SOC 2/);
     expect(ask({})).toMatch(/Which frameworks/);

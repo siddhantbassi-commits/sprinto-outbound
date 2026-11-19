@@ -116,16 +116,17 @@ export default async function Settings() {
         <div className="card stack">
           {admin && set ? (
             <ActionForm action={saveSettings} submit="Save as a new version">
+              {s.guest ? <Banner tone="info" title="Some settings are fixed for guests">The owner keeps the test address, approval, send limits, run size and token limits fixed for guests, so they are read-only here. Everything else can be changed.</Banner> : null}
               <fieldset className="group">
                 <legend>Who it comes from</legend>
                 <div className="fields">
-                  <label>Test address <span className="hint">the only address test mode can mail</span><input id="test-to" type="email" name="test_to" defaultValue={set.test_to ?? ""} maxLength={254} /></label>
+                  <label>Test address <span className="hint">the only address test mode can mail</span><input id="test-to" type="email" name="test_to" defaultValue={set.test_to ?? ""} maxLength={254} readOnly={Boolean(s.guest)} /></label>
                   <label>Sender first name<input type="text" name="sender_name" defaultValue={set.sender_name} maxLength={60} /></label>
                   <label>Sender title<input type="text" name="sender_title" defaultValue={set.sender_title} maxLength={80} /></label>
                   <label>Postal address <span className="hint">in the opt-out line</span><input id="postal-address" type="text" name="postal_address" defaultValue={set.postal_address} maxLength={200} /></label>
                 </div>
               </fieldset>
-              <fieldset className="group">
+              <fieldset className="group" disabled={Boolean(s.guest)}>
                 <legend>Approval</legend>
                 <label className="switch">
                   <input type="checkbox" name="require_approval" defaultChecked={approval} />
@@ -133,7 +134,7 @@ export default async function Settings() {
                   <span><b>A person approves each email before it is sent</b><small>Recommended. Turn it off only once the Review desk shows drafts rarely need changing.</small></span>
                 </label>
               </fieldset>
-              <fieldset className="group">
+              <fieldset className="group" disabled={Boolean(s.guest)}>
                 <legend>Volume and cost</legend>
                 <div className="fields">
                   <label>Sends per day<input type="number" name="daily_send_cap" defaultValue={set.daily_send_cap} min={0} max={200} /></label>

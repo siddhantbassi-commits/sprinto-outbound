@@ -3,7 +3,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { MAX_INPUT_CHARS, parseList, type ParsedList } from "@/lib/app/list";
 import { activeSuppressions, currentSettings } from "@/lib/app/queries";
-import { guestStartVerdict } from "@/lib/app/guest-load";
+import { guestSerial, guestStartVerdict, guestUsage } from "@/lib/app/guest-load";
 import { getSession, hunterBalance } from "@/lib/app/runtime";
 import { liveShared } from "@/lib/demo/live";
 import { planHunterBudget, type BudgetPlan } from "@/lib/contacts/quota";
@@ -86,20 +86,35 @@ export async function startRun(_prev: StartResult | null, formData: FormData): P
     const verdict = liveShared(s.env.live).gate.check(visitor, domains);
     if (!verdict.ok) return { message: verdict.message };
   }
-  // A guest may start runs like an admin, within the daily caps; a signed-in person is never limited here.
-  const allowed = await guestStartVerdict(s, new Set(domains.map((d) => d.toLowerCase().trim())).size);
-  if (!allowed.ok) return { message: allowed.message };
   const wanted = formData.get("source");
   const source = wanted === "csv" ? "csv" : wanted === "discover" ? "discover" : "paste";
   const note = String(formData.get("note") ?? "").trim().slice(0, 120);
-  let id: string;
-  try {
-    // The database re-checks every domain, the run-size cap, the sign-off and the suppression list; nothing here is trusted.
-    const [row] = await s.db.rpc("create_run", { p_domains: domains, p_source: source, p_note: note, p_prompt_versions: PROMPT_VERSIONS });
-    id = String(Object.values(row ?? {})[0]);
-  } catch (e) {
-    return { message: e instanceof Error ? e.message : "The run could not be started." };
-  }
+  const begin = async (): Promise<{ id: string } | { message: string }> => {
+    // A guest may start runs like an admin, within the daily caps; a signed-in person is never limited here.
+    const allowed = await guestStartVerdict(s, new Set(domains.map((d) => d.toLowerCase().trim())).size);
+    if (!allowed.ok) return { message: allowed.message };
+    let made: string;
+    try {
+      // The database re-checks every domain, the run-size cap, the sign-off and the suppression list; nothing here is trusted.
+      const [row] = await s.db.rpc("create_run", { p_domains: domains, p_source: source, p_note: note, p_prompt_versions: PROMPT_VERSIONS });
+      made = String(Object.values(row ?? {})[0]);
+    } catch (e) {
+      return { message: e instanceof Error ? e.message : "The run could not be started." };
+    }
+    // Checked again now that the run exists: if several requests at once (on different servers) each passed the first check, the ones
+    // that took the total over the day's limit are paused here, before any of their companies is read.
+    if (s.guest && s.env.guest) {
+      const after = await guestUsage(s);
+      if (after.companiesToday > s.env.guest.dailyCompanies) {
+        await s.db.insert("decisions", { run_id: made, kind: "pause_run", reason: "Paused: the guest allowance for today was passed by requests at the same time" }).catch(() => undefined);
+        return { message: "The guest allowance of researched companies for today was reached by requests made at the same moment, so this run was paused before it started. It starts again tomorrow (UTC)." };
+      }
+    }
+    return { id: made };
+  };
+  const began = s.guest ? await guestSerial("start", begin) : await begin();
+  if ("message" in began) return { message: began.message };
+  const id = began.id;
   // A run chosen from Discover also carries the size band each company was found under, so size is not "unknown" for a site that
   // never states it. The scorer labels it as Hunter's and a size the site states always wins. If this fails the run still goes
   // ahead and each company is judged from its site alone.

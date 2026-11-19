@@ -92,3 +92,74 @@ export function guestCooldown(lastAt: string | null | undefined, now: number, mi
   const waitMinutes = Math.ceil(waitMs / 60_000);
   return { ok: false, waitMinutes, message: `${what} was run recently, and guests can run it once every ${minutes >= 120 ? `${Math.round(minutes / 60)} hours` : `${minutes} minutes`}. Try again in about ${waitMinutes >= 90 ? `${Math.round(waitMinutes / 60)} hours` : `${waitMinutes} minute${waitMinutes === 1 ? "" : "s"}`}. The last result is still on the page.` };
 }
+
+/**
+ * The settings that decide what can be spent and where mail goes. A guest is an admin for everything else, but these are fixed for
+ * them at the owner's values: otherwise a guest could zero the Hunter reserve, lift the token limits, turn approval off, raise the
+ * send cap, or blank the test address (which silently stops all sending) and so undo every other rail.
+ */
+export const GUEST_PINNED = ["test_to", "daily_send_cap", "max_run_size", "max_parallel", "hunter_reserve", "tokens_per_domain", "tokens_per_run", "mail_cooldown_days", "require_approval"] as const;
+
+/** The row a guest's settings change would write, with every pinned value put back to what it was. Without a previous row, approval is forced on. */
+export function pinGuestSettings(row: Record<string, unknown>, previous: Record<string, unknown> | null): Record<string, unknown> {
+  const out = { ...row };
+  for (const k of GUEST_PINNED) {
+    if (previous && k in previous) out[k] = previous[k];
+    else if (k === "require_approval") out[k] = true;
+  }
+  return out;
+}
+
+/** Re-running or promoting a company spends model time and maybe a Hunter credit, so a guest has a daily number of them. */
+export const GUEST_MAX_RESUMES = 12;
+
+export function guestMayResume(u: GuestUsage, c: GuestCaps, resumesToday: number): GuestVerdict {
+  if (resumesToday >= GUEST_MAX_RESUMES) return { ok: false, message: `Guests can put ${GUEST_MAX_RESUMES} companies back in the queue a day, and that is used up. It starts again tomorrow (UTC). ${ALL_OPEN}` };
+  if (u.tokensToday >= c.dailyTokens) return { ok: false, message: `The guest allowance of model time for today is used up. It starts again tomorrow (UTC). ${ALL_OPEN}` };
+  return guestMayPay(u, c);
+}
+
+/** Questions a guest may ask in a day, counted from the database. Each can spend a large share of a model budget. */
+export const GUEST_DAILY_ASKS = 20;
+
+export function guestMayAsk(asksToday: number, limit: number = GUEST_DAILY_ASKS): GuestVerdict {
+  return asksToday >= limit ? { ok: false, message: `Guests can ask ${limit} questions a day, and that is used up. It starts again tomorrow (UTC). Everything researched is still open to read.` } : { ok: true };
+}
+
+/** How many of these rows were written today (UTC) by this person. */
+export function countToday(rows: Row[], by: string, now: number, kinds?: readonly string[]): number {
+  const from = startOfUtcDay(now);
+  return rows.filter((r) => r.created_by === by && new Date(String(r.created_at)).getTime() >= from && (!kinds || kinds.includes(String(r.kind)))).length;
+}
+
+/**
+ * Runs one thing at a time per key in this server process. The caps read usage and write later, so two requests at the same instant
+ * would both pass. This closes that gap within a server; across servers the caps are checked again afterwards and a run that went over is paused.
+ */
+export function createSerial() {
+  const tails = new Map<string, Promise<unknown>>();
+  return async function serial<T>(key: string, fn: () => Promise<T>): Promise<T> {
+    const prev = tails.get(key) ?? Promise.resolve();
+    const next = prev.catch(() => undefined).then(fn);
+    tails.set(key, next);
+    try {
+      return await next;
+    } finally {
+      if (tails.get(key) === next) tails.delete(key);
+    }
+  };
+}
+
+/** One long guest action at a time (a digest, a golden-set run): a second request while one is running is turned away, not queued. */
+export function createFlight() {
+  const running = new Set<string>();
+  return async function flight<T>(key: string, fn: () => Promise<T>): Promise<{ busy: true } | { busy: false; value: T }> {
+    if (running.has(key)) return { busy: true };
+    running.add(key);
+    try {
+      return { busy: false, value: await fn() };
+    } finally {
+      running.delete(key);
+    }
+  };
+}

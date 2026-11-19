@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { getSession, type AppSession } from "@/lib/app/runtime";
 import { isPlainAddress } from "@/lib/email/mime";
 import { PLACEHOLDER, type SprintoFactsFile } from "@/lib/pitch/sprinto-facts";
+import { pinGuestSettings } from "@/lib/app/guest";
 
 export interface ActionResult { ok: boolean; message: string }
 
@@ -35,7 +36,13 @@ export async function saveSettings(_p: ActionResult | null, f: FormData): Promis
   };
   if (Object.values(row).some((v) => typeof v === "number" && !Number.isFinite(v))) return { ok: false, message: "Every number needs a value." };
   try {
-    await s.db.insert("settings_versions", row);
+    // A guest may change the sender and the wording, but not what can be spent or where mail goes: those stay at the owner's values.
+    let final: typeof row = row;
+    if (s.guest) {
+      const [previous] = await s.db.select("settings_versions", {}, { order: "created_at", ascending: false, limit: 1 });
+      final = pinGuestSettings(row, previous ?? null) as typeof row;
+    }
+    await s.db.insert("settings_versions", final);
   } catch (e) {
     return { ok: false, message: err(e) };
   }
@@ -102,6 +109,8 @@ export async function addSuppression(_p: ActionResult | null, f: FormData): Prom
 export async function liftSuppression(_p: ActionResult | null, f: FormData): Promise<ActionResult> {
   const s = await as("operator");
   if (!s) return { ok: false, message: "Only an operator or admin can do that." };
+  // A do-not-contact entry protects someone's wishes, so only the owner may lift one.
+  if (s.guest) return { ok: false, message: "Only the owner can lift a do-not-contact entry." };
   if (text(f, "reason").length < 3) return { ok: false, message: "Give a short reason (at least 3 characters)." };
   try {
     await s.db.insert("suppressions", { kind: text(f, "kind", 10) === "address" ? "address" : "domain", value: text(f, "value", 254), action: "lift", reason: text(f, "reason") });

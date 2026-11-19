@@ -24,7 +24,8 @@ for (const cidr of [
 const v6 = new BlockList();
 v6.addAddress("::", "ipv6");
 v6.addAddress("::1", "ipv6");
-for (const cidr of ["fc00::/7", "fe80::/10", "ff00::/8", "2001:db8::/32", "64:ff9b::/96", "100::/64"]) {
+// 2002::/16 (6to4) and 2001::/32 (Teredo) tunnel IPv4 traffic and can hide a private IPv4 address inside an IPv6 one.
+for (const cidr of ["fc00::/7", "fe80::/10", "ff00::/8", "2001:db8::/32", "64:ff9b::/96", "100::/64", "2002::/16", "2001::/32"]) {
   const [address, prefix] = cidr.split("/") as [string, string];
   v6.addSubnet(address, Number(prefix), "ipv6");
 }

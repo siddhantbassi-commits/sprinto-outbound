@@ -1,6 +1,6 @@
 # Supabase: schema, queue and security
 
-Sixteen migrations, applied in order. They are plain SQL and are tested against a real Postgres (PGlite) on every `npm test`.
+Seventeen migrations, applied in order. They are plain SQL and are tested against a real Postgres (PGlite) on every `npm test`.
 
 | File | What it does |
 |---|---|
@@ -20,6 +20,7 @@ Sixteen migrations, applied in order. They are plain SQL and are tested against 
 | `…001400_digest.sql` | The weekly discovery digest: append-only `digest_searches` (each save, switch-on or switch-off is a new version) and `digests` (what each run found and whether the email went out), written only through `set_digest_search` (a person) and `record_digest` (the worker or a person) |
 | `…001500_prospect_hints.sql` | What is known about a company before its site is read: append-only `prospect_hints` (today, the size band Hunter Discover found a company under), written only by `set_prospect_hints`, and only for a company in that run that has not been read yet |
 | `…001600_verifications.sql` | Paying a Hunter credit to check an address properly: append-only `contact_verifications` (the status and score only, never the address, so the 90-day rule has nothing to remove) written by `record_verification`, which also records the credit in the usage ledger |
+| `…001700_ask_log.sql` | One append-only row per question asked on the Ask page, written only by `log_ask`, so a daily limit on questions can be counted from the database and holds across servers |
 
 ## Setting up a project (about 10 minutes, once)
 
