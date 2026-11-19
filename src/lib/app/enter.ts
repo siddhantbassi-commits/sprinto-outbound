@@ -11,7 +11,7 @@ export const INTRO_COOKIE = "sprinto_intro";
 export function safeDestination(raw: string | null | undefined): string {
   const t = (raw ?? "").trim();
   if (t === "" || t.length > 300 || !/^\/(?![/\\])/.test(t) || /[\u0000-\u001f]/.test(t)) return "/";
-  if (/^\/(enter|api|auth|login)(\/|\?|$)/.test(t)) return "/";
+  if (/^\/(enter|api|auth|login|privacy)(\/|\?|$)/.test(t)) return "/";
   return t;
 }
 
@@ -28,5 +28,5 @@ export interface IntroRequest {
 export function wantsIntro(r: IntroRequest): boolean {
   if ((r.mode !== "demo" && r.mode !== "guest") || r.method !== "GET" || r.hasCookie) return false;
   if (!r.accept.includes("text/html")) return false;
-  return !/^\/(enter|api|auth|login)(\/|$)/.test(r.path);
+  return !/^\/(enter|api|auth|login|privacy)(\/|$)/.test(r.path);
 }

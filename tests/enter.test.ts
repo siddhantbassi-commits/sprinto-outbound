@@ -50,6 +50,6 @@ describe("when the welcome is shown", () => {
   });
 
   it("not for the welcome itself, the API, or the sign-in and auth routes", () => {
-    for (const path of ["/enter", "/api/demo/warm", "/api/runs/status", "/login", "/auth/signout"]) expect(wantsIntro({ ...base, path }), path).toBe(false);
+    for (const path of ["/enter", "/api/demo/warm", "/api/runs/status", "/login", "/auth/signout", "/privacy"]) expect(wantsIntro({ ...base, path }), path).toBe(false);
   });
 });

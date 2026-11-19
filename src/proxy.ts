@@ -9,7 +9,7 @@ import { readEnv } from "@/lib/env";
  * The pages check the session again themselves; this is the early, cheap check, not the only one.
  */
 
-const PUBLIC = [/^\/login(\/|$)/, /^\/auth\//, /^\/api\/worker\//, /^\/api\/guest\//, /^\/enter(\/|$)/];
+const PUBLIC = [/^\/login(\/|$)/, /^\/privacy(\/|$)/, /^\/auth\//, /^\/api\/worker\//, /^\/api\/guest\//, /^\/enter(\/|$)/];
 
 export async function proxy(request: NextRequest) {
   const env = readEnv();
