@@ -51,7 +51,9 @@ describe("lining companies up", () => {
     expect(d2.find((x) => x.startsWith("GDPR:"))).not.toMatch(/probably needs it/);
     expect(d.find((x) => x.startsWith("Contact:"))).toBe("Contact: Beta has no named person yet; the others do.");
     expect(d.find((x) => x.startsWith("Competitor:"))).toMatch(/Gamma already seems to use a rival tool/);
-    expect(d.find((x) => x.startsWith("Conversation:"))).toMatch(/Alpha is "mid-certification/);
+    expect(d.find((x) => x.startsWith("Conversation:"))).toMatch(/Alpha is "Mid-certification/);
+    // Names like SOC 2 keep their capitals.
+    expect(d.find((x) => x.startsWith("Conversation:"))).toMatch(/Beta is "SOC 2 Type 2 in hand"/);
   });
 
   it("says nothing about a framework or a trait they all share", () => {

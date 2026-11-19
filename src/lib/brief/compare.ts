@@ -105,7 +105,7 @@ export function buildComparison(items: CompareInput[]): Comparison {
   const rivals = columns.filter((c) => c.usesCompetitor).map((c) => c.name);
   if (rivals.length && rivals.length < columns.length) differences.push(`Competitor: ${list(rivals)} already ${rivals.length === 1 ? "seems" : "seem"} to use a rival tool, so expect a switching conversation there.`);
   const stances = new Set(columns.map((c) => c.stance));
-  if (stances.size > 1) differences.push(`Conversation: ${columns.map((c) => `${c.name} is "${c.stance.toLowerCase()}"`).join("; ")}.`);
+  if (stances.size > 1) differences.push(`Conversation: ${columns.map((c) => `${c.name} is "${c.stance}"`).join("; ")}.`);
 
   return { columns, leader: top ? { id: top.id, name: top.name, score: top.score } : null, bestScore, bestEvidence, verdictLine, differences };
 }
