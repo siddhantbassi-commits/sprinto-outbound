@@ -17,6 +17,7 @@
     "test:watch": "vitest",
     "check": "npm run typecheck && npm run test",
     "smoke": "tsx scripts/smoke.ts",
+    "live-check": "node scripts/live-check.mjs",
     "golden": "tsx scripts/golden.ts",
     "keys": "tsx scripts/keys.ts",
     "gmail-token": "tsx scripts/gmail-token.ts",
